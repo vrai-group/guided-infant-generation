@@ -1,6 +1,10 @@
-# Compiled source #
-###################
-./weights/*.hdf5
-./masks
-./logs
-./data
+# Directory #
+weights/*.hdf5
+masks/
+logs/*.npy
+data/
+
+# estensioni #
+*.rar
+*.png
+*.bat
