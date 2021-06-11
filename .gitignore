@@ -1,8 +1,12 @@
 # Directory #
-weights/*.hdf5
-masks/
+__pycache__/
+data/BabyPose
+data/annotations
+dataset/__pycache__/
 logs/*.npy
-data/
+masks/
+weights/*.hdf5 
+
 
 # estensioni #
 *.rar
