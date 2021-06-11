@@ -1,0 +1,6 @@
+# Compiled source #
+###################
+./weights/*.hdf5
+./masks
+./logs
+./data
