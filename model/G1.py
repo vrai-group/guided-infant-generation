@@ -8,8 +8,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 ####### LOSS
 # Fuinzione di loss input: y_true, y_pred
 def PoseMaskLoss1(Y, output_G1):
-    image_raw_1 = Y[:, :, :, :3]
-    mask_1 = tf.reshape(Y[:, :, :, -1], [-1, 128, 64, 1])
+    image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
+    mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
     # print("g1",output_G1.shape)
     # print("mask1", mask_1.shape)
     # print("raw1", image_raw_1.shape)
@@ -27,10 +27,37 @@ def PoseMaskLoss1(Y, output_G1):
     return PoseMaskLoss1
 
 ###### METRICA
-# Metrica
+# Metrica MSE
 def mse(Y, output_G1):
-    image_raw_1 = Y[:, :, :, :3]
+    image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
     return tf.reduce_mean(tf.square(output_G1 - image_raw_1))
+
+# Metrica SSIM
+def m_ssim(Y, output_G1):
+    image_raw_1 = tf.clip_by_value((Y[:, :, :, 0]+ 127.5)* 127.5, clip_value_min=0, clip_value_max=255)
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    output_G1 = tf.clip_by_value(output_G1, clip_value_min=0, clip_value_max=255)
+
+    result = tf.image.ssim(output_G1, image_raw_1, max_val=255)
+    mean = tf.reduce_mean(result)
+
+    """
+    path = os.path.join("./results_ssim", 'G_ssim{}.png'.format(mean))
+    save_image(output_G1, path)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+    """
+    return mean
+
+#### Learning rate
+def step_decay(epoch):
+    initial_lrate = 2e-5
+
+    # Aggiorniamo il lr ogni epoca
+    if epoch > 0:
+        lrate = initial_lrate / (0.5 * epoch)
+    else:
+        lrate = initial_lrate
+
+    return lrate
 
 
 ###### MODEL
@@ -51,16 +78,16 @@ def build_model(config):
             # ho cambiato da 3 a 2 la grandeza del Kenrel se non non portano le misura con l originale
             x = Conv2D(config.conv_hidden_num * (idx + 2), 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(x)
 
-    # output [num_batch, 20.480]
-    x = Reshape([-1, int(np.prod([config.min_fea_map_H, config.min_fea_map_H / 2, channel_num]))])(x)
-    # output [num_batch, 64]
+    # output [num_batch, 98.304]
+    x = Reshape([-1, int(np.prod([config.min_fea_map_H, config.min_fea_map_W, channel_num]))])(x)
+    # output [num_batch, 304] --> cambio numero neuroni proporzione 20480:64 = 98304 : x   il membro di sx era per il Market
     z = x = Dense(config.z_num, activation=None)(x)
 
     ##### Decoder
-    # output [num batch, 4096]
-    x = Dense(int(np.prod([config.min_fea_map_H, config.min_fea_map_H / 2, config.conv_hidden_num ])), activation=None)(z)
-    # output [num batch, 8,4,128]
-    x = Reshape([config.min_fea_map_H, int(config.min_fea_map_H / 2), config.conv_hidden_num])(x)
+    # output [num batch, 24576]
+    x = Dense(int(np.prod([config.min_fea_map_H, config.min_fea_map_W, config.conv_hidden_num ])), activation=None)(z)
+    # output [num batch, 12,16,128]
+    x = Reshape([config.min_fea_map_H, config.min_fea_map_W, config.conv_hidden_num])(x)
 
     for idx in range(config.repeat_num):
 
@@ -84,7 +111,7 @@ def build_model(config):
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5, beta_2=0.999),
         loss=PoseMaskLoss1,
-        metrics=[mse],
+        metrics=[mse,m_ssim],
     )
 
     return model
