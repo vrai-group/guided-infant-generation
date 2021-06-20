@@ -114,27 +114,45 @@ Maschera con shape [height, width, 1]
 """
 
 
-def _getPoseMask(peaks, height, width, radius_head=20, radius=4, var=4, mode='Solid'):
+def _getPoseMask(peaks, height, width, radius_head=30, radius=4, var=4, mode='Solid'):
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
-               [1, 2], [2, 3],  # collo
-               [3, 4], [4, 5],  # braccio sx
-               [5, 6], [6, 7],  # braccio dx
+               [1, 2], [2, 3],  # braccio dx
+               [3, 4], [4, 5],  # collo
+               [5, 6], [6, 7],  # braccio sx
                [11, 12], [12, 13],  # gamba sinistra
                [10, 9], [9, 8],  # gamba destra
-               [11, 10],
+               [11, 10], # Anche
+               #Corpo
                [10, 4], [10, 3], [10, 5], [10, 0],
                [11, 4], [11, 3], [11, 5], [11, 0],
                ]
     indices = []
     values = []
+    logs_cancellazione = [] # serve per controllare se entriamo negli if in cui manca o l'anca sx o dx o la spalla sx o dx
+                  # len 0 --> non entro
+                  # len > 0  --> sono entrato almeno una volta
+
     for limb in limbSeq:  # ad esempio limb = [2, 3]
         p0 = peaks[limb[0]]  # ad esempio coordinate per il keypoint corrispondente con id 2
         p1 = peaks[limb[1]]  # ad esempio coordinate per il keypoint corrispondente con id 3
 
-        c0 = int(p0.split(',')[0])  # coordinata y  per il punto p0
+        c0 = int(p0.split(',')[0])  # coordinata y  per il punto p0   ex: "280,235"
         r0 = int(p0.split(',')[1])  # coordinata x  per il punto p0
         c1 = int(p1.split(',')[0])  # coordinata y  per il punto p1
         r1 = int(p1.split(',')[1])  # coordinata x  per il punto p1
+
+        if (limb[0] == 3 and r0 == -1) or (limb[1] == 3 and r1 == -1):  #manca spalla dx
+            logs_cancellazione.append(3)
+            continue
+        if (limb[0] == 5 and r0 == -1) or (limb[1] == 5 and r1 == -1):  #manca spalla sx
+            logs_cancellazione.append(5)
+            continue
+        if (limb[0] == 11 and r0 == -1) or (limb[1] == 11 and r1 == -1):  #manca anca sx
+            logs_cancellazione.append(11)
+            continue
+        if (limb[0] == 10 and r0 == -1) or (limb[1] == 10 and r1 == -1): #manca anca dx
+            logs_cancellazione.append(10)
+            continue
 
         if r0 != -1 and r1 != -1 and c0 != -1 and c1 != -1:  # non considero le occlusioni che sono indicate con valore -1
 
@@ -159,38 +177,58 @@ def _getPoseMask(peaks, height, width, radius_head=20, radius=4, var=4, mode='So
             indices.extend(ind)
             values.extend(val)
 
-            ## stampo l immagine
+            # ## stampo l immagine
             # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
-            # cv2.imwrite('Dense.png', dense * 255)
+            # cv2.imwrite('Dense{limb}.png'.format(limb=limb), dense * 255)
 
             # Qui vado a riempire il segmento ad esempio [2,3] corrispondenti ai punti p0 e p1.
             # L idea è quella di riempire questo segmento con altri punti di larghezza radius=4.
             # Ovviamente per farlo calcolo la distanza tra p0 e p1 e poi vedo quanti punti di raggio 4 entrano in questa distanza.
             # Un esempio è mostrato nelle varie imamgini di linking
             distance = np.sqrt((r0 - r1) ** 2 + (c0 - c1) ** 2)  # distanza tra il punto p0 e p1
-            sampleN = int(
-                distance / radius)  # numero di punti, con raggio di 4, di cui ho bisogno per coprire la distanza tra i punti p0 e p1
+            sampleN = int(distance / radius)  # numero di punti, con raggio di 4, di cui ho bisogno per coprire la distanza tra i punti p0 e p1
             if sampleN > 1:
                 for i in range(1, sampleN):  # per ognuno dei punti di cui ho bisogno
                     r = int(r0 + (r1 - r0) * i / sampleN)  # calcolo della coordinata y
                     c = int(c0 + (c1 - c0) * i / sampleN)  # calcolo della coordinata x
-                    ind, val = _getSparseKeypoint(r, c, 0, height, width, radius, var,
-                                                  mode)  ## ingrandisco il nuovo punto considerando un raggio di 4
+                    ind, val = _getSparseKeypoint(r, c, 0, height, width, radius, var, mode)  ## ingrandisco il nuovo punto considerando un raggio di 4
                     indices.extend(ind)
                     values.extend(val)
 
                     ## per stampare il linking dei lembi
                     # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
                     # cv2.imwrite('Linking'+str(limb)+'.png', dense * 255)
+            ## stampo l immagine
+            dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
+            cv2.imwrite('Dense{limb}.png'.format(limb=limb), dense * 255)
 
-    shape = [height, width, 1]
-    ## Fill body
-    dense = np.squeeze(_sparse2dense(indices, values, shape))
-    dense = dilation(dense, square(10))
-    dense = erosion(dense, square(5))
-    # cv2.imwrite('DenseMask.png', dense * 255)
-    return dense
+    if len(logs_cancellazione) == 0:
+        shape = [height, width, 1]
+        ## Fill body
+        dense = np.squeeze(_sparse2dense(indices, values, shape))
+        dense = dilation(dense, square(15))
+        dense = erosion(dense, square(5))
+        #cv2.imwrite('DenseMask.png', dense * 255)
+    else:
+        dense = None # significa che che manca almeno un keypoint tra spalla dx o sx e/o anca dx o sx
+        logs_cancellazione = set(logs_cancellazione)
 
+    return dense, list(logs_cancellazione)
+
+"""
+## Serve per stamapare i peaks sull immagine in input. Stampo i peaks considerando anche i corrispettivi id
+"""
+def visualizePeaks(peaks, img):
+    for k in range(len(peaks)):
+        p = peaks[k]  # coordinate peak ex: "300,200" type string
+        x = int(p.split(',')[0])  # column
+        y = int(p.split(',')[1])  # row
+        if x != -1 and y != -1:
+            cv2.circle(img, (x, y), 2, (0, 255, 0), -1)
+            cv2.putText(img, str(k), (x,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (255, 0, 0), 1)
+            #cv2.imwrite('keypoint.png', img)
+
+    return img
 
 def _format_data(config, pz_0, annotations_0):
     # Creazione del TFrecord
@@ -213,45 +251,51 @@ def _format_data(config, pz_0, annotations_0):
     peaks = annotations_0[1:]  # annotation_0[1:] --> poichè tolgo il campo image
     # shape --> [height, width, config.keypoint_num]
     indices_r4_0, values_r4_0, shape = _getSparsePose(peaks, height, width, config.keypoint_num, radius=4, mode='Solid')
-    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=4, mode='Solid')
+    pose_mask_r4_0, logs_keypoints_mancanti = _getPoseMask(peaks, height, width, radius=4, mode='Solid')
+    if len(logs_keypoints_mancanti) == 0:
 
-    # Salvataggio delle 14 heatmap
-    for ii in range(len(peaks)):
-        p = peaks[ii]
-        if 0 != len(p):
-            c = int(p.split(',')[0])  # column
-            r = int(p.split(',')[1])  # row
-            ## siccome la dimensione delle immagini di posa sono 16x8, mentre i peaks sono considerati
-            ## sull immagine raw di dimensione 128x64, ho bisogno di scalare le coordinate dei songoli peak.
-            ## una volta fatto, per quello specifico punto setto il valore 1
-            pose_peaks_0[int(r / h_unit), int(c / w_unit), ii] = 1
-            ## il vettore rcv mi permette di ricorda le coordinate (non riscalate) e il valore settato
-            pose_peaks_0_rcv[ii][0] = r
-            pose_peaks_0_rcv[ii][1] = c
-            pose_peaks_0_rcv[ii][2] = 1
+        keypoints_img = visualizePeaks(peaks, tf.io.decode_png(image_raw_0, channels=3).numpy())
 
-    example = tf.train.Example(features=tf.train.Features(feature={
+        # Salvataggio delle 14 heatmap
+        for ii in range(len(peaks)):
+            p = peaks[ii]
+            if 0 != len(p):
+                c = int(p.split(',')[0])  # column
+                r = int(p.split(',')[1])  # row
+                ## siccome la dimensione delle immagini di posa sono 16x8, mentre i peaks sono considerati
+                ## sull immagine raw di dimensione 128x64, ho bisogno di scalare le coordinate dei songoli peak.
+                ## una volta fatto, per quello specifico punto setto il valore 1
+                pose_peaks_0[int(r / h_unit), int(c / w_unit), ii] = 1
+                ## il vettore rcv mi permette di ricorda le coordinate (non riscalate) e il valore settato
+                pose_peaks_0_rcv[ii][0] = r
+                pose_peaks_0_rcv[ii][1] = c
+                pose_peaks_0_rcv[ii][2] = 1
 
-        'pz_0': dataset_utils.bytes_feature(pz_0.encode('utf-8')),
-        'image_name_0': dataset_utils.bytes_feature(annotations_0['image'].encode('utf-8')),  # nome dell immagine 0
-        'image_raw_0': dataset_utils.bytes_feature(image_raw_0.numpy()),  # immagine in bytes  0
 
-        'image_height': dataset_utils.int64_feature(height),  # 128
-        'image_width': dataset_utils.int64_feature(width),  # 64
 
-        'pose_mask_r4_0': dataset_utils.int64_feature(pose_mask_r4_0.astype(np.int64).flatten().tolist()),
-        # maschera binaria a radius 4 con shape [128,64,1]
+        example = tf.train.Example(features=tf.train.Features(feature={
 
-    }))
+            'pz_0': dataset_utils.bytes_feature(pz_0.encode('utf-8')),
+            'image_name_0': dataset_utils.bytes_feature(annotations_0['image'].encode('utf-8')),  # nome dell immagine 0
+            'image_raw_0': dataset_utils.bytes_feature(image_raw_0.numpy()),  # immagine in bytes  0
+            'key': dataset_utils.int64_feature(keypoints_img[:,:,0].astype(np.int64).flatten().tolist()),  # immagine con su stampati i keypoints
 
-    return example
+            'image_height': dataset_utils.int64_feature(height),  # 128
+            'image_width': dataset_utils.int64_feature(width),  # 64
+
+            'pose_mask_r4_0': dataset_utils.int64_feature(pose_mask_r4_0.astype(np.int64).flatten().tolist()),
+            # maschera binaria a radius 4 con shape [128,64,1]
+
+        }))
+    else: # significa che che manca almeno un keypoint tra spalla dx o sx e/o anca dx o sx
+        example = None
+
+    return example, logs_keypoints_mancanti
 
 
 if __name__ == '__main__':
     Config_file = __import__('0_config_utils')
     config = Config_file.Config()
-
-
 
     # Lettura delle prime annotazioni --> ex:pz3
     for name_file_annotation_0 in sorted(os.listdir(config.data_annotations_path), key = lambda x : int(x.split('_')[1].split('.')[0].split('z')[1])):
@@ -265,6 +309,7 @@ if __name__ == '__main__':
         output_filename = './masks/BabyPose_{pz}.tfrecord'.format(pz=pz_0)
         tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(output_filename)
         print(pz_0)
+        logs_cancellazione_immagini = []
 
         # Creazione del pair
         for _, row_0 in pd_annotation_0.iterrows():
@@ -272,10 +317,13 @@ if __name__ == '__main__':
 
             sys.stdout.write('\r>> Converting image %d/%d' % (cnt,len_0))
             sys.stdout.flush()
-            example = _format_data(config, pz_0, row_0)
+            example, logs_keypoints_mancanti = _format_data(config, pz_0, row_0)
             if None == example:
+                logs_cancellazione_immagini.append([row_0['image'],logs_keypoints_mancanti])
                 continue
             tfrecord_writer.write(example.SerializeToString())
             cnt += 1
 
         tfrecord_writer.close()
+        np.save('./masks/logs_cancellazione/{pz}.npy'.format(pz=pz_0),np.array(logs_cancellazione_immagini))
+        #TODO salvare logs per cancellazione immagine
