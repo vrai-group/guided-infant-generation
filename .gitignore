@@ -5,8 +5,9 @@ data/annotations
 data/pyOniExtractor
 dataset/__pycache__/
 logs/*.npy
-masks/
-model/__pycache__
+masks/*.tfrecord
+masks/logs_cancellazione/*.npy
+model/__pycache__/
 weights/*.hdf5 
 
 
