@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from utils import utils_wgan
 
 from model import G1, G2, Discriminator
-from datasets.market1501 import Market
+from datasets.BabyPose import BabyPose
 
 import matplotlib.pyplot as plt
 
@@ -21,29 +21,22 @@ class PG2(object):
     def __init__(self, config):
         # Trainer.__init__(self, config, data_loader=None)
         self.config = config
-
-        if 'market' in config.dataset.lower():
-            self.market_obj = Market()
-
-
-
+        self.babypose_obj = BabyPose()
 
     def train_G1(self):
 
         # Preprocess Dataset train
-        # TODO CAPIRE SE HA SENSO INVERTIRE E FARE PRIMA LO SHUFFLE E POI LA MAP
-        # todo vedere se ha senso specificare che queste operazioni devono avvenire su cpu with tf.device('/cpu:0'):
-        dataset_train = self.market_obj.get_unprocess_dataset(config.data_path, "Market1501_train_00000-of-00001.tfrecord")
+        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
-        dataset_train = self.market_obj.get_preprocess_G1_dataset(dataset_train)
+        dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.repeat(self.config.epochs)  # 100 numeor di epoche
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
         train_it = iter(dataset_train)
 
         # Preprocess Dataset valid
-        dataset_valid = self.market_obj.get_unprocess_dataset(config.data_path, "Market1501_valid_00000-of-00001.tfrecord")
-        dataset_valid = self.market_obj.get_preprocess_G1_dataset(dataset_valid)
+        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_valid)
+        dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
         # dataset_valid = dataset_valid.shuffle(self.config.dataset_valid_len, reshuffle_each_iteration=True)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
         dataset_valid = dataset_valid.repeat(self.config.epochs)  # 100 numeor di epoche
@@ -55,63 +48,50 @@ class PG2(object):
         model_g1.summary()
 
         # CallBacks
-        filepath = os.path.join(self.config.weigths_path, 'Best_Model_{epoch:03d}-{val_loss:2f}-{val_mse:2f}.hdf5')
-        checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True,
-                                     save_weights_only=True, mode='min', period=1)
+        filepath = os.path.join(self.config.weigths_path, 'Model_G1_{epoch:03d}-{loss:2f}-{mse:2f}-{m_ssim:2f}-{val_loss:2f}-{val_mse:2f}-{val_m_ssim:2f}.hdf5')
+        checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=True, period=1)
 
-        """
-        def step_decay(epoch):
-            initial_lrate = 0.01
-            drop = 0.88
-            epochs_drop = 10.0
-
-            lrate = initial_lrate * np.power(drop, np.floor((epoch + 1) / epochs_drop))
-            print(lrate)
-            return lrate
-
-        learning_rate_decay = LearningRateScheduler(step_decay)
-        """
+        learning_rate_decay = LearningRateScheduler(G1.step_decay)
 
         model_g1.fit(train_it,
-                     epochs=self.config.epochs, #100
-                     steps_per_epoch=int(self.config.dataset_train_len/self.config.batch_size_train),  #25600/4
-                     callbacks=[checkPoint],
-                     validation_data = valid_it,
-                     validation_steps = int(self.config.dataset_valid_len/self.config.batch_size_valid)
-        )
+                     epochs=self.config.epochs,  # 100
+                     steps_per_epoch=int(self.config.dataset_train_len / self.config.batch_size_train),  # 25600/4
+                     callbacks=[checkPoint, learning_rate_decay],
+                     validation_data=valid_it,
+                     validation_steps=int(self.config.dataset_valid_len / self.config.batch_size_valid)
+                     )
 
     def train_conditional_GAN(self):
 
         #Note: G1 è preaddestrato
 
         # Preprocess Dataset train
-        dataset_train = self.market_obj.get_unprocess_dataset(config.data_path, "Market1501_train_00000-of-00001.tfrecord")
+        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
-        dataset_train = self.market_obj.get_preprocess_GAN_dataset(dataset_train)
+        dataset_train = self.babypose_obj.get_preprocess_GAN_dataset(dataset_train)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         #dataset_train = dataset_train.repeat(self.config.epochs)  # 100 numeor di epoche
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
         #Preprocess Dataset valid
-        dataset_valid = self.market_obj.get_unprocess_dataset(config.data_path, "Market1501_valid_00000-of-00001.tfrecord")
-        dataset_valid = self.market_obj.get_preprocess_GAN_dataset(dataset_valid)
+        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_valid)
+        dataset_valid = self.babypose_obj.get_preprocess_GAN_dataset(dataset_valid)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
         #dataset_valid = dataset_valid.repeat(self.config.epochs)  # 100 numeor di epoche
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
-
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model(self.config)
-        self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Best_Model_001-0.409152-0.158295.hdf5'))
+        #self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Best_Model_001-0.409152-0.158295.hdf5'))
 
         # Buildo la GAN
         self.model_G2 = G2.build_model(self.config) # architettura Generatore G2
-        #self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
-        self.model_G2.load_weights('./weights/Model_G2_epoch_035-loss_train_2.730875_real_valid_79_real_train_4634.hdf5')
+        self.model_G2.summary()
+        self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
         self.opt_G2 = G2.optimizer() # ottimizzatore
         self.model_D = Discriminator.build_model(self.config)
-        #self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
-        self.model_D.load_weights('./weights/Model_D_epoch_035-loss_train_0.659629_real_valid_79_real_train_4634.hdf5')
+        self.model_D.summary()
+        self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
         self.opt_D = Discriminator.optimizer()
 
         # Train
@@ -144,7 +124,7 @@ class PG2(object):
 
             # Train
             for id_batch in range(num_batches_train):
-                loss_values_train_G2[id_batch], loss_values_train_D[id_batch], loss_values_train_D_fake[id_batch],loss_values_train_D_real[id_batch], real_predette_train = self._train_step(train_it,id_batch)
+                loss_values_train_G2[id_batch], loss_values_train_D[id_batch], loss_values_train_D_fake[id_batch],loss_values_train_D_real[id_batch], real_predette_train = self._train_step(train_it)
                 cnt_real_predette_train += real_predette_train
                 mean_loss_G2_train = np.mean(loss_values_train_G2[:id_batch])
                 mean_loss_D_train = np.mean(loss_values_train_D[:id_batch])
@@ -188,10 +168,11 @@ class PG2(object):
             logs_loss_train_D[epoch] = mean_loss_D_train
             logs_loss_train_D_fake[epoch] = mean_loss_D_train_fake
             logs_loss_train_D_real[epoch] = mean_loss_D_train_real
-            np.save('./logs/logs_loss_train_G2epoch_{epoch:03d}.npy'.format(epoch=epoch+1), logs_loss_train_G2[:epoch])
-            np.save('./logs/logs_loss_train_D_{epoch:03d}.npy'.format(epoch=epoch+1), logs_loss_train_D[:epoch])
-            np.save('./logs/logs_loss_train_D_fake_{epoch:03d}.npy'.format(epoch=epoch+1), logs_loss_train_D_fake[:epoch])
-            np.save('./logs/logs_loss_train_D_real_{epoch:03d}.npy'.format(epoch=epoch+1), logs_loss_train_D_real[:epoch])
+
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_G2.npy'.format(epoch=epoch+1)), logs_loss_train_G2[:epoch])
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_total.npy'.format(epoch=epoch+1)), logs_loss_train_D[:epoch])
+            np.save(os.path.join(self.config.logs_path,'.logs_loss_train_D_fake.npy'.format(epoch=epoch+1)), logs_loss_train_D_fake[:epoch])
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_real.npy'.format(epoch=epoch+1)), logs_loss_train_D_real[:epoch])
 
             #Update learning rate
             if epoch % self.config.lr_update_epoch == self.config.lr_update_epoch - 1:
@@ -202,40 +183,33 @@ class PG2(object):
             # Download from google colab
             if self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
                 os.system('rar a /gdrive/MyDrive/weights_and_logs logs/*')
-                #os.system('rar a weights_and_logs weights/Model_G2_epoch_{epoch:03d}-loss_train_*.hdf5'.format(epoch=epoch))
-                #os.system('rar a weights_and_logs weights/Model_D_epoch_{epoch:03d}-loss_train_*.hdf5'.format(epoch=epoch))
                 os.system('rar a /gdrive/MyDrive/weights_and_logs weights/Model_*_epoch_*-loss_train_*.hdf5')
                 print("RAR CREATO\n")
 
-    def _train_step(self, train_it, i):
+    def _train_step(self, train_it):
 
         batch = next(train_it)
-        image_raw_0 = batch[0] #[batch, 128,64, 3]
-        image_raw_1 = batch[1] #[batch, 128,64, 3]
-        pose_1 = batch[2] #[batch, 128,64, 18]
-        mask_1 = batch[3] #[batch, 128,64, 1]
+        image_raw_0 = batch[0] #[batch, 96, 128, 1]
+        image_raw_1 = batch[1] #[batch, 96,128, 1]
+        pose_1 = batch[2] #[batch, 96,128, 14]
+        mask_1 = batch[3] #[batch, 96,128, 1]
 
         # G1
-        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1) # [batch, 128,64, 21]
-        output_G1 = self.model_G1(input_G1) # output_g1 --> [batch, 128, 64, 3]
-
+        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1) # [batch, 96, 128, 15]
+        output_G1 = self.model_G1(input_G1) # output_g1 --> [batch, 96, 128, 1]
 
         with tf.GradientTape() as g2_tape, tf.GradientTape() as d_tape:
 
             # G2
-            input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 128, 64, 6]
-            output_G2 = self.model_G2(input_G2) # [batch, 128, 64, 3]
-            # s = output_G2.numpy()[0] * 127 + 127
-            # cv2.imwrite("D:\\ComputerVision\\PoseGenerationMarket\\test.png", s.astype(np.int32))
+            input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
+            output_G2 = self.model_G2(input_G2) # [batch, 96, 128, 1]
 
             # D
-            refined_result = output_G1 + output_G2 # [batch, 128, 64, 3]
-            # s = refined_result.numpy()[0] * 127 + 127
-            # cv2.imwrite("D:\\ComputerVision\\PoseGenerationMarket\\test.png", s.astype(np.int32))
-            input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0) # [batch * 3, 128, 64, 3] --> batch * 3 poichè concateniamo sul primo asse
+            refined_result = output_G1 + output_G2 # [batch, 96, 128, 1]
+            input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0) # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
             output_D = self.model_D(input_D) # [batch * 3, 1]
             output_D = tf.reshape(output_D, [-1]) # [batch*3]
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D,3) # [batch]
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3) # [batch]
             #Come definita in trainer256
             D_z_pos = D_pos_image_raw_1
             D_z_neg = tf.concat([D_neg_refined_result, D_neg_image_raw_0], 0)
@@ -258,21 +232,21 @@ class PG2(object):
     def _valid_step(self, valid_it):
 
         batch = next(valid_it)
-        image_raw_0 = batch[0] #[batch, 128,64, 3]
-        image_raw_1 = batch[1] #[batch, 128,64, 3]
-        pose_1 = batch[2] #[batch, 128,64, 18]
-        mask_1 = batch[3] #[batch, 128,64, 1]
+        image_raw_0 = batch[0] #[batch, 96,128, 1]
+        image_raw_1 = batch[1] #[batch, 96,128, 1]
+        pose_1 = batch[2] #[batch, 96,128, 1]
+        mask_1 = batch[3] #[batch, 96,128, 1]
 
         # G1
-        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1) # [batch, 128,64, 21]
-        output_G1 = self.model_G1(input_G1) # output_g1 --> [batch, 128, 64, 3]
+        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1) # [batch, 96, 128, 1]
+        output_G1 = self.model_G1(input_G1) # output_g1 --> [batch, 96, 128, 1]
 
         # G2
-        input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 128, 64, 6]
-        output_G2 = self.model_G2(input_G2)  # [batch, 128, 64, 3]
+        input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
+        output_G2 = self.model_G2(input_G2)  # [batch, 96, 128, 1]
 
         # D
-        refined_result = output_G1 + output_G2  # [batch, 128, 64, 3]
+        refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
         output_D = self.model_D(refined_result) # [batch, 1]
         output_D = tf.reshape(output_D, [-1]).numpy() # [batch]
 
@@ -284,8 +258,8 @@ class PG2(object):
     def predict_G1(self):
 
         # Preprocess Dataset test
-        dataset_test = self.market_obj.get_unprocess_dataset(config.data_path, "Market1501_test_00000-of-00001.tfrecord")
-        dataset_test = self.market_obj.get_preprocess_G1_dataset(dataset_test)
+        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_path, "Market1501_test_00000-of-00001.tfrecord")
+        dataset_test = self.babypose_obj.get_preprocess_G1_dataset(dataset_test)
         dataset_test = dataset_test.batch(1)
         dataset_test = dataset_test.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
         test_it = iter(dataset_test)
@@ -330,8 +304,8 @@ class PG2(object):
     def predict_conditional_GAN(self):
 
         # Preprocess Dataset test
-        dataset_test = self.market_obj.get_unprocess_dataset(config.data_path, "Market1501_test_00000-of-00001.tfrecord")
-        dataset_test = self.market_obj.get_preprocess_GAN_dataset(dataset_test)
+        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_path, "Market1501_test_00000-of-00001.tfrecord")
+        dataset_test = self.babypose_obj.get_preprocess_GAN_dataset(dataset_test)
         dataset_test = dataset_test.batch(1)
         dataset_test = dataset_test.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
         test_it = iter(dataset_test)
@@ -407,7 +381,7 @@ if __name__ == "__main__":
     pg2 = PG2(config)  # Pose Guided ^2 network
 
     if config.is_train:
-        pg2.train_conditional_GAN()
+        pg2.train_G1()
     else:
         pg2.predict_conditional_GAN()
         
