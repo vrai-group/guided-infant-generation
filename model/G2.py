@@ -8,10 +8,10 @@ from tensorflow.keras.losses import BinaryCrossentropy
 
 
 # Fuinzione di loss
-def Loss(D_z_neg, refined_result, image_raw_1, mask_1):
+def Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1):
 
     # Loss per imbrogliare il discriminatore creando un immagine sempre più reale
-    gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_z_neg, labels=tf.ones_like(D_z_neg)))
+    gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.ones_like(D_neg_refined_result)))
 
     primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1) * mask_1)
@@ -23,8 +23,15 @@ def Loss(D_z_neg, refined_result, image_raw_1, mask_1):
 
 
 # Metrica
-def mse(Y, output_G1):
-    None
+def m_ssim(refined_result, image_raw_1):
+    image_raw_1 = tf.clip_by_value((image_raw_1 + 127.5) * 127.5, clip_value_min=0, clip_value_max=255)
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    refined_result = tf.clip_by_value(refined_result, clip_value_min=0, clip_value_max=255)
+
+    result = tf.image.ssim(refined_result, image_raw_1, max_val=255)
+    mean = tf.reduce_mean(result)
+
+    return mean
 
 # Optimizer
 def optimizer():
@@ -35,31 +42,34 @@ def build_model(config):
     #####Encoder
     encoder_layer_list = []
     inputs = keras.Input(shape=config.input_shape_g2)
-    x = Conv2D(config.conv_hidden_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(inputs)
 
-    for idx in range(config.repeat_num-2):
-        channel_num = config.conv_hidden_num * (idx + 1)
-        x = Conv2D(channel_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(x)
-        x = Conv2D(channel_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(x)
-        if idx > 0:
-            encoder_layer_list.append(x)
-        if idx < config.repeat_num -2 - 1:
-            # ho cambiato da 3 a 2 la grandeza del Kenrel se non non portano le misura con l originale
-            x = Conv2D(channel_num, 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(x)
+    conv1 = Conv2D(config.conv_hidden_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(inputs)
+    conv1 = Conv2D(config.conv_hidden_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(conv1)
+    conv1 = Conv2D(config.conv_hidden_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(conv1)
+    pool1 = Conv2D(config.conv_hidden_num, 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(conv1) # pool
 
-    ##### Decoder
-    for idx in range(config.repeat_num-2):
-        if idx < config.repeat_num -2 - 1:
-            x = Concatenate(axis=-1)([x, encoder_layer_list[-1-idx]])  # Long Skip connestion
-        x = Conv2D(config.conv_hidden_num, 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(x)
-        x = Conv2D(config.conv_hidden_num, 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(x)
-        if idx < config.repeat_num -2 - 1:
-            # x = slim.layers.conv2d_transpose(x, hidden_num * (config.repeat_num-idx-1), 3, 2, activation_fn=activation_fn, data_format=data_format)
-            # Effettua l upscale delle feturemaps
-            x = UpSampling2D(size=(2, 2), data_format=config.data_format, interpolation="nearest")(x)
+    conv2 = Conv2D(config.conv_hidden_num * 2, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(pool1)
+    conv2 = Conv2D(config.conv_hidden_num * 2, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(conv2)
+    pool2 = Conv2D(config.conv_hidden_num * 2, 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(conv2)  # pool
+
+    conv3 = Conv2D(config.conv_hidden_num * 3, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(pool2)
+    conv3 = Conv2D(config.conv_hidden_num * 3, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(conv3)
 
 
-    outputs = Conv2D(config.input_image_raw_channel, 3, 1, padding='same', activation=None, data_format=config.data_format)(x)
+    up4 = UpSampling2D(size=(2, 2), data_format=config.data_format, interpolation="nearest")(conv3)
+    up4 = Conv2D(config.conv_hidden_num * 2, 2, 1, padding="same", activation=config.activation_fn, data_format=config.data_format)(up4)
+    merge4 = Concatenate(axis=-1)([up4, conv2])  # Long Skip connestion
+    conv4 = Conv2D(config.conv_hidden_num * 2, 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(merge4)
+    conv4 = Conv2D(config.conv_hidden_num * 2, 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(conv4)
+
+    up5 = UpSampling2D(size=(2, 2), data_format=config.data_format, interpolation="nearest")(conv4)
+    up5 = Conv2D(config.conv_hidden_num, 2, 1, padding="same", activation=config.activation_fn, data_format=config.data_format)(up5)
+    merge5 = Concatenate(axis=-1)([up5, conv1])  # Long Skip connestion
+    conv5 = Conv2D(config.conv_hidden_num , 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(merge5)
+    conv5 = Conv2D(config.conv_hidden_num , 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(conv5)
+
+    outputs = Conv2D(config.input_image_raw_channel, 1, 1, padding='same', activation=None, data_format=config.data_format)(conv5)
+
 
     model = keras.Model(inputs, outputs)
 
