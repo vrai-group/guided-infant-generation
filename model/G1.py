@@ -5,6 +5,9 @@ from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.callbacks import ModelCheckpoint
 
+sys.path.insert(1, '../utils')
+from utils import utils_wgan
+
 ####### LOSS
 # Fuinzione di loss input: y_true, y_pred
 def PoseMaskLoss1(Y, output_G1):
@@ -34,17 +37,17 @@ def mse(Y, output_G1):
 
 # Metrica SSIM
 def m_ssim(Y, output_G1):
-    image_raw_1 = tf.clip_by_value((Y[:, :, :, 0]+ 127.5)* 127.5, clip_value_min=0, clip_value_max=255)
-    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
-    output_G1 = tf.clip_by_value(output_G1, clip_value_min=0, clip_value_max=255)
+    image_raw_1 = Y[:, :, :, 0]
+    image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 1, 32765.5)
+    output_G1 = utils_wgan.unprocess_image(output_G1, 1, 32765.5)
 
-    result = tf.image.ssim(output_G1, image_raw_1, max_val=255)
+    image_raw_1 = tf.clip_by_value(image_raw_1, clip_value_min=0, clip_value_max=32765)
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    output_G1 = tf.clip_by_value(output_G1, clip_value_min=0, clip_value_max=32765)
+
+    result = tf.image.ssim(output_G1, image_raw_1, max_val=32765)
     mean = tf.reduce_mean(result)
 
-    """
-    path = os.path.join("./results_ssim", 'G_ssim{}.png'.format(mean))
-    save_image(output_G1, path)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
-    """
     return mean
 
 #### Learning rate
@@ -76,11 +79,12 @@ def build_model(config):
         encoder_layer_list.append(x)
         if idx < config.repeat_num - 1:
             # ho cambiato da 3 a 2 la grandeza del Kenrel se non non portano le misura con l originale
+            # Questo layer si preoccupa di dimezzare le dimensioni W e H
             x = Conv2D(config.conv_hidden_num * (idx + 2), 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(x)
 
-    # output [num_batch, 98.304]
+    # output [num_batch, 98.304] --> 98.304:  12x16x512
     x = Reshape([-1, int(np.prod([config.min_fea_map_H, config.min_fea_map_W, channel_num]))])(x)
-    # output [num_batch, 304] --> cambio numero neuroni proporzione 20480:64 = 98304 : x   il membro di sx era per il Market
+    # output [num_batch, 64]
     z = x = Dense(config.z_num, activation=None)(x)
 
     ##### Decoder

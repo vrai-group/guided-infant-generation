@@ -6,6 +6,8 @@ import pdb
 import pickle
 import sys
 import tensorflow as tf
+
+sys.path.insert(1, '../')
 from utils import utils_wgan
 
 # Per maggiori info su tf.records vedi: https://towardsdatascience.com/a-practical-guide-to-tfrecords-584536bc786c
@@ -49,6 +51,14 @@ class BabyPose():
         def _decode_function(example_proto):
             example = tf.io.parse_single_example(example_proto, self.example_description)
 
+            #img_name
+            name_0 = example['image_name_0']
+            name_1 = example['image_name_1']
+
+            #pz
+            pz_0 = example['pz_0']
+            pz_1 = example['pz_1']
+
             # IMAGE
             image_raw_0 = tf.reshape(tf.io.decode_raw(example['image_raw_0'], tf.uint16), [96, 128, 1])
             image_raw_1 = tf.reshape(tf.io.decode_raw(example['image_raw_1'], tf.uint16), [96, 128, 1])
@@ -70,7 +80,7 @@ class BabyPose():
             mask_0 = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
             mask_1 = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
 
-            return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1
+            return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1
 
         file_pattern = os.path.join(dataset_dir, name_tfrecord)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
         reader = tf.data.TFRecordDataset(file_pattern)
@@ -80,27 +90,47 @@ class BabyPose():
 
     # ritorna un TF.data preprocessato in G1
     def get_preprocess_G1_dataset(self, unprocess_dataset):
-        def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1 ):
+        def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
 
-            image_raw_0 = utils_wgan.process_image(tf.compat.v1.to_float(image_raw_0), 127.5, 127.5)  # rescale in valori di [-1,1]
-            image_raw_1 = utils_wgan.process_image(tf.compat.v1.to_float(image_raw_1), 127.5, 127.5)  # rescale in valori di [-1,1]
-            # print("l1", image_raw_0.shape)
-            # print("l1", image_raw_1.shape)
+            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
+            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
+            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
+            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
 
-            pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float32)
-            mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float32)
-            # print("l1", mask_1.shape)
-
+            pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
             pose_1 = pose_1 * 2
             pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
-            # print("l1", pose_1.shape)
+            #pose_1 = utils_wgan.process_image(pose_1, mean_pose_1, 1)
+
+            mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
 
             X = tf.concat([image_raw_0, pose_1], axis=-1)
             Y = tf.concat([image_raw_1, mask_1], axis=-1)
 
-            # print("l2", Y.shape)
-
             return X, Y
+
+        return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
+
+    # ritorna un TF.data preprocessato in G1 per video
+    def get_preprocess_video(self, unprocess_dataset):
+        def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
+
+            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
+            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
+            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
+            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
+
+            pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
+            pose_1 = pose_1 * 2
+            pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
+            # pose_1 = utils_wgan.process_image(pose_1, mean_pose_1, 1)
+
+            mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
+
+            X = tf.concat([image_raw_0, pose_1], axis=-1)
+            Y = tf.concat([image_raw_1, mask_1], axis=-1)
+
+            return X, Y, pz_0, pz_1, name_0, name_1
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
