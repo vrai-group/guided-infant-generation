@@ -7,21 +7,19 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.initializers import RandomUniform
 
 ####### LOSS
-def Loss(D_z_pos, D_z_neg, D_neg_image_raw_0):
+def Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0):
 
-    #Fake
-    fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_z_neg, labels=tf.zeros_like(D_z_neg)))
+    # Fake
+    fake = 0.25 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.zeros_like(D_neg_refined_result))) \
+           + 0.25 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_image_raw_0, labels=tf.zeros_like(D_neg_image_raw_0)))
 
-    #Real
-    real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_z_pos, labels=tf.ones_like(D_z_pos)))
+    # Real
+    real = 0.5 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_pos_image_raw_1, labels=tf.ones_like(D_pos_image_raw_1)))
 
     loss = fake + real
 
-    return loss / 2, fake, real
+    return loss, fake, real
 
-###### METRICA
-def mse(Y, output_G1):
-    return None
 
 # Optimizer
 def optimizer():
@@ -33,7 +31,7 @@ def build_model(config):
     #TODO manca inseriemnto regolarizzaione weights conv e dense
     #TODO manca da controllare se la batch normalization corrisponde con quello usato nel paper
 
-    inputs = Input(shape=(128,64,3))
+    inputs = Input(shape=(96,128,3))
 
     # Primo layer
     x = Conv2D(filters=64, kernel_size=5, strides = (2,2),
@@ -63,7 +61,7 @@ def build_model(config):
     x = LeakyReLU(alpha=0.2)(x)
 
     # Fully
-    x = Reshape([-1, 8 * 4 * 8*64])(x)  # [batch*3, 8*4*512]
+    x = Reshape([-1, 6 * 8 * 8*64])(x)  # [batch*3, 6*8*512]
     outputs = Dense(units=1, activation= None, kernel_initializer="glorot_uniform", bias_initializer="zeros")(x) # [batch*4, 1]
 
     model = keras.Model(inputs, outputs)
