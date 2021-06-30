@@ -102,7 +102,7 @@ Creo le maschere binarie
 @:return
 Maschera con shape [height, width, 1]
 """
-def _getPoseMask(peaks, height, width, radius_head=30, radius=4, var=4, mode='Solid'):
+def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, mode='Solid'):
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
                [1, 2], [2, 3],  # braccio dx
                [3, 4], [4, 5],  # collo
@@ -179,7 +179,7 @@ def _getPoseMask(peaks, height, width, radius_head=30, radius=4, var=4, mode='So
     shape = [height, width, 1]
     ## Fill body
     dense = np.squeeze(_sparse2dense(indices, values, shape))
-    dense = dilation(dense, square(15))
+    dense = dilation(dense, square(35))
     dense = erosion(dense, square(5))
     dense = np.reshape(dense, [dense.shape[0], dense.shape[1], 1])
     #cv2.imwrite('DenseMask.png', dense * 255)
@@ -222,7 +222,7 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
     ### Pose image 0 a radius 4
     peaks = annotations_0[1:] # annotation_0[1:] --> poichè tolgo il campo image
     indices_r4_0, values_r4_0, _ = _getSparsePose(peaks, height, width, config.keypoint_num, radius=4, mode='Solid') # shape --> [height, width, config.keypoints_num]
-    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=4,  mode='Solid') #[480,640,1]
+    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=10, radius_head=60,  mode='Solid') #[480,640,1]
 
 
     ### Resize a 96x128 pose 0
@@ -249,7 +249,7 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
     #### Pose 1 radius 4
     peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
     indices_r4_1, values_r4_1, _ = _getSparsePose(peaks, height, width, config.keypoint_num, radius=4, mode='Solid') # shape --> [height, width, config.keypoint_num]
-    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=4, mode='Solid')
+    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=10, radius_head=60 ,mode='Solid')
 
     ## Reshape a 96x128 pose 1
     image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
@@ -373,30 +373,30 @@ if __name__ == '__main__':
     output_filename_test = os.path.join(config.data_path, config.name_tfrecord_test)
 
     # liste contenente i num dei pz che vanno considerati per singolo set
-    lista_pz_train = [3, 11, 14, 36, 66, 73, 74]
+    lista_pz_train = [3, 6, 14, 36, 66, 73, 74, 37]
     lista_pz_valid = [4, 7, 29, 30, 43, 76]
-    lista_pz_test = [5, 6, 15, 27, 37, 39, 42]
+    lista_pz_test = [5, 11, 15, 27, 39, 42]
 
     r_tr = None
     r_v = None
     r_te = None
-    # if os.path.exists(output_filename_train):
-    #     r_tr = input("Il tf record di train esiste già. Sovrascriverlo? Yes[Y] No[N]")
-    #     assert r_tr == "Y" or r_tr == "N" or r_tr == "y" or r_tr == "n"
-    # if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
-    #     tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
-    #     tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train)
-    # elif r_tr == "N" or r_tr == "n":
-    #     print("OK, non farò nulla sul train set")
-    #
-    # if os.path.exists(output_filename_valid):
-    #     r_v = input("Il tf record di valid esiste già. Sovrascriverlo? Yes[Y] No[N]")
-    #     assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
-    # if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
-    #     tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-    #     tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid)
-    # elif r_v == "N" or r_v == "n":
-    #     print("OK, non farò nulla sul valid set")
+    if os.path.exists(output_filename_train):
+        r_tr = input("Il tf record di train esiste già. Sovrascriverlo? Yes[Y] No[N]")
+        assert r_tr == "Y" or r_tr == "N" or r_tr == "y" or r_tr == "n"
+    if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
+        tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
+        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train)
+    elif r_tr == "N" or r_tr == "n":
+        print("OK, non farò nulla sul train set")
+
+    if os.path.exists(output_filename_valid):
+        r_v = input("Il tf record di valid esiste già. Sovrascriverlo? Yes[Y] No[N]")
+        assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
+    if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
+        tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
+        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid)
+    elif r_v == "N" or r_v == "n":
+        print("OK, non farò nulla sul valid set")
 
     if os.path.exists(output_filename_test):
         r_te = input("Il tf record di test esiste già. Sovrascriverlo? Yes[Y] No[N]")
@@ -410,7 +410,7 @@ if __name__ == '__main__':
     dic = {"train": {
         "name_file": config.name_tfrecord_train,
         "list_pz": lista_pz_train,
-        "tot": 40692  # tot_train
+        "tot": tot_train
     },
         "valid": {
             "name_file": config.name_tfrecord_valid,
