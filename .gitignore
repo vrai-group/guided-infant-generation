@@ -4,12 +4,16 @@ data/BabyPose
 data/annotations
 data/pyOniExtractor
 logs/*.npy
+Market_transfer/
 masks/*.tfrecord
 masks/logs_cancellazione/*.npy
-weights/*.hdf5 
+pred_one/
+pred_real/
+pred_train/ 
 
 
 # estensioni #
 *.rar
 *.png
 *.bat
+*.hdf5
