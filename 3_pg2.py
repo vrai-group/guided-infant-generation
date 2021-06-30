@@ -1,20 +1,16 @@
 import os
 import sys
-import numpy as np
+
 import cv2
-
+import numpy as np
 import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.layers import *
 from tensorflow.keras.callbacks import *
-import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
-from utils import utils_wgan
 
+from utils import grid
+from utils import utils_wgan
 from model import G1, G2, Discriminator
 from datasets.BabyPose import BabyPose
-
-import matplotlib.pyplot as plt
 
 class PG2(object):
 
@@ -29,8 +25,8 @@ class PG2(object):
         dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
-        dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.repeat(self.config.epochs)  # 100 numeor di epoche
+        dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
         train_it = iter(dataset_train)
 
@@ -48,7 +44,7 @@ class PG2(object):
         model_g1.summary()
 
         # CallBacks
-        filepath = os.path.join(self.config.weigths_path, 'Model_G1_{epoch:03d}-{loss:2f}-{mse:2f}-{m_ssim:2f}-{val_loss:2f}-{val_mse:2f}-{val_m_ssim:2f}.hdf5')
+        filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-mse_{mse:2f}-m_ssim{m_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mse:2f}-val_m_ssim_{val_m_ssim:2f}.hdf5')
         checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=True, period=1)
 
         learning_rate_decay = LearningRateScheduler(G1.step_decay)
@@ -85,13 +81,15 @@ class PG2(object):
         #self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Best_Model_001-0.409152-0.158295.hdf5'))
 
         # Buildo la GAN
+        # G2
         self.model_G2 = G2.build_model(self.config) # architettura Generatore G2
-        self.model_G2.summary()
-        self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
+        #self.model_G2.summary()
+        #self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
         self.opt_G2 = G2.optimizer() # ottimizzatore
+        # D
         self.model_D = Discriminator.build_model(self.config)
         self.model_D.summary()
-        self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
+        #self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
         self.opt_D = Discriminator.optimizer()
 
         # Train
@@ -103,8 +101,6 @@ class PG2(object):
         logs_loss_train_D = np.empty((self.config.epochs))
         logs_loss_train_D_fake = np.empty((self.config.epochs))
         logs_loss_train_D_real = np.empty((self.config.epochs))
-        logs_metric_train_G2 = np.empty((self.config.epochs))
-        logs_metric_train_D = np.empty((self.config.epochs))
 
         for epoch in range(self.config.epochs):
             train_it = iter(dataset_train)  # rinizializzo l iteratore sul train dataset
@@ -114,26 +110,43 @@ class PG2(object):
             mean_loss_D_train = 0  # calcolo la media  della loss ad ogni iterazione sul batch
             mean_loss_D_train_fake = 0
             mean_loss_D_train_real = 0
+            mean_ssim_train = 0
+            mean_ssim_valid = 0
             cnt_real_predette_train = 0  # counter per le reali (output_G1 + output_G2) predette nel train
             cnt_real_predette_valid = 0 # counter per le reali (output_G1 + output_G2) predette nel valid
 
-            loss_values_train_G2 = np.empty((num_batches_train))  # mi serve per il calcolo della media della loss per ogni batch da printare a schermo
+            # mi servono per il calcolo della media della loss per ogni batch da printare a schermo
+            loss_values_train_G2 = np.empty((num_batches_train))
             loss_values_train_D = np.empty((num_batches_train))
             loss_values_train_D_fake = np.empty((num_batches_train))
             loss_values_train_D_real = np.empty((num_batches_train))
+            ssim_train = np.empty((num_batches_train))
+            ssim_valid = np.empty((num_batches_train))
 
             # Train
             for id_batch in range(num_batches_train):
-                loss_values_train_G2[id_batch], loss_values_train_D[id_batch], loss_values_train_D_fake[id_batch],loss_values_train_D_real[id_batch], real_predette_train = self._train_step(train_it)
-                cnt_real_predette_train += real_predette_train
+                loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
+                loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
+                real_predette_train, ssim_train[id_batch] = self._train_step(train_it)
+
+                # Calcolo media
+                # Loss
                 mean_loss_G2_train = np.mean(loss_values_train_G2[:id_batch])
                 mean_loss_D_train = np.mean(loss_values_train_D[:id_batch])
                 mean_loss_D_train_fake = np.mean(loss_values_train_D_fake[:id_batch])
                 mean_loss_D_train_real = np.mean(loss_values_train_D_real[:id_batch])
+                # Metrics
+                cnt_real_predette_train += real_predette_train
+                mean_ssim_train = np.mean(ssim_train[:id_batch])
 
-                # Logs su schermo
+                # Logs a schermo
                 sys.stdout.write('\r')
-                sys.stdout.write('Epoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2.3f}, loss_D: {loss_D:2.3f}, loss_D_fake: {loss_D_fake:2.3f}, loss_D_real: {loss_D_real:2.3f} real_predette: {real:1} / {total_train}'.format(epoch=epoch + 1, id_batch=id_batch, num_batches=num_batches_train, loss_G2=mean_loss_G2_train, loss_D=mean_loss_D_train, loss_D_fake=mean_loss_D_train_fake, loss_D_real=mean_loss_D_train_real, real=cnt_real_predette_train, total_train=self.config.dataset_train_len))
+                sys.stdout.write('Epoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2.3f}, '
+                                 'loss_D: {loss_D:2.3f}, loss_D_fake: {loss_D_fake:2.3f}, loss_D_real: {loss_D_real:2.3f},'
+                                 ' ssmi: {ssmi:2.3f}, real_predette: {real:1} / {total_train}'.format(epoch=epoch + 1,
+                                 id_batch=id_batch, num_batches=num_batches_train, loss_G2=mean_loss_G2_train,
+                                 loss_D=mean_loss_D_train, loss_D_fake=mean_loss_D_train_fake, loss_D_real=mean_loss_D_train_real,
+                                 real=cnt_real_predette_train, ssmi=mean_ssim_train,total_train=self.config.dataset_train_len))
                 sys.stdout.flush()
 
             sys.stdout.write('\n')
@@ -143,23 +156,33 @@ class PG2(object):
 
             # Valid
             for id_batch in range(num_batches_valid):
-                 cnt_real_predette_valid += self._valid_step(valid_it)
+                 cnt_real, ssim_valid[id_batch] = self._valid_step(valid_it, epoch, id_batch)
+
+                 cnt_real_predette_valid += cnt_real
+                 mean_ssim_valid = np.mean(ssim_valid[:id_batch])
+
                  sys.stdout.write('\r')
                  sys.stdout.write('{id_batch} / {total}'.format(id_batch=id_batch, total=num_batches_valid))
                  sys.stdout.flush()
 
             sys.stdout.write('\r')
-            sys.stdout.write('Predette real: {real} / {total}'.format(real=cnt_real_predette_valid, total=self.config.dataset_valid_len))
+            sys.stdout.write('ssim: {ssmi:2.3f}, real_predette: {real} / {total}'.format(ssmi=mean_ssim_valid,
+                              real=cnt_real_predette_valid, total=self.config.dataset_valid_len))
             sys.stdout.flush()
             sys.stdout.write('\n')
             sys.stdout.write('\n')
 
             #Save weights
-            name_model = "Model_G2_epoch_{epoch:03d}-loss_train_{loss:2f}_real_valid_{real_valid}_real_train_{real_train}.hdf5".format(epoch=epoch+1, loss=mean_loss_G2_train,real_valid=cnt_real_predette_valid,real_train=cnt_real_predette_train)
+            name_model = "Model_G2_epoch_{epoch:03d}-loss_train_{loss:2f}-ssmi_train_{ssmi_train:2f}-" \
+                         "real_train_{real_train}-real_valid_{real_valid}-ssim_valid{ssim_valid:2f}.hdf5".format(epoch=epoch+1,
+                          loss=mean_loss_G2_train,ssmi_train=mean_ssim_train, real_valid=cnt_real_predette_valid,
+                          real_train=cnt_real_predette_train, ssim_valid=mean_ssim_valid)
             filepath = os.path.join(self.config.weigths_path, name_model)
             self.model_G2.save_weights(filepath)
 
-            name_model = "Model_D_epoch_{epoch:03d}-loss_train_{loss:2f}_real_valid_{real_valid}_real_train_{real_train}.hdf5".format(epoch=epoch+1, loss=mean_loss_D_train,real_valid=cnt_real_predette_valid,real_train=cnt_real_predette_train)
+            name_model = "Model_D_epoch_{epoch:03d}-loss_train_{loss:2f}-real_valid_{real_valid}-" \
+                         "real_train_{real_train}.hdf5".format(epoch=epoch+1, loss=mean_loss_D_train,
+                          real_valid=cnt_real_predette_valid, real_train=cnt_real_predette_train)
             filepath = os.path.join(self.config.weigths_path, name_model)
             self.model_D.save_weights(filepath)
 
@@ -169,10 +192,10 @@ class PG2(object):
             logs_loss_train_D_fake[epoch] = mean_loss_D_train_fake
             logs_loss_train_D_real[epoch] = mean_loss_D_train_real
 
-            np.save(os.path.join(self.config.logs_path,'logs_loss_train_G2.npy'.format(epoch=epoch+1)), logs_loss_train_G2[:epoch])
-            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_total.npy'.format(epoch=epoch+1)), logs_loss_train_D[:epoch])
-            np.save(os.path.join(self.config.logs_path,'.logs_loss_train_D_fake.npy'.format(epoch=epoch+1)), logs_loss_train_D_fake[:epoch])
-            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_real.npy'.format(epoch=epoch+1)), logs_loss_train_D_real[:epoch])
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_G2.npy'), logs_loss_train_G2[:epoch])
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_total.npy'), logs_loss_train_D[:epoch])
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_fake.npy'), logs_loss_train_D_fake[:epoch])
+            np.save(os.path.join(self.config.logs_path,'logs_loss_train_D_real.npy'), logs_loss_train_D_real[:epoch])
 
             #Update learning rate
             if epoch % self.config.lr_update_epoch == self.config.lr_update_epoch - 1:
@@ -184,6 +207,11 @@ class PG2(object):
             if self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
                 os.system('rar a /gdrive/MyDrive/weights_and_logs logs/*')
                 os.system('rar a /gdrive/MyDrive/weights_and_logs weights/Model_*_epoch_*-loss_train_*.hdf5')
+                print("RAR CREATO\n")
+            # Salvataggio non in Colab
+            elif not self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
+                os.system('rar a weights_and_logs logs/*')
+                os.system('rar a weights_and_logs weights/Model_*_epoch_*-loss_train_*.hdf5')
                 print("RAR CREATO\n")
 
     def _train_step(self, train_it):
@@ -210,26 +238,27 @@ class PG2(object):
             output_D = self.model_D(input_D) # [batch * 3, 1]
             output_D = tf.reshape(output_D, [-1]) # [batch*3]
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3) # [batch]
-            #Come definita in trainer256
-            D_z_pos = D_pos_image_raw_1
-            D_z_neg = tf.concat([D_neg_refined_result, D_neg_image_raw_0], 0)
 
             # Loss
-            loss_value_G2 = G2.Loss(D_z_neg, refined_result, image_raw_1, mask_1)
-            loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_z_pos, D_z_neg, D_neg_image_raw_0)
+            loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1)
+            loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
             # metric
+            # Real predette dal discriminatore
             np_array_D_neg_refined_result = D_neg_refined_result.numpy()
             real_predette_train = np_array_D_neg_refined_result[np_array_D_neg_refined_result > 0]
+
+            #SSIM
+            ssim_value = G2.m_ssim(refined_result, image_raw_1)
 
         # backprop
         self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
         self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
 
 
-        return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), real_predette_train.shape[0]
+        return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), real_predette_train.shape[0], ssim_value.numpy()
 
-    def _valid_step(self, valid_it):
+    def _valid_step(self, valid_it, epoch, id_batch):
 
         batch = next(valid_it)
         image_raw_0 = batch[0] #[batch, 96,128, 1]
@@ -251,60 +280,266 @@ class PG2(object):
         output_D = tf.reshape(output_D, [-1]).numpy() # [batch]
 
         real_predette = output_D[output_D > 0]
+        ssim_value = G2.m_ssim(refined_result, image_raw_1)
 
+        # Save griglia di immagini predette
+        if epoch % self.config.save_grid_ssim_epoch == self.config.save_grid_ssim_epoch - 1:
+            name_directory = os.path.join("./results_ssim", str(epoch))
+            os.mkdir(name_directory)
+            name_grid = os.path.join(name_directory,
+                                    'G2_ssim_epoch_{epoch}_batch_{batch}_ssim_{mean}.png'.format(batch=id_batch,
+                                                                                                 epoch=epoch,
+                                                                                                 mean=ssim_value))
+            grid.save_image(output_G1, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
 
-        return real_predette.shape[0] # ritorno il numero di immagini predette come reali
+        return real_predette.shape[0], ssim_value.numpy()
 
     def predict_G1(self):
 
         # Preprocess Dataset test
-        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_path, "Market1501_test_00000-of-00001.tfrecord")
-        dataset_test = self.babypose_obj.get_preprocess_G1_dataset(dataset_test)
-        dataset_test = dataset_test.batch(1)
-        dataset_test = dataset_test.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
-        test_it = iter(dataset_test)
+        dataset_uno = self.babypose_obj.get_unprocess_dataset(config.data_path + "/tfrecord_mask_radius_4", config.name_tfrecord_train)
+        dataset_uno = self.babypose_obj.get_preprocess_video(dataset_uno)
+        dataset_uno = dataset_uno.batch(1)
+        dataset_uno = dataset_uno.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
 
-        model_g1 = G1(self.config).build_model()
-        model_g1.load_weights(os.path.join(self.config.weigths_path, 'Best_Model_001-0.409152-0.158295.hdf5'))
+        dataset = self.babypose_obj.get_unprocess_dataset(config.data_path + "/tfrecord_mask_radius_4", config.name_tfrecord_test)
+        dataset = self.babypose_obj.get_preprocess_video(dataset)
+        dataset = dataset.batch(1)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
+        model_G1 = G1.build_model(self.config)
+        model_G1.summary()
+        model_G1.load_weights(os.path.join(self.config.training_weights_path , 'Model_G1_epoch_100-loss_0.000858-mse_0.000015-m_ssim0.992625-val_loss_0.005744-val_mse_0.000113-val_m_ssim_0.900522.hdf5'))
+        cnt=0
+        cnt2=0
+        p = []
+
+        # for e in dataset_uno:
+        #     cnt += 1
+        #     X, Y, pz_0, pz_1 = e
+        #     pz_0 = pz_0.numpy()[0].decode("utf-8")
+        #     pz_1 = pz_1.numpy()[0].decode("utf-8")
+        #     print(pz_0)
+        #
+        #     if cnt >= 0:
+        #         if pz_0 == "pz3" and pz_1 == "pz11":
+        #
+        #             pose_1 = X[:,:,:,1:]
+        #             p.append(pose_1)
+        #
+        #         if len(p) >= 500:
+        #             for e2 in dataset:
+        #
+        #                 X_, Y_, pz_0, pz_1 = e2
+        #                 pz_0 = pz_0.numpy()[0].decode("utf-8")
+        #                 pz_1 = pz_1.numpy()[0].decode("utf-8")
+        #                 print(pz_0)
+        #
+        #                 if pz_0 == "pz42":
+        #                     image_raw_0 = X_[:, :, :, 0]
+        #                     image_raw_0  = tf.reshape(image_raw_0, (1, 96, 128, 1))
+        #
+        #                     pose_1 = p[cnt2]
+        #                     cnt2 += 1
+        #                     X = tf.concat([image_raw_0, pose_1], axis=-1)
+        #                     predizione = model_G1.predict(X, verbose=1)
+        #
+        #                     # #Unprocess
+        #                     image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 400, 32765.5)
+        #                     image_raw_0 = tf.cast(image_raw_0, dtype=tf.int16)[0].numpy()
+        #
+        #                     pose_1 = pose_1.numpy()[0]
+        #                     pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
+        #                     pose_1 = pose_1 / 2
+        #                     pose_1 = tf.reshape(pose_1, [96,128,14])*255
+        #                     pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+        #                     pose_1 = tf.cast(pose_1, dtype=tf.float32)
+        #
+        #
+        #                     predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, 1, 32765.5), clip_value_min=0, clip_value_max=32765)
+        #                     predizione = tf.cast(predizione, dtype=tf.float32)[0]
+        #
+        #                     fig = plt.figure(figsize=(10, 2))
+        #                     columns = 3
+        #                     rows = 1
+        #                     # imgs = [predizione, image_raw_0,  image_raw_1, mask_1]
+        #                     # labels = ["Prediction", "Condition image",  "image_raw_1", "mask_1"]
+        #                     imgs = [predizione, image_raw_0, pose_1]
+        #                     labels = ["Predizione", "Immagine di condizione", "Posa desiderata"]
+        #                     for i in range(1, columns * rows + 1):
+        #                         sub = fig.add_subplot(rows, columns, i)
+        #                         sub.set_title(labels[i - 1])
+        #                         plt.imshow(imgs[i - 1])
+        #                     plt.show()
+        #                     #plt.savefig("pred_train/pred_{id}.png".format(id=cnt2,pz_0=pz_0,pz_1=pz_1))
+
+        # for e in dataset:
+        #     cnt += 1
+        #     X, Y, pz_0, pz_1 = e
+        #     pz_0 = pz_0.numpy()[0].decode("utf-8")
+        #     pz_1 = pz_1.numpy()[0].decode("utf-8")
+        #     print(pz_0)
+        #
+        #     if cnt >= 0:
+        #         if pz_0 == "pz42" and pz_1 == "pz39":
+        #             image_raw_0 = X[:, :, :, 0]
+        #             pose_1 = X[:, :, :, 1:]
+        #             image_raw_1 = Y[:, :, :, 0]
+        #             mask_1 = Y[:, :, :, 1]
+        #             predizione = model_G1.predict(X, verbose=1)
+        #
+        #             #Unprocess
+        #             image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 400, 32765.5)
+        #             image_raw_0 = tf.cast(image_raw_0, dtype=tf.int16)[0].numpy()
+        #
+        #             # image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 400, 32765.5)
+        #             # image_raw_1 = tf.cast(image_raw_1, dtype=tf.int16)[0].numpy()
+        #             image_raw_1 = tf.clip_by_value(image_raw_1, clip_value_min=0, clip_value_max=32765)
+        #             image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)[0].numpy()
+        #
+        #             pose_1 = pose_1.numpy()[0]
+        #             pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
+        #             pose_1 = pose_1 / 2
+        #             pose_1 = tf.reshape(pose_1, [96,128,14])*255
+        #             pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+        #             pose_1 = tf.cast(pose_1, dtype=tf.float32)
+        #             #pose_1 = np.concatenate([image_raw_1, pose_1], axis= -1).sum(axis=-1)
+        #
+        #             mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy()
+        #
+        #
+        #             predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, 1, 32765.5), clip_value_min=0, clip_value_max=32765)
+        #             predizione = tf.cast(predizione, dtype=tf.float32)[0]
+        #
+        #             fig = plt.figure(figsize=(10, 2))
+        #             columns = 4
+        #             rows = 1
+        #             # imgs = [predizione, image_raw_0,  image_raw_1, mask_1]
+        #             # labels = ["Prediction", "Condition image",  "image_raw_1", "mask_1"]
+        #             imgs = [predizione, image_raw_0, pose_1, mask_1]
+        #             labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Maschera posa desiderata"]
+        #             for i in range(1, columns * rows + 1):
+        #                 sub = fig.add_subplot(rows, columns, i)
+        #                 sub.set_title(labels[i - 1])
+        #                 plt.imshow(imgs[i - 1])
+        #             plt.show()
+        #             #plt.savefig("pred_train/pred_test_epoch_10_{id}.png".format(id=cnt,pz_0=pz_0,pz_1=pz_1))
+
+        ## VIDEO
+        l=None
+        for e in dataset_uno:
+            cnt += 1
+            X, Y, pz_0, pz_1, name_0, name_1 = e
+            pz_0 = pz_0.numpy()[0].decode("utf-8")
+            pz_1 = pz_1.numpy()[0].decode("utf-8")
+            name_0 = name_0.numpy()[0].decode("utf-8")
+            name_1 = name_1.numpy()[0].decode("utf-8")
+            print(pz_0)
+
+            if cnt >= 0:
+                if pz_0 == "pz3" and pz_1 == "pz11":
+
+                    pose_1 = X[:,:,:,1:]
+                    p.append((pose_1, name_1))
+
+                if len(p) >= 500:
+                    for e2 in dataset:
+
+                        X_, Y_, pz_0, pz_1, name_0, name_1 = e2
+                        pz_0 = pz_0.numpy()[0].decode("utf-8")
+                        pz_1 = pz_1.numpy()[0].decode("utf-8")
+                        print(pz_0)
+
+                        if pz_0 == "pz42":
+                            if l == None:
+                                l = X_[:, :, :, 0]
+                            image_raw_0 = l
+                            image_raw_0  = tf.reshape(image_raw_0, (1, 96, 128, 1))
+
+                            pose_1 = p[cnt2][0]
+                            name_posa = p[cnt2][1]
+                            cnt2 += 1
+                            X = tf.concat([image_raw_0, pose_1], axis=-1)
+                            predizione = model_G1.predict(X, verbose=1)
+
+                            # #Unprocess
+                            image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 400, 32765.5)
+                            image_raw_0 =tf.image.resize(image_raw_0, (480,640))
+                            image_raw_0 = tf.cast(image_raw_0, dtype=tf.int16)[0].numpy()
+
+                            pose_1 = pose_1.numpy()[0]
+                            pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
+                            pose_1 = pose_1 / 2
+                            pose_1 = tf.reshape(pose_1, [96,128,14])*255
+                            pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+                            pose_1 = tf.cast(pose_1, dtype=tf.float32)
 
 
-        for cnt in range(int(self.config.dataset_valid_len/1)):
+                            predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, 400, 32765.5), clip_value_min=0, clip_value_max=32765)
+                            predizione = tf.cast(predizione, dtype=tf.float32)[0]
+                            predizione = tf.image.resize(predizione, (480, 640))
 
-            X, Y = next(test_it)
+                            fig = plt.figure(figsize=(80, 30))
+                            columns = 2
+                            rows = 1
+                            # imgs = [predizione, image_raw_0,  image_raw_1, mask_1]
+                            # labels = ["Prediction", "Condition image",  "image_raw_1", "mask_1"]
+                            imgs = [predizione, image_raw_0]
+                            #labels = ["Predizione", "Immagine di condizione", "Posa desiderata"]
+                            for i in range(1, columns * rows + 1):
+                                sub = fig.add_subplot(rows, columns, i)
 
-            if cnt > 500:
-                image_raw_0 = X[:,:,:,:3]
-                pose_1 = X[:,:,:,3:21]
-                image_raw_1 = Y[:, :, :, :3]
-                mask_1 = tf.reshape(Y[:, :, :, -1], [-1, 128, 64, 1])
-                predizione = model_g1.predict(X, verbose=1)
+                                #sub.set_title(labels[i - 1])
+                                plt.setp(sub.get_xticklabels(), visible=False)
+                                plt.setp(sub.get_yticklabels(), visible=False)
+                                sub.tick_params(axis='both', which='both', length=0)
+                                plt.imshow(imgs[i - 1], cmap='gray')
+                            #plt.show()
+                            plt.savefig("pred_train/pred_{id}_{posa}.png".format(id=cnt2,posa=name_posa))
 
-                #Unprocess
-                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 127.5,127.5)
-                image_raw_0 = tf.cast(image_raw_0, dtype=tf.int32)[0]
-                image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 127.5, 127.5)
-                image_raw_1 = tf.cast(image_raw_1, dtype=tf.int32)[0]
-                pose_1 = pose_1.numpy()[0]
-                pose_1 = (pose_1.sum(axis=-1) + 1) /2
-                pose_1=np.concatenate([image_raw_1[:,:,-1].numpy().reshape((128,64,1)), pose_1.reshape((128,64,1))*255], axis= -1).sum(axis=-1)
-                predizione = utils_wgan.unprocess_image(predizione, 127.5, 127.5)
-                predizione = tf.cast(predizione, dtype=tf.int32)[0]
+                            fig = plt.figure(figsize=(80, 30))
+                            columns = 1
+                            rows = 1
+                            # imgs = [predizione, image_raw_0,  image_raw_1, mask_1]
+                            # labels = ["Prediction", "Condition image",  "image_raw_1", "mask_1"]
+                            imgs = [predizione]
+                            # labels = ["Predizione", "Immagine di condizione", "Posa desiderata"]
+                            for i in range(1, columns * rows + 1):
+                                sub = fig.add_subplot(rows, columns, i)
 
+                                # sub.set_title(labels[i - 1])
+                                plt.setp(sub.get_xticklabels(), visible=False)
+                                plt.setp(sub.get_yticklabels(), visible=False)
+                                sub.tick_params(axis='both', which='both', length=0)
+                                plt.imshow(imgs[i - 1], cmap='gray')
+                            # plt.show()
+                            plt.savefig("pred_one/pred_{id}_{posa}.png".format(id=cnt2, posa=name_posa))
 
-                fig = plt.figure(figsize=(10, 10))
-                columns = 5
-                rows = 1
-                imgs = [predizione, image_raw_0, pose_1, image_raw_1, mask_1[0]]
-                for i in range(1, columns * rows + 1):
-                    fig.add_subplot(rows, columns, i)
-                    plt.imshow(imgs[i - 1])
-                plt.show()
+                            pos_real = cv2.imread("./data/BabyPose/pz11/"+name_posa.split('16bit')[0]+"8bit.png", 0)
+                            #cv2.imwrite("pred_real/pred_{id}_{posa}".format(id=cnt2, posa=name_posa),pos_real)
+                            fig = plt.figure(figsize=(10, 5))
+                            columns = 1
+                            rows = 1
+                            # imgs = [predizione, image_raw_0,  image_raw_1, mask_1]
+                            # labels = ["Prediction", "Condition image",  "image_raw_1", "mask_1"]
+                            imgs = [pos_real]
+                            # labels = ["Predizione", "Immagine di condizione", "Posa desiderata"]
+                            for i in range(1, columns * rows + 1):
+                                sub = fig.add_subplot(rows, columns, i)
+
+                                # sub.set_title(labels[i - 1])
+                                plt.setp(sub.get_xticklabels(), visible=False)
+                                plt.setp(sub.get_yticklabels(), visible=False)
+                                sub.tick_params(axis='both', which='both', length=0)
+                                plt.imshow(imgs[i - 1], cmap='gray')
+                            plt.savefig("pred_real/pred_{id}_{posa}.png".format(id=cnt2, posa=name_posa))
+
 
     def predict_conditional_GAN(self):
 
         # Preprocess Dataset test
-        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_path, "Market1501_test_00000-of-00001.tfrecord")
+        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_valid)
         dataset_test = self.babypose_obj.get_preprocess_GAN_dataset(dataset_test)
         dataset_test = dataset_test.batch(1)
         dataset_test = dataset_test.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
@@ -312,7 +547,7 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model(self.config)
-        self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Best_Model_001-0.409152-0.158295.hdf5'))
+        self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_001-1.029526-5.404243-0.021277-1.276023-6.921112-0.022076.hdf5'))
 
         # Carico il modello preaddestrato GAN
         self.model_G2 = G2.build_model(self.config)  # architettura Generatore G2
@@ -322,7 +557,7 @@ class PG2(object):
         # self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
         self.model_D.load_weights('./weights/Model_D_epoch_035-loss_train_0.659629_real_valid_79_real_train_4634.hdf5')
 
-        for cnt in range(int(self.config.dataset_test_len / 1)):
+        for cnt in range(int(self.config.dataset_valid_len / 1)):
 
             batch = next(test_it)
             image_raw_0 = batch[0]  # [batch, 128,64, 3]
@@ -350,6 +585,8 @@ class PG2(object):
 
             image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 127.5, 127.5)
             image_raw_1 = tf.cast(image_raw_1, dtype=tf.int32)[0]
+
+
 
             refined_result = output_G1 + output_G2
 
@@ -383,7 +620,7 @@ if __name__ == "__main__":
     if config.is_train:
         pg2.train_G1()
     else:
-        pg2.predict_conditional_GAN()
+        pg2.predict_G1()
         
 
 
