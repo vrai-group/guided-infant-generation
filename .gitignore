@@ -5,8 +5,8 @@ data/annotations
 data/pyOniExtractor
 logs/*.npy
 Market_transfer/
-masks/*.tfrecord
-masks/logs_cancellazione/*.npy
+masks_radius_4/*.tfrecord
+masks_radius_4/logs_cancellazione/*.npy
 pred_one/
 pred_real/
 pred_train/ 
