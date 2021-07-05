@@ -7,12 +7,12 @@ class Config:
 
         #Path
         self.Dataset = "BabyPose"
-        self.data_path = './data/'+self.Dataset  # dove si trova il dataset
-        self.data_annotations_path =  './data/annotations' # dove si trovano le annotazioni
+        self.data_path = './data/'+self.Dataset+"/tfrecord_mask_radius_4" # dove si trova il dataset
+        self.data_annotations_path = './data/annotations' # dove si trovano le annotazioni
         self.logs_cancellate_path = './masks/logs_cancellazione' # dove si trovano i file npy contenente i nomi delle immagini da non considerare poichè manca uno di questi Keypoint: 3,5,10,11
         self.weigths_path = './weights' # dove salvare i pesi
         self.logs_path = './logs'
-        self.training_weights_path = './training/pesi_28_06'
+        self.training_weights_path = './training/'
 
         #Name dataset tfrecord file
         self.name_tfrecord_train = self.Dataset+'_train.tfrecord'
@@ -29,13 +29,9 @@ class Config:
             self.dataset_valid_len = int(dic['valid']['tot'])  # numero di pair nel valid
             self.dataset_test_len = int(dic['test']['tot'])   # numero di pair nel test
             print("Lunghezza Sets:")
-            print("- Train: ", self.dataset_train_len )
-            print("- Valid: ", self.dataset_valid_len )
-            print("- Test: ", self.dataset_test_len )
-        elif self.Dataset == "Market":
-            self.dataset_train_len = 25600  # numero di pair nel train
-            self.dataset_valid_len = 12800  # numero di pair nel valid
-            self.dataset_test_len = 12800  # numero di pair nel test
+            print("- "+dic['train']['name_file']+" : ", self.dataset_train_len )
+            print("- "+dic['valid']['name_file']+" : ", self.dataset_valid_len )
+            print("- "+dic['test']['name_file']+" : ", self.dataset_test_len )
         else:
             print("Dataset no presente. Eventualmente è ancora da formare")
 
