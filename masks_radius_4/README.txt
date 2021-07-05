@@ -1,0 +1,1 @@
+Qui dentro sono contenuti i file tfrecords, creati dallo script CreazioneMascherePerOsservazione.py
