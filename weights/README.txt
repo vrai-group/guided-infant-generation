@@ -1,1 +1,0 @@
-Qui vengono salvati i pesi
