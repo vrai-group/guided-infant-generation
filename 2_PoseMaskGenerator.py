@@ -317,11 +317,13 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
 
     return example
 
+"""
+Controllo se l'immagine contiene i Keypoint 3,5,10,11 rispettivamente di spalla dx e sx e anca dx e sx
+@:return True --> almeno uno dei keypoint è mancanta
+@:return False --> i keypoints ci sono tutti
+"""
 def check_assenza_keypoints_3_5_10_11(peaks):
-    a = int(peaks[3].split(',')[0])
-    b = int(peaks[5].split(',')[0])
-    c = int(peaks[10].split(',')[0])
-    d = int(peaks[11].split(',')[0])
+
 
     if int(peaks[3].split(',')[0]) == -1 or int(peaks[5].split(',')[0]) == -1 or int(peaks[10].split(',')[0]) == -1 or int(peaks[11].split(',')[0]) == -1:
         return True
@@ -329,7 +331,9 @@ def check_assenza_keypoints_3_5_10_11(peaks):
         return False
 
 def fill_tfrecord(lista, tfrecord_writer):
+
     tot_pairs = 0 # serve per contare il totale di pair nel tfrecord
+
     # Lettura delle prime annotazioni --> ex:pz3
     for pz_0 in lista:
         name_file_annotation_0 = 'result_pz{id}.csv'.format(id=pz_0)
@@ -343,12 +347,13 @@ def fill_tfrecord(lista, tfrecord_writer):
                 name_path_annotation_1 = os.path.join(config.data_annotations_path, name_file_annotation_1)
                 df_annotation_1 = pd.read_csv(name_path_annotation_1, delimiter=';')
 
-                cnt = 1 # Serve per printare a schermo il numero di example
+                cnt = 1 # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
 
                 # Creazione del pair
                 for _, row_0 in df_annotation_0.iterrows():
 
-                    # Controllo se l'immagine contiene i keypoints relativi alla splla dx e sx e anca dx e sx
+                    # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                    # In caso di assenza passo all'immagine successiva
                     if check_assenza_keypoints_3_5_10_11(row_0[1:]):
                         continue
 
@@ -356,18 +361,18 @@ def fill_tfrecord(lista, tfrecord_writer):
                     value = randint(0, df_annotation_1.shape[0]-1)
                     row_1 = df_annotation_1.iloc[value]
 
-                    # L'immagine è presente nella lista dei log per cui non dobbiamo considerarla e dobbiamo cercare una che non lo sia
+                    # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                    # In caso di assenza passo ne seleziona un altra random
                     while check_assenza_keypoints_3_5_10_11(row_1[1:]):
                         value = randint(0, df_annotation_1.shape[0]-1)
                         row_1 = df_annotation_1.iloc[value]
 
-                    sys.stdout.write(
-                        '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1, cnt=cnt,
+                    sys.stdout.write('\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1, cnt=cnt,
                                                                                         tot=df_annotation_0.shape[0]))
                     sys.stdout.flush()
                     # Creazione dell'example tfrecord
                     example = _format_data(config, pz_0, pz_1, row_0, row_1)
-                    cnt += 1
+                    cnt += 1 # incremento del conteggio degli examples
                     tot_pairs += 1
 
                     tfrecord_writer.write(example.SerializeToString())
