@@ -324,7 +324,6 @@ Controllo se l'immagine contiene i Keypoint 3,5,10,11 rispettivamente di spalla 
 """
 def check_assenza_keypoints_3_5_10_11(peaks):
 
-
     if int(peaks[3].split(',')[0]) == -1 or int(peaks[5].split(',')[0]) == -1 or int(peaks[10].split(',')[0]) == -1 or int(peaks[11].split(',')[0]) == -1:
         return True
     else:
@@ -397,9 +396,9 @@ if __name__ == '__main__':
     config = Config_file.Config()
 
     # naming file tfrecord
-    output_filename_train = os.path.join(config.data_path, config.name_tfrecord_train)
-    output_filename_valid = os.path.join(config.data_path, config.name_tfrecord_valid)
-    output_filename_test = os.path.join(config.data_path, config.name_tfrecord_test)
+    output_filename_train = os.path.join(config.data_path, 'BabyPose_train.tfrecord')
+    output_filename_valid = os.path.join(config.data_path, 'BabyPose_valid.tfrecord')
+    output_filename_test = os.path.join(config.data_path, 'BabyPose_test.tfrecord')
 
     # liste contenente i num dei pz che vanno considerati per singolo set
     lista_pz_train = [3, 6, 14, 36, 66, 73, 74, 37]
