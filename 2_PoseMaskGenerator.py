@@ -317,6 +317,17 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
 
     return example
 
+def check_assenza_keypoints_3_5_10_11(peaks):
+    a = int(peaks[3].split(',')[0])
+    b = int(peaks[5].split(',')[0])
+    c = int(peaks[10].split(',')[0])
+    d = int(peaks[11].split(',')[0])
+
+    if int(peaks[3].split(',')[0]) == -1 or int(peaks[5].split(',')[0]) == -1 or int(peaks[10].split(',')[0]) == -1 or int(peaks[11].split(',')[0]) == -1:
+        return True
+    else:
+        return False
+
 def fill_tfrecord(lista, tfrecord_writer):
     tot_pairs = 0 # serve per contare il totale di pair nel tfrecord
     # Lettura delle prime annotazioni --> ex:pz3
@@ -325,10 +336,6 @@ def fill_tfrecord(lista, tfrecord_writer):
         path_annotation_0 = os.path.join(config.data_annotations_path, name_file_annotation_0)
         df_annotation_0 = pd.read_csv(path_annotation_0, delimiter=';')
 
-        # carico il file npy dove ho salvato i nomi delle immagini che non considero per mancanza di
-        # keypoint 3,5,10,11. Questo file npy è stato creato con lo script CreazionePerOsservazioneMaschere.py
-        logs_cancellate_0 = np.load('./masks_radius_4/logs_cancellazione/pz{pz}.npy'.format(pz=pz_0), allow_pickle=True)
-
         # Lettura delle seconde annotazioni --> ex:pz4
         for pz_1 in lista:
             if pz_0 != pz_1:
@@ -336,22 +343,21 @@ def fill_tfrecord(lista, tfrecord_writer):
                 name_path_annotation_1 = os.path.join(config.data_annotations_path, name_file_annotation_1)
                 df_annotation_1 = pd.read_csv(name_path_annotation_1, delimiter=';')
 
-                logs_cancellate_1 = np.load('./masks_radius_4/logs_cancellazione/pz{pz}.npy'.format(pz=pz_1), allow_pickle=True)
-
-                cnt = 1
+                cnt = 1 # Serve per printare a schermo il numero di example
 
                 # Creazione del pair
                 for _, row_0 in df_annotation_0.iterrows():
 
-                    # L'immagine è presente nella lista dei log per cui non dobbiamo considerarla
-                    if row_0['image'] in logs_cancellate_0:
+                    # Controllo se l'immagine contiene i keypoints relativi alla splla dx e sx e anca dx e sx
+                    if check_assenza_keypoints_3_5_10_11(row_0[1:]):
                         continue
 
+                    # lettura random delle row nel secondo dataframe
                     value = randint(0, df_annotation_1.shape[0]-1)
-                    row_1 = df_annotation_1.iloc[value]  # lettura random delle row nel secondo dataframe
+                    row_1 = df_annotation_1.iloc[value]
 
                     # L'immagine è presente nella lista dei log per cui non dobbiamo considerarla e dobbiamo cercare una che non lo sia
-                    while row_1['image'] in logs_cancellate_1:
+                    while check_assenza_keypoints_3_5_10_11(row_1[1:]):
                         value = randint(0, df_annotation_1.shape[0]-1)
                         row_1 = df_annotation_1.iloc[value]
 
