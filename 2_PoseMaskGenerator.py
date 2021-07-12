@@ -414,6 +414,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
         tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train)
+        print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
 
@@ -423,6 +424,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
         tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
         tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid)
+        print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
 
@@ -432,6 +434,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
         tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
         tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test)
+        print("TOT TEST: ", tot_test)
     elif r_te == "N" or r_te == "n":
         print("OK, non farò nulla sul test set")
 
