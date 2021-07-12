@@ -72,8 +72,8 @@ def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid')
     values = []
     for k in range(len(peaks)):
         p = peaks[k] # coordinate peak ex: "300,200" type string
-        c = int(p.split(',')[0])  # column
-        r = int(p.split(',')[1])  # row
+        c = p[0] # column
+        r = p[1]  # row
         if c != -1 and r != -1:  # non considero le occlusioni indicate con -1
             ind, val = _getSparseKeypoint(r, c, k, height, width, radius, var, mode)
             indices.extend(ind)
@@ -221,13 +221,22 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
 
     ### Pose image 0 a radius 4
     peaks = annotations_0[1:] # annotation_0[1:] --> poichè tolgo il campo image
-    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks, height, width, config.keypoint_num, radius=4, mode='Solid') # shape --> [height, width, config.keypoints_num]
     pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=10, radius_head=60,  mode='Solid') #[480,640,1]
 
 
     ### Resize a 96x128 pose 0
     image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
-    indices_r4_0 = [[int(c[0]/5),int(c[1]/5), c[2]] for c in indices_r4_0] # 5 è lo scale factor --> 480/96 e 640/128
+    peaks_resized = []
+    # resize dei peaks
+    for k in range(len(peaks)):
+        p = peaks[k]  # coordinate peak ex: "300,200" type string
+        c = int(p.split(',')[0])  # column
+        r = int(p.split(',')[1])  # row
+        if c != -1 and r != -1:
+            peaks_resized.append([int(c / 5), int(r / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
+        else:
+            peaks_resized.append([c, r])
+    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=2, mode='Solid')  # shape
     pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
 
@@ -248,12 +257,21 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
 
     #### Pose 1 radius 4
     peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks, height, width, config.keypoint_num, radius=4, mode='Solid') # shape --> [height, width, config.keypoint_num]
     pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=10, radius_head=60 ,mode='Solid')
 
     ## Reshape a 96x128 pose 1
     image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
-    indices_r4_1 = [[int(c[0] / 5), int(c[1] / 5), c[2]] for c in indices_r4_1]  # 5 è lo scale factor --> 480/96 e 640/128
+    peaks_resized = []
+    #resize dei peaks
+    for k in range(len(peaks)):
+        p = peaks[k] # coordinate peak ex: "300,200" type string
+        c = int(p.split(',')[0])  # column
+        r = int(p.split(',')[1])  # row
+        if c != -1 and r != -1:
+            peaks_resized.append([c / 5 , r / 5]) # 5 è lo scale factor --> 480/96 e 640/128
+        else:
+            peaks_resized.append([c ,r])
+    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=2, mode='Solid')  # shape
     pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
     # Salvataggio delle 14 heatmap iniziali
@@ -309,7 +327,7 @@ def fill_tfrecord(lista, tfrecord_writer):
 
         # carico il file npy dove ho salvato i nomi delle immagini che non considero per mancanza di
         # keypoint 3,5,10,11. Questo file npy è stato creato con lo script CreazionePerOsservazioneMaschere.py
-        logs_cancellate_0 = np.load('./masks/logs_cancellazione/pz{pz}.npy'.format(pz=pz_0), allow_pickle=True)
+        logs_cancellate_0 = np.load('./masks_radius_4/logs_cancellazione/pz{pz}.npy'.format(pz=pz_0), allow_pickle=True)
 
         # Lettura delle seconde annotazioni --> ex:pz4
         for pz_1 in lista:
@@ -318,7 +336,7 @@ def fill_tfrecord(lista, tfrecord_writer):
                 name_path_annotation_1 = os.path.join(config.data_annotations_path, name_file_annotation_1)
                 df_annotation_1 = pd.read_csv(name_path_annotation_1, delimiter=';')
 
-                logs_cancellate_1 = np.load('./masks/logs_cancellazione/pz{pz}.npy'.format(pz=pz_1), allow_pickle=True)
+                logs_cancellate_1 = np.load('./masks_radius_4/logs_cancellazione/pz{pz}.npy'.format(pz=pz_1), allow_pickle=True)
 
                 cnt = 1
 
