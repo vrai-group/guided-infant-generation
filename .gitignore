@@ -16,3 +16,4 @@ pred_train/
 *.bat
 *.hdf5
 *.tfrecord
+*.pkl
