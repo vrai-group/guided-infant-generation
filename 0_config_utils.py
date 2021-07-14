@@ -23,13 +23,25 @@ class Config:
         if self.Dataset == "BabyPose" and os.path.exists(os.path.join(self.data_tfrecord_path , 'pair_tot_sets.pkl')):
             with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
                 dic = pickle.load(f)
+
+            self.name_tfrecord_train = dic['train']['name_file'] # nome dataset train
+            self.name_tfrecord_valid = dic['valid']['name_file'] # nome dataset valid
+            self.name_tfrecord_test = dic['test']['name_file']  # nome dataset test
+
             self.dataset_train_len = int(dic['train']['tot']) # numero di pair nel train
             self.dataset_valid_len = int(dic['valid']['tot'])  # numero di pair nel valid
             self.dataset_test_len = int(dic['test']['tot'])   # numero di pair nel test
+
             print("Lunghezza Sets:")
-            print("- "+dic['train']['name_file']+" : ", self.dataset_train_len )
-            print("- "+dic['valid']['name_file']+" : ", self.dataset_valid_len )
-            print("- "+dic['test']['name_file']+" : ", self.dataset_test_len )
+            print("- "+self.name_tfrecord_train+" : ", self.dataset_train_len )
+            print("- "+self.name_tfrecord_valid+" : ", self.dataset_valid_len )
+            print("- "+self.name_tfrecord_test+" : ", self.dataset_test_len )
+
+            print("List pz:")
+            print(dic['train']['list_pz'])
+            print(dic['valid']['list_pz'])
+            print(dic['test']['list_pz'])
+
         else:
             print("Dataset no presente. Eventualmente è ancora da formare")
 
@@ -58,3 +70,5 @@ class Config:
         #google colab
         self.run_google_colab = True
         self.download_weight = 5 # step di epoche in cui andremo ad aggiornare il rar dei pesi
+
+        self.data_format = 'channels_last'
