@@ -1,7 +1,5 @@
 import os
 import sys
-
-import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import *
@@ -22,29 +20,31 @@ class PG2(object):
     def train_G1(self):
 
         # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_train)
+        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
-        dataset_train = dataset_train.repeat(self.config.epochs)  # 100 numeor di epoche
+        dataset_train = dataset_train.repeat(self.config.epochs)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
         train_it = iter(dataset_train)
 
         # Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_valid)
+        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
         dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
         # dataset_valid = dataset_valid.shuffle(self.config.dataset_valid_len, reshuffle_each_iteration=True)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
-        dataset_valid = dataset_valid.repeat(self.config.epochs)  # 100 numeor di epoche
-        dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
+        dataset_valid = dataset_valid.repeat(self.config.epochs)
+        dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
         valid_it = iter(dataset_valid)
 
         # Costruzione modello
         model_g1 = G1.build_model(self.config)
+        #model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_001-loss_0.316910-mse_0.102323-m_ssim0.340328-val_loss_0.391856-val_mse_0.136894-val_m_ssim_0.221764.hdf5'))
         model_g1.summary()
 
         # CallBacks
-        filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-mse_{mse:2f}-m_ssim{m_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mse:2f}-val_m_ssim_{val_m_ssim:2f}.hdf5')
+        #filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-maskmse_{mask_mse:2f}-maskssim{mask_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mask_mse:2f}-val_m_ssim_{val_mask_ssim:2f}.hdf5')
+        filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-mse_{mse:2f}-ssim{m_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mse:2f}-val_m_ssim_{val_m_ssim:2f}.hdf5')
         checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=True, period=1)
 
         learning_rate_decay = LearningRateScheduler(G1.step_decay)
@@ -62,18 +62,18 @@ class PG2(object):
         #Note: G1 è preaddestrato
 
         # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_train)
+        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_GAN_dataset(dataset_train)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
-        #dataset_train = dataset_train.repeat(self.config.epochs)  # 100 numeor di epoche
+        #dataset_train = dataset_train.repeat(self.config.epochs)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
         #Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_valid)
+        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
         dataset_valid = self.babypose_obj.get_preprocess_GAN_dataset(dataset_valid)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
-        #dataset_valid = dataset_valid.repeat(self.config.epochs)  # 100 numeor di epoche
+        #dataset_valid = dataset_valid.repeat(self.config.epochs)
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
         # Carico il modello preaddestrato G1
@@ -297,7 +297,7 @@ class PG2(object):
     def predict_conditional_GAN(self):
 
         # Preprocess Dataset test
-        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_valid)
+        dataset_test = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
         dataset_test = self.babypose_obj.get_preprocess_GAN_dataset(dataset_test)
         dataset_test = dataset_test.batch(1)
         dataset_test = dataset_test.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
@@ -360,9 +360,14 @@ class PG2(object):
             a = input("Premi per continuare ")
 
 
+
+
+
 if __name__ == "__main__":
     Config_file = __import__('0_config_utils')
     config = Config_file.Config()
+
+    #prepare_dirs_and_logger(config)
 
     if config.gpu > -1:
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
