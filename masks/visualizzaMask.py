@@ -8,7 +8,7 @@ import os
 import cv2
 
 def view_tfrecord():
-    name_tfrecord = 'Babypose_pz28.tfrecord'
+    name_tfrecord = 'Babypose_pz76.tfrecord'
     raw_dataset = tf.data.TFRecordDataset(name_tfrecord)
     name_pz=name_tfrecord.split('_')[1].split('.')[0]
     if not os.path.exists(name_pz):
@@ -38,13 +38,13 @@ def view_tfrecord():
 
         image_raw_0 = tf.reshape(tf.io.decode_jpeg(image_features['image_raw_0']), [480, 640, 1]).numpy()
         keypoints_img = image_features['key'].numpy().reshape(480,640, 1)
-        name_img = str(image_features['image_name_0'].numpy())
+        name_img = image_features['image_name_0'].numpy()
 
         #mask
         pose_mask_r4_0 = image_features['pose_mask_r4_0'].numpy().reshape(480,640, 1)
 
-        cv2.imwrite("./"+name_pz+"/"+name_img+".png", image_raw_0 + pose_mask_r4_0 * 255)
-        cv2.imwrite("./"+name_pz+"/"+name_img+"1.png", keypoints_img)
+        cv2.imwrite("./"+name_pz+"/"+name_img.decode("utf-8")+".png", image_raw_0 + pose_mask_r4_0 * 255)
+        cv2.imwrite("./"+name_pz+"/"+name_img.decode("utf-8")+"1.png", keypoints_img)
 
 
 if __name__ == "__main__":
