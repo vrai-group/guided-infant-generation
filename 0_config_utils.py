@@ -36,7 +36,10 @@ class Config:
         #model G1 / G2
         self.input_shape_g1 = [96, 128, 17]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
         self.input_shape_g2 = [96, 128, 2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
-        self.repeat_num = int(np.log2(self.img_H)) - 2  # numero di blocchi residuali --> 4 con height 96
+
+        # numero di blocchi residuali del G1. --> 4 con height 96
+        # Per il G2 verrà considerato un repeat_num - 2
+        self.repeat_num = int(np.log2(self.img_H)) - 2
         self.conv_hidden_num = 128 # numero di filtri del primo layer convoluzionale. dall helper n in the paper
         self.z_num = 64 # numero neuroni del fully connected del G1
         self.input_image_raw_channel = 3  # indica per le image_raw_0 il 1 GRAY, mi serve per la regressione di output della rete
@@ -55,37 +58,3 @@ class Config:
         #google colab
         self.run_google_colab = True
         self.download_weight = 5 # step di epoche in cui andremo ad aggiornare il rar dei pesi
-
-
-
-        self.beta1=0.5   # adam parameter
-        self.beta2=0.999   # adam parametr
-        self.gamma=0.5 
-        self.lambda_k=0.001 
-        self.use_gpu=False
-        self.gpu=-1
-        if self.use_gpu:
-            self.data_format = 'channels_first'
-        else:
-            self.data_format = 'channels_last' #'NHWC'
-
-        if self.is_train:
-            self.num_threads = 4
-            self.capacityCoff = 2  # serve per indicare quanti batch devono esssere caricati in memoria
-        else:  # during testing to keep the order of the input data
-            self.num_threads = 1
-            self.capacityCoff = 1
-
-        self.model=0
-        self.D_arch = 'DCGAN'   # 'DCGAN'  'noNormDCGAN'  'MultiplicativeDCGAN'  'tanhNonlinearDCGAN'  'resnet101'
-
-        self.load_path=''
-        self.log_step=200 
-        self.save_model_secs=1000 
-        self.num_log_samples=3 
-        self.log_level='INFO'
-        self.log_dir='logs' 
-        self.model_dir=None
-        self.test_data_path=None #help='directory with images which will be used in test sample generation'
-        self.sample_per_image =64 #help='# of sample per image during test sample generation'
-        self.random_seed=123
