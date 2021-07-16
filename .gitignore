@@ -5,9 +5,6 @@ data/annotations
 data/pyOniExtractor
 logs/*.npy
 Market_transfer/
-pred_one/
-pred_real/
-pred_train/ 
 
 
 # estensioni #
