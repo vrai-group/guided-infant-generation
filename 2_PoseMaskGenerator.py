@@ -106,7 +106,7 @@ Creo le maschere binarie
 
 @:return dense --> Maschera con shape [height, width, 1]
 """
-def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, mode='Solid'):
+def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, dilatation=10, mode='Solid'):
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
                [1, 2], [2, 3],  # braccio dx
                [3, 4], [4, 5],  # collo
@@ -183,7 +183,7 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, mode='So
     shape = [height, width, 1]
     ## Fill body
     dense = np.squeeze(_sparse2dense(indices, values, shape))
-    dense = dilation(dense, square(35))
+    dense = dilation(dense, square(dilatation))
     dense = erosion(dense, square(5))
     dense = np.reshape(dense, [dense.shape[0], dense.shape[1], 1])
     #cv2.imwrite('DenseMask.png', dense * 255)
@@ -194,7 +194,7 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, mode='So
 Crezione dell example da aggiungere al .tfrecord
 @:return example
 """
-def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
+def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation):
 
     pz_0 = 'pz'+str(id_pz_0)
     pz_1 = 'pz' + str(id_pz_1)
@@ -225,7 +225,7 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
 
     ###########################  Image 0  ################################################
     peaks = annotations_0[1:] # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=10, radius_head=60,  mode='Solid') #[480,640,1]
+    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation, mode='Solid') #[480,640,1]
 
     ### Resize a 96x128 pose 0
     image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
@@ -238,7 +238,7 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
             peaks_resized.append([int(c / 5), int(r / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
             peaks_resized.append([c, r])
-    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=2, mode='Solid')
+    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=radius_keypoints_pose, mode='Solid')
     pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
 
@@ -259,7 +259,7 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
 
     ############################  Image 1  ################################################
     peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=10, radius_head=60 ,mode='Solid')
+    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation,mode='Solid')
 
     ### Reshape a 96x128 pose 1
     image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
@@ -272,7 +272,7 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1):
             peaks_resized.append([c / 5 , r / 5]) # 5 è lo scale factor --> 480/96 e 640/128
         else:
             peaks_resized.append([c ,r])
-    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=2, mode='Solid')  # shape
+    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
     pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
     ### Salvataggio delle 14 heatmap iniziali
@@ -334,7 +334,7 @@ def check_assenza_keypoints_3_5_10_11(peaks):
 Metodo che mi consente di formare le accoppiate tra i pz_0 e i pz_1 e di avviare la formazione dell'example
 @:return tot_pairs = numero totale dei pairs formati
 """
-def fill_tfrecord(lista, tfrecord_writer):
+def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation):
 
     tot_pairs = 0 # serve per contare il totale di pair nel tfrecord
 
@@ -375,7 +375,7 @@ def fill_tfrecord(lista, tfrecord_writer):
                                                                                         tot=df_annotation_0.shape[0]))
                     sys.stdout.flush()
                     # Creazione dell'example tfrecord
-                    example = _format_data(config, pz_0, pz_1, row_0, row_1)
+                    example = _format_data(config, pz_0, pz_1, row_0, row_1, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
                     cnt += 1 # incremento del conteggio degli examples
                     tot_pairs += 1
 
@@ -410,6 +410,12 @@ if __name__ == '__main__':
     lista_pz_valid = [4, 7, 29, 30, 43, 76]
     lista_pz_test = [5, 11, 15, 27, 39, 42]
 
+    # General information
+    radius_keypoints_pose = 2
+    radius_keypoints_mask = 10
+    radius_head_mask = 60
+    dilatation = 35
+
     r_tr = None  # risposta dell'utente
     r_v = None
     r_te = None
@@ -419,7 +425,7 @@ if __name__ == '__main__':
         assert r_tr == "Y" or r_tr == "N" or r_tr == "y" or r_tr == "n"
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
-        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train)
+        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
         print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
@@ -429,7 +435,7 @@ if __name__ == '__main__':
         assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
     if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
         tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid)
+        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
         print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
@@ -439,16 +445,25 @@ if __name__ == '__main__':
         assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
     if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
         tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
-        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test)
+        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
         print("TOT TEST: ", tot_test)
     elif r_te == "N" or r_te == "n":
         print("OK, non farò nulla sul test set")
 
-    dic = {"train": {
+    dic = {
+
+        "general": {
+            "radius_keypoints_pose": radius_keypoints_pose,
+            "radius_keypoints_mask": radius_keypoints_mask,
+            "radius_head_mask": radius_head_mask,
+            "dilatation": dilatation
+        },
+
+        "train": {
         "name_file": config.name_tfrecord_train,
         "list_pz": lista_pz_train,
         "tot": tot_train
-    },
+        },
         "valid": {
             "name_file": config.name_tfrecord_valid,
             "list_pz": lista_pz_valid,
