@@ -4,48 +4,71 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.callbacks import ModelCheckpoint
-
+import math
 sys.path.insert(1, '../utils')
 from utils import utils_wgan
+Config_file = __import__('0_config_utils')
+config = Config_file.Config()
+
 
 ####### LOSS
 # Fuinzione di loss input: y_true, y_pred
 def PoseMaskLoss1(Y, output_G1):
-    image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
-    mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
-    # print("g1",output_G1.shape)
-    # print("mask1", mask_1.shape)
-    # print("raw1", image_raw_1.shape)
+
+    if config.input_image_raw_channel == 3:
+        image_raw_1 = tf.reshape(Y[:, :, :, :3], [-1, 96, 128, 3])
+        mask_1 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
+        image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
+        mask_0 = tf.reshape(Y[:, :, :, 7], [-1, 96, 128, 1])
+        mask_0_inv  = 1 - mask_0
+
+    if config.input_image_raw_channel == 1:
+        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
+        mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
+        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
+        mask_0 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
+        mask_0_inv = 1 - mask_0
+
 
     # La PoseMakLoss1  è quella implementata sul paper
-    primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
+    #primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
+    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
-
-    # tf.print("", "\n", output_stream=sys.stdout)
-    # tf.print("L1_Loss1:", primo_membro, output_stream=sys.stdout)
-    # tf.print("PoseMakLoss1:", PoseMaskLoss1, output_stream=sys.stdout)
-    # tf.print("Media: ", tf.math.reduce_mean(image_raw_1[0]), output_stream=sys.stdout)
 
     return PoseMaskLoss1
 
 ###### METRICA
 # Metrica MSE
 def mse(Y, output_G1):
-    image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
-    return tf.reduce_mean(tf.square(output_G1 - image_raw_1))
+
+    if config.input_image_raw_channel == 3:
+        image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
+
+    if config.input_image_raw_channel == 1:
+        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
+
+    return tf.reduce_mean(tf.square(output_G1 - image_raw_0))
+
 
 # Metrica SSIM
 def m_ssim(Y, output_G1):
-    image_raw_1 = Y[:, :, :, 0]
-    image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 1, 32765.5)
+
+    if config.input_image_raw_channel == 3:
+        image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
+        image_raw_0 = tf.reshape(image_raw_0, [-1, 96, 128, 3])
+
+    if config.input_image_raw_channel == 1:
+        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
+        image_raw_0 = tf.reshape(image_raw_0, [-1, 96, 128, 1])
+
+    image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 1, 32765.5)
     output_G1 = utils_wgan.unprocess_image(output_G1, 1, 32765.5)
 
-    image_raw_1 = tf.clip_by_value(image_raw_1, clip_value_min=0, clip_value_max=32765)
-    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    image_raw_0 = tf.clip_by_value(image_raw_0, clip_value_min=0, clip_value_max=32765)
     output_G1 = tf.clip_by_value(output_G1, clip_value_min=0, clip_value_max=32765)
 
-    result = tf.image.ssim(output_G1, image_raw_1, max_val=32765)
+    result = tf.image.ssim(output_G1, image_raw_0, max_val=32765)
     mean = tf.reduce_mean(result)
 
     return mean
@@ -53,14 +76,9 @@ def m_ssim(Y, output_G1):
 #### Learning rate
 def step_decay(epoch):
     initial_lrate = 2e-5
-
-    # Aggiorniamo il lr ogni epoca
-    if epoch > 0:
-        lrate = initial_lrate / (0.5 * epoch)
-    else:
-        lrate = initial_lrate
-
-    return lrate
+    drop_rate = 0.5
+    epoch_rate = 1 #ogni quanto eseguire l aggiornamento
+    return initial_lrate * (drop_rate ** math.floor(epoch/epoch_rate))
 
 
 ###### MODEL
@@ -114,8 +132,10 @@ def build_model(config):
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5, beta_2=0.999),
-        loss=PoseMaskLoss1,
-        metrics=[mse,m_ssim],
+        #optimizer=tf.keras.optimizers.SGD(learning_rate=0.01),
+        #optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+	    loss=PoseMaskLoss1,
+        metrics=[mse, m_ssim],
     )
 
     return model

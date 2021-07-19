@@ -16,19 +16,19 @@ def predict_G1(config):
     babypose_obj = BabyPose()
 
     # Preprocess Dataset train
-    dataset_train = babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_train)
-    dataset_train = babypose_obj.get_preprocess_predizione(dataset_uno)
-    dataset_train = dataset_uno.batch(1)
-    dataset_train = dataset_uno.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
+    dataset_train = babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
+    dataset_train = babypose_obj.get_preprocess_predizione(dataset_train)
+    dataset_train = dataset_train.batch(1)
+    dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
-    # Preprocess Dataset train
-    dataset = babypose_obj.get_unprocess_dataset(config.data_path, config.name_tfrecord_test)
+    # Preprocess Dataset test
+    dataset = babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
     dataset = babypose_obj.get_preprocess_predizione(dataset)
     dataset = dataset.batch(1)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     model_G1 = G1.build_model(config)
-    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_002-loss_0.263336-maskmse_0.456218-maskssim0.857949-val_loss_0.297772-val_mse_0.369874-val_m_ssim_1.000000.hdf5'))
+    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_002-loss_0.001062-mse_0.000081-ssim0.891053-val_loss_0.001178-val_mse_0.000120-val_m_ssim_0.873199.hdf5'))
     cnt = 0
 
     # Per effettuare incroci tra le img di condizione di test e le pose di train
@@ -100,7 +100,7 @@ def predict_G1(config):
     #                     #plt.savefig("pred_train/pred_{id}.png".format(id=cnt2,pz_0=pz_0,pz_1=pz_1))
 
     # Per effettuare le predizioni solamente su dataset di valid/test
-    for e in dataset_uno:
+    for e in dataset_train:
         cnt += 1
         X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0 = e
         pz_0 = pz_0.numpy()[0].decode("utf-8")
@@ -108,18 +108,18 @@ def predict_G1(config):
         print(pz_0, '-', pz_1)
 
         if cnt >= 0:
-            if pz_0 == "pz3" and pz_1 == "pz11":
-                image_raw_0 = X[:, :, :, 0]
-                pose_1 = X[:, :, :, 1:]
-                image_raw_1 = Y[:, :, :, 0]
-                mask_1 = Y[:, :, :, 1]
+            if pz_0 == "pz3" and pz_1 == "pz101":
+                image_raw_0 = X[:, :, :, :3]
+                pose_1 = X[:, :, :, 3:]
+                image_raw_1 = Y[:, :, :, :3]
+                mask_1 = Y[:, :, :, 3]
                 predizione = model_G1.predict(X, verbose=1)
 
                 #Unprocess
-                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 400, 32765.5)
-                image_raw_0 = tf.cast(image_raw_0, dtype=tf.int16)[0].numpy()
+                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 1, 32765.5)
+                image_raw_0 = tf.cast(image_raw_0, dtype=tf.float32)[0].numpy()
 
-                image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 400, 32765.5)
+                image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 1, 32765.5)
                 image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)[0].numpy()
 
                 pose_1 = pose_1.numpy()[0]
@@ -136,10 +136,10 @@ def predict_G1(config):
                 predizione = tf.cast(predizione, dtype=tf.float32)[0]
 
                 fig = plt.figure(figsize=(10, 2))
-                columns = 4
+                columns = 5
                 rows = 1
-                imgs = [predizione, image_raw_0 + mask_0, pose_1, mask_1]
-                labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Maschera posa desiderata"]
+                imgs = [predizione, image_raw_0, pose_1, image_raw_1, mask_1]
+                labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Target", "Maschera posa desiderata"]
                 for i in range(1, columns * rows + 1):
                     sub = fig.add_subplot(rows, columns, i)
                     sub.set_title(labels[i - 1])
@@ -368,4 +368,4 @@ if __name__ == "__main__":
     Config_file = __import__('0_config_utils')
     config = Config_file.Config()
 
-    predict_G1_view_more_epochs(config)
+    predict_G1(config)

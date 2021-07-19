@@ -1,3 +1,6 @@
+"""
+Questo script consente di avviare il training del G1 e della GAN
+"""
 import os
 import sys
 import numpy as np
@@ -15,7 +18,7 @@ class PG2(object):
     def __init__(self, config):
         # Trainer.__init__(self, config, data_loader=None)
         self.config = config
-        self.babypose_obj = BabyPose()
+        self.babypose_obj = BabyPose(config)
 
     def train_G1(self):
 
@@ -39,7 +42,7 @@ class PG2(object):
 
         # Costruzione modello
         model_g1 = G1.build_model(self.config)
-        #model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_001-loss_0.316910-mse_0.102323-m_ssim0.340328-val_loss_0.391856-val_mse_0.136894-val_m_ssim_0.221764.hdf5'))
+        model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_001-loss_0.207594-mse_0.066209-m_ssim0.993222-val_loss_0.202625-val_mse_0.064120-val_m_ssim_0.993133.hdf5'))
         model_g1.summary()
 
         # CallBacks
@@ -360,18 +363,9 @@ class PG2(object):
             a = input("Premi per continuare ")
 
 
-
-
-
 if __name__ == "__main__":
     Config_file = __import__('0_config_utils')
     config = Config_file.Config()
-
-    #prepare_dirs_and_logger(config)
-
-    if config.gpu > -1:
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(config.gpu)
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 

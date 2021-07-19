@@ -6,11 +6,11 @@ class Config:
     def __init__(self) :
 
         self.Dataset = "BabyPose"
-        self.radius = "10"
+        self.type = "new"   # radius_<num> or new
 
         #Path
         self.data_path = './data/' + self.Dataset # dove si trova il dataset
-        self.data_tfrecord_path = './data/' + '/tfrecord/' + "radius_" + self.radius  # dove si trova il dataset in tfrecord
+        self.data_tfrecord_path = './data/' + '/tfrecord/' + self.type  # dove si trova il dataset in tfrecord
         self.data_annotations_path = './data/annotations' # dove si trovano le annotazioni
         self.logs_cancellate_path = './masks/logs_cancellazione' # dove si trovano i file npy contenente i nomi delle immagini da non considerare poichè manca uno di questi Keypoint: 3,5,10,11
         self.weigths_path = './weights' # dove salvare i pesi
@@ -61,7 +61,6 @@ class Config:
         self.keypoint_num = 14  # numero di mappe
 
         # Training / test parameters
-        self.is_train = False
         self.epochs = 100
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
