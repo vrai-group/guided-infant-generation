@@ -42,12 +42,11 @@ class PG2(object):
 
         # Costruzione modello
         model_g1 = G1.build_model(self.config)
-        model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_001-loss_0.207594-mse_0.066209-m_ssim0.993222-val_loss_0.202625-val_mse_0.064120-val_m_ssim_0.993133.hdf5'))
-        model_g1.summary()
+        #model_g1.load_weights(os.path.join(self.config.weigths_path, ''))
+        #model_g1.summary()
 
         # CallBacks
-        #filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-maskmse_{mask_mse:2f}-maskssim{mask_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mask_mse:2f}-val_m_ssim_{val_mask_ssim:2f}.hdf5')
-        filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-mse_{mse:2f}-ssim{m_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mse:2f}-val_m_ssim_{val_m_ssim:2f}.hdf5')
+        filepath = os.path.join(self.config.weigths_path, 'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-mse_{mse:2f}-ssim_{m_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mse:2f}-val_ssim_{val_m_ssim:2f}.hdf5')
         checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=True, period=1)
 
         learning_rate_decay = LearningRateScheduler(G1.step_decay)
@@ -364,7 +363,7 @@ class PG2(object):
 
 
 if __name__ == "__main__":
-    Config_file = __import__('0_config_utils')
+    Config_file = __import__('1_config_utils')
     config = Config_file.Config()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
