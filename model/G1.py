@@ -20,7 +20,7 @@ def PoseMaskLoss1(Y, output_G1):
         mask_1 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
         image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
         mask_0 = tf.reshape(Y[:, :, :, 7], [-1, 96, 128, 1])
-        mask_0_inv  = 1 - mask_0
+        mask_0_inv = 1 - mask_0
 
     if config.input_image_raw_channel == 1:
         image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
@@ -44,6 +44,7 @@ def mse(Y, output_G1):
 
     if config.input_image_raw_channel == 3:
         image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
+        image_raw_0 = tf.image.rgb_to_grayscale(image_raw_0, name=None)
 
     if config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
@@ -56,7 +57,8 @@ def m_ssim(Y, output_G1):
 
     if config.input_image_raw_channel == 3:
         image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
-        image_raw_0 = tf.reshape(image_raw_0, [-1, 96, 128, 3])
+        image_raw_0 = tf.image.rgb_to_grayscale(image_raw_0, name=None)
+        output_G1 = output_G1[:,:,:,0]
 
     if config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
