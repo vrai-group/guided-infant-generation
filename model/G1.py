@@ -7,7 +7,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 import math
 sys.path.insert(1, '../utils')
 from utils import utils_wgan
-Config_file = __import__('0_config_utils')
+
+Config_file = __import__('1_config_utils')
 config = Config_file.Config()
 
 
@@ -22,7 +23,7 @@ def PoseMaskLoss1(Y, output_G1):
         mask_0 = tf.reshape(Y[:, :, :, 7], [-1, 96, 128, 1])
         mask_0_inv = 1 - mask_0
 
-    if config.input_image_raw_channel == 1:
+    elif config.input_image_raw_channel == 1:
         image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
         mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
@@ -32,7 +33,7 @@ def PoseMaskLoss1(Y, output_G1):
 
     # La PoseMakLoss1  è quella implementata sul paper
     #primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
-    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
+    primo_membro = 0.05 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
 
@@ -43,37 +44,32 @@ def PoseMaskLoss1(Y, output_G1):
 def mse(Y, output_G1):
 
     if config.input_image_raw_channel == 3:
-        image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
-        image_raw_0 = tf.image.rgb_to_grayscale(image_raw_0, name=None)
-        output_G1 = output_G1[:, :, :, 0]
-        output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
+        image_raw_0 = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
+        output_G1 = tf.reshape(output_G1[:, :, :, 0], [-1, 96, 128, 1])
 
-    if config.input_image_raw_channel == 1:
+    elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
 
-    return tf.reduce_mean(tf.square(output_G1 - image_raw_0))
+    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), dtype=tf.uint16)
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 1, 32765.5), dtype=tf.uint16)
+
+    return tf.reduce_mean(tf.square(tf.cast(output_G1 - image_raw_0, dtype=tf.float16)))
 
 
 # Metrica SSIM
 def m_ssim(Y, output_G1):
 
     if config.input_image_raw_channel == 3:
-        image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
-        image_raw_0 = tf.image.rgb_to_grayscale(image_raw_0, name=None)
-        output_G1 = output_G1[:,:,:,0]
-        output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
+        image_raw_0 = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
+        output_G1 = tf.reshape(output_G1[:,:,:,0], [-1, 96, 128, 1])
 
-    if config.input_image_raw_channel == 1:
+    elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
-        image_raw_0 = tf.reshape(image_raw_0, [-1, 96, 128, 1])
 
-    image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 1, 32765.5)
-    output_G1 = utils_wgan.unprocess_image(output_G1, 1, 32765.5)
+    image_raw_0 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
-    image_raw_0 = tf.clip_by_value(image_raw_0, clip_value_min=0, clip_value_max=32765)
-    output_G1 = tf.clip_by_value(output_G1, clip_value_min=0, clip_value_max=32765)
-
-    result = tf.image.ssim(output_G1, image_raw_0, max_val=32765)
+    result = tf.image.ssim(output_G1, image_raw_0, max_val=tf.math.reduce_max(image_raw_0))
     mean = tf.reduce_mean(result)
 
     return mean
