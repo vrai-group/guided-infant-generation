@@ -45,6 +45,8 @@ def mse(Y, output_G1):
     if config.input_image_raw_channel == 3:
         image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
         image_raw_0 = tf.image.rgb_to_grayscale(image_raw_0, name=None)
+        output_G1 = output_G1[:, :, :, 0]
+        output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
 
     if config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
@@ -59,6 +61,7 @@ def m_ssim(Y, output_G1):
         image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
         image_raw_0 = tf.image.rgb_to_grayscale(image_raw_0, name=None)
         output_G1 = output_G1[:,:,:,0]
+        output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
 
     if config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
