@@ -1,26 +1,24 @@
 """
-Questo script consente di creare i .tfrecord (train/valid/test) che saranno utilizzati per il training del modello.
-Nel TFrecord avremo le informazioni espresse in example.
+Nel progetto originale prende il nomer di convert_market.py
+Questo script consente di creare uno o più TFrecord che saranno utilizzati per il training del modello.
+Nel TFrecord avremo le informazioni espresse in example del metodo _format_data
 """
 
+import math
 import os
 import sys
-import cv2
-import math
-import pickle
-import numpy as np
-import pandas as pd
 import tensorflow as tf
+import numpy as np
+import cv2
+import pandas as pd
 from random import randint
 from skimage.morphology import square, dilation, erosion
-
 from utils import dataset_utils
+import pickle
 
 """
-Data una shape e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
-andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
-
-@:return dense --> maschera
+# Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
+# andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
 """
 def _sparse2dense(indices, values, shape):
     dense = np.zeros(shape)
@@ -31,13 +29,10 @@ def _sparse2dense(indices, values, shape):
     return dense
 
 """
-Dato un radius, ad esempio di 4, e un punto p ciò che cerco di fare è di trovare tutti i punti che si trovano 
-nell'intorno [-4,4] del punto p. Le coordinate di ognuno di questi punti le salvo in indices e setto il valore 1 (visibile).
-Al termine, ciò che otteniamo è che il punto p viene ingrandito considerando un raggio di 4.
-Un esempio è mostrato in figura SparseKeypoint.png
-
-@:return indices --> contiene tutti gli indici che consentono di ingrandire un punto p di un redius
-@:return values --> contiene tutti valori settati ad 1, relativi ad ogni coordinata espressa negli indices
+# Dato un radius di 4 e un punto p ciò che cerco di fare è di trovare tutti i punti che si trovano 
+# nell'intorno [-4,4] del punto p. Le coordinate di ognuno di questi punti le salvo in indices e setto il valore 1 (visibile).
+# Al termine, ciò che otteniamo è che il punto p viene ingrandito considerando un raggio di 4.
+# Un esempio è mostrato in figura SparseKeypoint.png
 """
 def _getSparseKeypoint(r, c, k, height, width, radius=4, var=4, mode='Solid'):
     indices = []
@@ -61,11 +56,11 @@ def _getSparseKeypoint(r, c, k, height, width, radius=4, var=4, mode='Solid'):
 
 
 """
-Andiamo ad ingrandire ogni peaks di un raggio 4 o superiore creando nuovi punti.
-Salviamo tutti in indices. I Values sono settati ad 1 ed indicano la visibilità degli indices
-i valori di k indicano gli indici di ogni keypoint:
-0 head; 1 right_hand; 2 right_elbow; 3 right_shoulder; 4 neck; 5 left_shoulder; 6 left_elbow;
-7 left_hand; 8 right_foot; 9 right_knee; 10 right_hip; 11 left_hip; 12 left_knee; 13 left_foot
+# Andiamo ad ingrandire ogni peaks di un raggio 4 o superiore creando nuovi punti.
+# Salviamo tutti in indices. I Values sono settati ad 1 ed indicano la visibilità degli indices
+# i valori di k indicano gli indici di ogni keypoint:
+  0 head; 1 right_hand; 2 right_elbow; 3 right_shoulder; 4 neck; 5 left_shoulder; 6 left_elbow;
+  7 left_hand; 8 right_foot; 9 right_knee; 10 right_hip; 11 left_hip; 12 left_knee; 13 left_foot
   
 @:return
 indices --> [ [<coordinata>, <coordinata>, <indice keypoint>], ... ]
@@ -87,7 +82,7 @@ def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid')
     return indices, values, shape
 
 """
-Serve di debug per stamapare i peaks sull immagine in input. Stampo i peaks considerando anche i corrispettivi id
+## Serve per stamapare i peaks sull immagine in input. Stampo i peaks considerando anche i corrispettivi id
 """
 def visualizePeaks(peaks, img):
     for k in range(len(peaks)):
@@ -104,9 +99,10 @@ def visualizePeaks(peaks, img):
 """
 Creo le maschere binarie
 
-@:return dense --> Maschera con shape [height, width, 1]
+@:return
+Maschera con shape [height, width, 1]
 """
-def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, dilatation=10, mode='Solid'):
+def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation= 10, var=4, mode='Solid'):
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
                [1, 2], [2, 3],  # braccio dx
                [3, 4], [4, 5],  # collo
@@ -133,10 +129,10 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, dilatati
 
             if limb[0] == 0:  # Per la testa utilizzo un Radius maggiore
                 ind, val = _getSparseKeypoint(r0, c0, 0, height, width, radius_head, var,
-                                              mode)  # ingrandisco il punto p0 considerando un raggio di radius_head
+                                              mode)  # ingrandisco il punto p0 considerando un raggio di 20
             else:
                 ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius, var,
-                                              mode)  # # ingrandisco il punto p1 considerando un raggio di radius
+                                              mode)  # # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
@@ -144,10 +140,10 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, dilatati
             if limb[1] == 0:
                 # Per la testa utilizzo un Radius maggiore
                 ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius_head, var,
-                                              mode)  # ingrandisco il punto p1 considerando un raggio di radius_head
+                                              mode)  # ingrandisco il punto p1 considerando un raggio di 20
             else:
                 ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius, var,
-                                              mode)  # # ingrandisco il punto p1 considerando un raggio di radius
+                                              mode)  # # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
@@ -176,60 +172,64 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, var=4, dilatati
                     # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
                     # cv2.imwrite('Linking'+str(limb)+'.png', dense * 255)
             ## stampo l immagine
-            #dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
+            dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
             #cv2.imwrite('Dense{limb}.png'.format(limb=limb), dense * 255)
 
 
     shape = [height, width, 1]
     ## Fill body
     dense = np.squeeze(_sparse2dense(indices, values, shape))
-    dense = dilation(dense, square(dilatation))
+    dense = dilation(dense, square(35))
     dense = erosion(dense, square(5))
     dense = np.reshape(dense, [dense.shape[0], dense.shape[1], 1])
     #cv2.imwrite('DenseMask.png', dense * 255)
 
     return dense
 
+
 """
-Crezione dell example da aggiungere al .tfrecord
+Crezione dell example da aggiungere al TF Record
 @:return example
 """
-def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation):
-
-    pz_0 = 'pz'+str(id_pz_0)
+def _format_data_flip(id_pz_0, id_pz_1, annotations_0, annotations_1,
+                      radius_keypoints_pose, radius_keypoints_mask,
+                      radius_head_mask, dilatation):
+    pz_0 = 'pz' + str(id_pz_0)
     pz_1 = 'pz' + str(id_pz_1)
 
     # Read the image info:
     name_img_0_16_bit = annotations_0['image'].split('_')[0] + '_16bit.png'
     name_img_1_16_bit = annotations_1['image'].split('_')[0] + '_16bit.png'
-    img_path_0 = os.path.join(config.data_path, pz_0, name_img_0_16_bit)
-    img_path_1 = os.path.join(config.data_path, pz_1, name_img_1_16_bit)
+    img_path_0 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_0, name_img_0_16_bit)
+    img_path_1 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_1, name_img_1_16_bit)
 
     # Read immagine
-    image_0 = cv2.imread(img_path_0, cv2.IMREAD_UNCHANGED) #[480,640]
-    image_1 = cv2.imread(img_path_1, cv2.IMREAD_UNCHANGED) #[480,640]
-    height, width  = image_0.shape[0], image_0.shape[1]
+    image_0 = cv2.imread(img_path_0, cv2.IMREAD_UNCHANGED)  # [480,640]
+    image_1 = cv2.imread(img_path_1, cv2.IMREAD_UNCHANGED)  # [480,640]
+    height, width = image_0.shape[0], image_0.shape[1]
 
     ### Pose 8x16
     # Qui salviamo i peaks iniziali (quelli che abbiamo nei cvs annotations) sottoforma di maschere di dimensioni 16x8
     w_unit = width / 16  # per il rescaling delle coordinate dei keypoint  per immagine a 8*16
     h_unit = height / 8  # per il rescaling delle coordinate dei keypoint per immagine a 8*16
-    pose_peaks_0 = np.zeros([8, 16, config.keypoint_num])
-    pose_peaks_1 = np.zeros([8, 16, config.keypoint_num])
+    pose_peaks_0 = np.zeros([8, 16, keypoint_num])
+    pose_peaks_1 = np.zeros([8, 16, keypoint_num])
 
     ### Pose coodinate
     # Qui salviamo le coordinate dei keypoint iniziali (quelli che abbiamo nei csv annotations) in un array che contiene tre informaioni:
     # coordinata Row del peak, coordinata Column del peek, Visibility del peak
-    pose_peaks_0_rcv = np.zeros([config.keypoint_num, 3])
-    pose_peaks_1_rcv = np.zeros([config.keypoint_num, 3])
+    pose_peaks_0_rcv = np.zeros([keypoint_num, 3])
+    pose_peaks_1_rcv = np.zeros([keypoint_num, 3])
 
-    ###########################  Image 0  ################################################
-    peaks = annotations_0[1:] # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation, mode='Solid') #[480,640,1]
+    ### Pose image 0 a radius 4
+    peaks = annotations_0[1:]  # annotation_0[1:] --> poichè tolgo il campo image
+    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,dilatation=dilatation,
+                                  mode='Solid')  # [480,640,1]
 
     ### Resize a 96x128 pose 0
-    image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
+    image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
     peaks_resized = []
+    # resize dei peaks
     for k in range(len(peaks)):
         p = peaks[k]  # coordinate peak ex: "300,200" type string
         c = int(p.split(',')[0])  # column
@@ -238,11 +238,19 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1, radius_
             peaks_resized.append([int(c / 5), int(r / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
             peaks_resized.append([c, r])
-    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=radius_keypoints_pose, mode='Solid')
-    pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
+    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, keypoint_num, radius=radius_keypoints_pose,
+                                                  mode='Solid')  # shape
+    pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,
+                                                                                                          1)  # [96, 128, 1]
+
+    ### Flip vertical
+    mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
+    image_0 = cv2.flip(image_0, 1)
+    indices_r4_0 = [[i[0], 64 + (64 - i[1]), mapping[i[2]]]for i in indices_r4_0]
+    pose_mask_r4_0 = cv2.flip(pose_mask_r4_0, 1)
 
 
-    ### Salvataggio delle 14 heatmap a 8x16 e dei vettori coordinata
+    # Salvataggio delle 14 heatmap a 8x16 e dei vettori coordinata
     for ii in range(len(peaks)):
         p = peaks[ii]
         if 0 != len(p):
@@ -257,13 +265,163 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1, radius_
             pose_peaks_0_rcv[ii][1] = c
             pose_peaks_0_rcv[ii][2] = 1
 
-    ############################  Image 1  ################################################
+    #### Pose 1 radius 4
     peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation,mode='Solid')
+    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation, mode='Solid')
 
-    ### Reshape a 96x128 pose 1
+    ## Reshape a 96x128 pose 1
+    image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
+    peaks_resized = []
+    # resize dei peaks
+    for k in range(len(peaks)):
+        p = peaks[k]  # coordinate peak ex: "300,200" type string
+        c = int(p.split(',')[0])  # column
+        r = int(p.split(',')[1])  # row
+        if c != -1 and r != -1:
+            peaks_resized.append([c / 5, r / 5])  # 5 è lo scale factor --> 480/96 e 640/128
+        else:
+            peaks_resized.append([c, r])
+    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, keypoint_num, radius=radius_keypoints_pose,
+                                                  mode='Solid')  # shape
+    pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,
+                                                                                                          1)  # [96, 128, 1]
+
+    # Salvataggio delle 14 heatmap iniziali
+    for ii in range(len(peaks)):
+        p = peaks[ii]
+        if 0 != len(p):
+            c = int(p.split(',')[0])  # column
+            r = int(p.split(',')[1])  # row
+            pose_peaks_1[int(r / h_unit), int(c / w_unit), ii] = 1
+            pose_peaks_1_rcv[ii][0] = r
+            pose_peaks_1_rcv[ii][1] = c
+            pose_peaks_1_rcv[ii][2] = 1
+
+    ### Flip vertical
+    mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
+    image_1 = cv2.flip(image_1, 1)
+    indices_r4_1 = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in indices_r4_1]
+    pose_mask_r4_1 = cv2.flip(pose_mask_r4_1, 1)
+
+    example_flipped = tf.train.Example(features=tf.train.Features(feature={
+
+        'pz_0': dataset_utils.bytes_feature(pz_0.encode('utf-8')),  # nome del pz
+        'pz_1': dataset_utils.bytes_feature(pz_1.encode('utf-8')),
+
+        'image_name_0': dataset_utils.bytes_feature(name_img_0_16_bit.encode('utf-8')),  # nome dell immagine 0
+        'image_name_1': dataset_utils.bytes_feature(name_img_1_16_bit.encode('utf-8')),  # nome dell immagine 1
+        'image_raw_0': dataset_utils.bytes_feature(image_0.tostring()),  # immagine 0 in bytes
+        'image_raw_1': dataset_utils.bytes_feature(image_1.tostring()),  # immagine 1 in bytes
+
+        'image_format': dataset_utils.bytes_feature('PNG'.encode('utf-8')),
+        'image_height': dataset_utils.int64_feature(96),
+        'image_width': dataset_utils.int64_feature(128),
+
+        'pose_peaks_0': dataset_utils.float_feature(pose_peaks_0.flatten().tolist()),
+        # immagine con shape [8, 16 14] in cui sono individuati i keypoint dell'immagine 0 NON a raggio 4
+        'pose_peaks_1': dataset_utils.float_feature(pose_peaks_1.flatten().tolist()),
+        # immagine con shape [8, 16, 14] in cui sono individuati i keypoint dell'immagine 1 NON a raggio 4
+
+        'pose_mask_r4_0': dataset_utils.int64_feature(pose_mask_r4_0.astype(np.uint16).flatten().tolist()),
+        # maschera binaria a radius 4 con shape [96, 128, 1]
+        'pose_mask_r4_1': dataset_utils.int64_feature(pose_mask_r4_1.astype(np.uint16).flatten().tolist()),
+        # maschera binaria a radius 4 con shape [96, 128, 1]
+
+        'indices_r4_0': dataset_utils.bytes_feature(np.array(indices_r4_0).astype(np.int64).tostring()),
+        # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
+        'values_r4_0': dataset_utils.bytes_feature(np.array(values_r4_0).astype(np.int64).tostring()),
+        # coordinate a radius 4 dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
+        'indices_r4_1': dataset_utils.bytes_feature(np.array(indices_r4_1).astype(np.int64).tostring()),
+        # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
+        'values_r4_1': dataset_utils.bytes_feature(np.array(values_r4_1).astype(np.int64).tostring()),
+        'shape_len_indices_0': dataset_utils.int64_feature(np.array(indices_r4_0).shape[0]),
+        'shape_len_indices_1': dataset_utils.int64_feature(np.array(indices_r4_1).shape[0])
+
+    }))
+
+    return example_flipped
+
+"""
+Crezione dell example da aggiungere al TF Record
+@:return example
+"""
+def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
+                 radius_keypoints_pose, radius_keypoints_mask,
+                 radius_head_mask, dilatation ):
+
+    pz_0 = 'pz'+str(id_pz_0)
+    pz_1 = 'pz' + str(id_pz_1)
+
+    # Read the image info:
+    name_img_0_16_bit = annotations_0['image'].split('_')[0] + '_16bit.png'
+    name_img_1_16_bit = annotations_1['image'].split('_')[0] + '_16bit.png'
+    img_path_0 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_0, name_img_0_16_bit)
+    img_path_1 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_1, name_img_1_16_bit)
+
+    # Read immagine
+    image_0 = cv2.imread(img_path_0, cv2.IMREAD_UNCHANGED) #[480,640]
+    image_1 = cv2.imread(img_path_1, cv2.IMREAD_UNCHANGED) #[480,640]
+    height, width  = image_0.shape[0], image_0.shape[1]
+
+    ### Pose 8x16
+    # Qui salviamo i peaks iniziali (quelli che abbiamo nei cvs annotations) sottoforma di maschere di dimensioni 16x8
+    w_unit = width / 16  # per il rescaling delle coordinate dei keypoint  per immagine a 8*16
+    h_unit = height / 8  # per il rescaling delle coordinate dei keypoint per immagine a 8*16
+    pose_peaks_0 = np.zeros([8, 16, keypoint_num])
+    pose_peaks_1 = np.zeros([8, 16, keypoint_num])
+
+    ### Pose coodinate
+    # Qui salviamo le coordinate dei keypoint iniziali (quelli che abbiamo nei csv annotations) in un array che contiene tre informaioni:
+    # coordinata Row del peak, coordinata Column del peek, Visibility del peak
+    pose_peaks_0_rcv = np.zeros([keypoint_num, 3])
+    pose_peaks_1_rcv = np.zeros([keypoint_num, 3])
+
+    ### Pose image 0 a radius 4
+    peaks = annotations_0[1:] # annotation_0[1:] --> poichè tolgo il campo image
+    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,  dilatation=dilatation,
+                                  mode='Solid') #[480,640,1]
+
+
+    ### Resize a 96x128 pose 0
+    image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
+    peaks_resized = []
+    # resize dei peaks
+    for k in range(len(peaks)):
+        p = peaks[k]  # coordinate peak ex: "300,200" type string
+        c = int(p.split(',')[0])  # column
+        r = int(p.split(',')[1])  # row
+        if c != -1 and r != -1:
+            peaks_resized.append([int(c / 5), int(r / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
+        else:
+            peaks_resized.append([c, r])
+    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
+    pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
+
+    # Salvataggio delle 14 heatmap a 8x16 e dei vettori coordinata
+    for ii in range(len(peaks)):
+        p = peaks[ii]
+        if 0 != len(p):
+            c = int(p.split(',')[0])  # column
+            r = int(p.split(',')[1])  # row
+            # siccome la dimensione delle immagini di posa sono 8/16, mentre i peaks sono considerati
+            # sull immagine raw di dimensione 480x640, ho bisogno di scalare le coordinate dei songoli peak.
+            # una volta fatto, per quello specifico punto setto il valore visibility=1
+            pose_peaks_0[int(r / h_unit), int(c / w_unit), ii] = 1
+            # il vettore rcv mi permette di ricorda le coordinate (non riscalate) e il valore settato
+            pose_peaks_0_rcv[ii][0] = r
+            pose_peaks_0_rcv[ii][1] = c
+            pose_peaks_0_rcv[ii][2] = 1
+
+    #### Pose 1 radius 4
+    peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
+    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,
+                                  dilatation=dilatation,
+                                  mode='Solid')
+
+    ## Reshape a 96x128 pose 1
     image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
     peaks_resized = []
+    #resize dei peaks
     for k in range(len(peaks)):
         p = peaks[k] # coordinate peak ex: "300,200" type string
         c = int(p.split(',')[0])  # column
@@ -272,10 +430,10 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1, radius_
             peaks_resized.append([c / 5 , r / 5]) # 5 è lo scale factor --> 480/96 e 640/128
         else:
             peaks_resized.append([c ,r])
-    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, config.keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
+    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
     pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
-    ### Salvataggio delle 14 heatmap iniziali
+    # Salvataggio delle 14 heatmap iniziali
     for ii in range(len(peaks)):
         p = peaks[ii]
         if 0 != len(p):
@@ -319,9 +477,9 @@ def _format_data(config, id_pz_0, id_pz_1, annotations_0, annotations_1, radius_
     return example
 
 """
-Metodo che mi consente di controllare se l'immagine contiene i Keypoint 3,5,10,11 rispettivamente di spalla dx e sx e anca dx e sx
-@:return True --> almeno uno dei keypoint sopra citati è mancante
-@:return False -->  i keypoints sopra citati sono presenti
+Controllo se l'immagine contiene i Keypoint 3,5,10,11 rispettivamente di spalla dx e sx e anca dx e sx
+@:return True --> almeno uno dei keypoint è mancanta
+@:return False --> i keypoints ci sono tutti
 """
 def check_assenza_keypoints_3_5_10_11(peaks):
 
@@ -330,93 +488,170 @@ def check_assenza_keypoints_3_5_10_11(peaks):
     else:
         return False
 
-"""
-Metodo che mi consente di formare le accoppiate tra i pz_0 e i pz_1 e di avviare la formazione dell'example
-@:return tot_pairs = numero totale dei pairs formati
-"""
-def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation):
+def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation, flip=False, mode="negative"):
 
     tot_pairs = 0 # serve per contare il totale di pair nel tfrecord
 
-    # Lettura delle prime annotazioni --> ex:pz3
-    for pz_0 in lista:
-        name_file_annotation_0 = 'result_pz{id}.csv'.format(id=pz_0)
-        path_annotation_0 = os.path.join(config.data_annotations_path, name_file_annotation_0)
-        df_annotation_0 = pd.read_csv(path_annotation_0, delimiter=';')
+    # Accoppiamento tra immagini appartenenti allo stesso pz
+    if mode == "positive":
+        for pz_0 in lista:
+            pz_1 = pz_0
+            name_file_annotation_0 = 'result_pz{id}.csv'.format(id=pz_0)
+            path_annotation_0 = os.path.join(dir_annotations, name_file_annotation_0)
+            df_annotation_0 = pd.read_csv(path_annotation_0, delimiter=';')
 
-        # Lettura delle seconde annotazioni --> ex:pz4
-        for pz_1 in lista:
-            if pz_0 != pz_1:
-                name_file_annotation_1 = 'result_pz{id}.csv'.format(id=pz_1)
-                name_path_annotation_1 = os.path.join(config.data_annotations_path, name_file_annotation_1)
-                df_annotation_1 = pd.read_csv(name_path_annotation_1, delimiter=';')
+            cnt = 0  # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
 
-                cnt = 1 # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
+            # Creazione del pair
+            for i in range(0 , len(df_annotation_0)):
+                row_0 = df_annotation_0.loc[i]
 
-                # Creazione del pair
-                for _, row_0 in df_annotation_0.iterrows():
+                # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                # In caso di assenza passo all'immagine successiva
+                if check_assenza_keypoints_3_5_10_11(row_0[1:]):
+                    continue
+
+                for j in range(i + 1, len(df_annotation_0)):
+                    row_1 = df_annotation_0.loc[j]
 
                     # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
                     # In caso di assenza passo all'immagine successiva
-                    if check_assenza_keypoints_3_5_10_11(row_0[1:]):
+                    if check_assenza_keypoints_3_5_10_11(row_1[1:]):
                         continue
 
-                    # lettura random delle row nel secondo dataframe
-                    value = randint(0, df_annotation_1.shape[0]-1)
-                    row_1 = df_annotation_1.iloc[value]
-
-                    # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
-                    # In caso di assenza passo ne seleziona un altra random
-                    while check_assenza_keypoints_3_5_10_11(row_1[1:]):
-                        value = randint(0, df_annotation_1.shape[0]-1)
-                        row_1 = df_annotation_1.iloc[value]
-
-                    sys.stdout.write('\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1, cnt=cnt,
-                                                                                        tot=df_annotation_0.shape[0]))
-                    sys.stdout.flush()
                     # Creazione dell'example tfrecord
-                    example = _format_data(config, pz_0, pz_1, row_0, row_1, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
-                    cnt += 1 # incremento del conteggio degli examples
+                    example = _format_data(pz_0, pz_1, row_0, row_1)
+                    tfrecord_writer.write(example.SerializeToString())
+                    cnt += 1  # incremento del conteggio degli examples
                     tot_pairs += 1
 
-                    tfrecord_writer.write(example.SerializeToString())
+                    if flip:
+                        example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1)
+                        tfrecord_writer.write(example_flipped.SerializeToString())
+                        cnt += 1  # incremento del conteggio degli examples
+                        tot_pairs += 1
 
-                sys.stdout.write('\n')
-                sys.stdout.flush()
+                    sys.stdout.write(
+                        '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1, cnt=cnt,
+                                                                                        tot=df_annotation_0.shape[0]))
+                    sys.stdout.flush()
 
-        sys.stdout.write('\nTerminato {pz_0}'.format(pz_0=pz_0))
-        sys.stdout.write('\n\n')
-        sys.stdout.flush()
+    # Accoppiamento tra immagini appartenenti a pz differenti
+    if mode == "negative":
+        # Lettura delle prime annotazioni --> ex:pz3
+        for pz_0 in lista:
+            name_file_annotation_0 = 'result_pz{id}.csv'.format(id=pz_0)
+            path_annotation_0 = os.path.join(dir_annotations, name_file_annotation_0)
+            df_annotation_0 = pd.read_csv(path_annotation_0, delimiter=';')
+
+            # Lettura delle seconde annotazioni --> ex:pz4
+            for pz_1 in lista:
+                if pz_0 != pz_1:
+                    name_file_annotation_1 = 'result_pz{id}.csv'.format(id=pz_1)
+                    name_path_annotation_1 = os.path.join(dir_annotations, name_file_annotation_1)
+                    df_annotation_1 = pd.read_csv(name_path_annotation_1, delimiter=';')
+
+                    cnt = 0 # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
+
+                    # Creazione del pair
+                    for _, row_0 in df_annotation_0.iterrows():
+
+                        # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                        # In caso di assenza passo all'immagine successiva
+                        # Controllo se la row_0 è nelle immagini selezionate
+                        if check_assenza_keypoints_3_5_10_11(row_0[1:]):
+                            continue
+
+                        # lettura random delle row_1 nel secondo dataframe
+                        value = randint(0, len(df_annotation_1) - 1)
+                        row_1 = df_annotation_1.loc[value]
+
+                        # Controllo se l'immagine row_1 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                        # In caso di assenza passo ne seleziona un altra random
+                        conteggio_while = 0
+                        while check_assenza_keypoints_3_5_10_11(row_1[1:]):
+                            if conteggio_while < 20:
+                                # lettura random delle row_1 nel secondo dataframe
+                                value = randint(0, len(df_annotation_1) - 1)
+                                row_1 = df_annotation_1.loc[value]
+                                conteggio_while += 1
+                            else:
+                                r = input("Sono entrato più di 20 volte nel while")
+
+                        # Creazione dell'example tfrecord
+                        example = _format_data(pz_0, pz_1, row_0, row_1)
+                        tfrecord_writer.write(example.SerializeToString())
+                        cnt += 1 # incremento del conteggio degli examples
+                        tot_pairs += 1
+
+                        if flip:
+                            example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1)
+                            tfrecord_writer.write(example_flipped.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+
+                        sys.stdout.write(
+                            '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
+                                                                                            cnt=cnt,
+                                                                                            tot= df_annotation_0.shape[0]))
+                        sys.stdout.flush()
+
+                    sys.stdout.write('\n')
+                    sys.stdout.flush()
+
+            sys.stdout.write('\nTerminato {pz_0}'.format(pz_0=pz_0))
+            sys.stdout.write('\n\n')
+            sys.stdout.flush()
 
     tfrecord_writer.close()
     sys.stdout.write('\nSET DATI TERMINATO')
     sys.stdout.write('\n\n')
     sys.stdout.flush()
 
+
     return tot_pairs
 
 
 if __name__ == '__main__':
-    Config_file = __import__('0_config_utils')
-    config = Config_file.Config()
 
-    # naming file tfrecord
-    output_filename_train = os.path.join(config.data_path, 'BabyPose_train.tfrecord')
-    output_filename_valid = os.path.join(config.data_path, 'BabyPose_valid.tfrecord')
-    output_filename_test = os.path.join(config.data_path, 'BabyPose_test.tfrecord')
+#### CONFIG ##########
 
-    # liste contenente i num dei pz che si considerano per singolo set
-    lista_pz_train = [3, 6, 14, 36, 66, 73, 74, 37]
-    lista_pz_valid = [4, 7, 29, 30, 43, 76]
-    lista_pz_test = [5, 11, 15, 27, 39, 42]
+    global dir_save_tfrecord
+    global dir_annotations
+    global dir_data
+    global keypoint_num
+
+    dir_save_tfrecord = './data/nuovo dataset/'
+    dir_annotations = './data/nuovo dataset/annotations'
+    dir_data = './data/nuovo dataset'
+
+    name_tfrecord_train = 'New_BabyPose_train.tfrecord'
+    name_tfrecord_valid = 'New_BabyPose_train.tfrecord'
+    name_tfrecord_test = 'New_BabyPose_train.tfrecord'
+
+    # liste contenente i num dei pz che vanno considerati per singolo set
+    lista_pz_train = [3, 4, 5, 11,15,17,21,22,26,30,37,43,73,101,102,103,104,105,106,107,108,109,110,111,112]
+    lista_pz_valid = [6,7,14,20,24,25,27,29,34,36,39,66,74,76]
+    lista_pz_test = []
 
     # General information
     radius_keypoints_pose = 2
     radius_keypoints_mask = 10
     radius_head_mask = 60
     dilatation = 35
+    flip = True
+    mode = "negative"
+    # switch = mode == "positive" lo switch è consentito solamente in modalità positive, se è negative va in automatico
 
-    r_tr = None  # risposta dell'utente
+#########################
+
+    # Create file tfrecord
+    output_filename_train = os.path.join(dir_save_tfrecord, name_tfrecord_train)
+    output_filename_valid = os.path.join(dir_save_tfrecord, name_tfrecord_valid)
+    output_filename_test = os.path.join(dir_save_tfrecord, name_tfrecord_test)
+
+    r_tr = None
     r_v = None
     r_te = None
 
@@ -425,7 +660,8 @@ if __name__ == '__main__':
         assert r_tr == "Y" or r_tr == "N" or r_tr == "y" or r_tr == "n"
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
-        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
+        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, radius_keypoints_pose, radius_keypoints_mask,
+                                  radius_head_mask, dilatation, flip=flip, mode=mode)
         print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
@@ -435,7 +671,8 @@ if __name__ == '__main__':
         assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
     if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
         tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
+        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
+                                  radius_head_mask, dilatation, flip=flip, mode=mode)
         print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
@@ -445,38 +682,40 @@ if __name__ == '__main__':
         assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
     if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
         tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
-        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask, radius_head_mask, dilatation)
+        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
+                                  radius_head_mask, dilatation, flip=flip, mode=mode)
         print("TOT TEST: ", tot_test)
     elif r_te == "N" or r_te == "n":
         print("OK, non farò nulla sul test set")
 
-    dic = {
+    dic = {"train": {
 
         "general": {
             "radius_keypoints_pose": radius_keypoints_pose,
             "radius_keypoints_mask": radius_keypoints_mask,
             "radius_head_mask": radius_head_mask,
-            "dilatation": dilatation
+            "dilatation": dilatation,
+            "flip": flip,
+            "mode": mode
         },
 
-        "train": {
-        "name_file": config.name_tfrecord_train,
+        "name_file": name_tfrecord_train,
         "list_pz": lista_pz_train,
         "tot": tot_train
-        },
+    },
         "valid": {
-            "name_file": config.name_tfrecord_valid,
+            "name_file": name_tfrecord_valid,
             "list_pz": lista_pz_valid,
             "tot": tot_valid
         },
 
         "test": {
-            "name_file": config.name_tfrecord_test,
+            "name_file": name_tfrecord_test,
             "list_pz": lista_pz_test,
             "tot": tot_test
         }
     }
-    log_tot_sets = os.path.join(config.data_path, 'pair_tot_sets.pkl')
+    log_tot_sets = os.path.join(dir_save_tfrecord, 'pair_tot_sets.pkl')
     f = open(log_tot_sets, "wb")
     pickle.dump(dic, f)
     f.close()
