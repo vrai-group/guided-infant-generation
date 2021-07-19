@@ -16,6 +16,7 @@ _FILE_PATTERN = '%s_%s_*.tfrecord'
 class BabyPose():
     def __init__(self, config):
         self.keypoint_num = config.keypoint_num
+        self.config = config
         self.example_description = {
 
           'pz_0': tf.io.FixedLenFeature([], tf.string),  # nome del pz
