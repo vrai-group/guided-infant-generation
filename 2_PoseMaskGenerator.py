@@ -1,7 +1,6 @@
 """
-Nel progetto originale prende il nomer di convert_market.py
-Questo script consente di creare uno o più TFrecord che saranno utilizzati per il training del modello.
-Nel TFrecord avremo le informazioni espresse in example del metodo _format_data
+Questo script consente di creare i TFrecord (train/valid/test) che saranno utilizzati per il training del modello.
+Per modificare le informazioni, fare riferimento alla sezione CONFIG presente nel main
 """
 
 import math
@@ -488,8 +487,11 @@ def check_assenza_keypoints_3_5_10_11(peaks):
     else:
         return False
 
+"""
+Consente di selezionare la coppia di pair da formare
+"""
 def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
-                radius_head_mask, dilatation, flip=False, mode="negative"):
+                radius_head_mask, dilatation, flip=False, mode="negative", switch=False):
 
     tot_pairs = 0 # serve per contare il totale di pair nel tfrecord
 
@@ -526,11 +528,23 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                     cnt += 1  # incremento del conteggio degli examples
                     tot_pairs += 1
 
+                    if switch:
+                        example_switch = _format_data_flip(pz_1, pz_0, row_1, row_0)
+                        tfrecord_writer.write(example_switch.SerializeToString())
+                        cnt += 1  # incremento del conteggio degli examples
+                        tot_pairs += 1
+
                     if flip:
                         example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1)
                         tfrecord_writer.write(example_flipped.SerializeToString())
                         cnt += 1  # incremento del conteggio degli examples
                         tot_pairs += 1
+                        if switch:
+                            example_switch_flipped = _format_data_flip(pz_1, pz_0, row_1, row_0)
+                            tfrecord_writer.write(example_switch_flipped.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+
 
                     sys.stdout.write(
                         '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1, cnt=cnt,
@@ -640,9 +654,9 @@ if __name__ == '__main__':
     radius_keypoints_mask = 10
     radius_head_mask = 60
     dilatation = 35
-    flip = True
+    flip = True   # Aggiunta dell example con flip verticale
     mode = "negative"
-    # switch = mode == "positive" lo switch è consentito solamente in modalità positive, se è negative va in automatico
+    switch = mode == "positive" #lo switch è consentito solamente in modalità positive, se è negative va in automatico
 
 #########################
 
