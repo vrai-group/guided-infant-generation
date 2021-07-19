@@ -1,5 +1,5 @@
 # Directory #
-**/__pycache__ # scritto cosi significa che non considero nesunna delle cartelle pycache. IN particoalre dataset/__pycache__ e model/__pycache__
+__pycache__/ # scritto cosi significa che non considero nesunna delle cartelle pycache. IN particoalre dataset/__pycache__ e model/__pycache__
 data/BabyPose
 data/annotations
 data/pyOniExtractor
