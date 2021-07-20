@@ -5,15 +5,15 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.Dataset = "BabyPose"
-        self.type = "new"   # radius_<num> or new
+        self.Dataset = "BabySynt_single_mov"
+        self.type = "negative_single_mov"   # radius_<num> or new
 
         #Path
         self.data_path = './data/' + self.Dataset # dove si trova il dataset
-        self.data_tfrecord_path = './data/' + '/tfrecord/' + self.type  # dove si trova il dataset in tfrecord
+        self.data_tfrecord_path = './data/' + self.Dataset + '/tfrecord/' + self.type  # dove si trova il dataset in tfrecord
         self.weigths_path = './weights' # dove salvare i pesi
         self.logs_path = './logs'
-        self.training_weights_path = './training/'
+        self.training_weights_path = './Training/'
 
         #Dataset
         self.img_H = 96 #'input image height'
