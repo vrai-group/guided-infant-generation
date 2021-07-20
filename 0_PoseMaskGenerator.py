@@ -521,9 +521,10 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                     # In caso di assenza passo all'immagine successiva
                     if check_assenza_keypoints_3_5_10_11(row_1[1:]):
                         continue
-
+                    print(row_1[0])
                     # Creazione dell'example tfrecord
-                    example = _format_data(pz_0, pz_1, row_0, row_1)
+                    example = _format_data(pz_0, pz_1, row_0, row_1, radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation,)
                     tfrecord_writer.write(example.SerializeToString())
                     cnt += 1  # incremento del conteggio degli examples
                     tot_pairs += 1
@@ -541,12 +542,12 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                         tfrecord_writer.write(example_flipped.SerializeToString())
                         cnt += 1  # incremento del conteggio degli examples
                         tot_pairs += 1
-                        if switch:
-                            example_switch_flipped = _format_data_flip(pz_1, pz_0, row_1, row_0,radius_keypoints_pose, radius_keypoints_mask,
-                radius_head_mask, dilatation,)
-                            tfrecord_writer.write(example_switch_flipped.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
+                #         if switch:
+                #             example_switch_flipped = _format_data_flip(pz_1, pz_0, row_1, row_0,radius_keypoints_pose, radius_keypoints_mask,
+                # radius_head_mask, dilatation,)
+                #             tfrecord_writer.write(example_switch_flipped.SerializeToString())
+                #             cnt += 1  # incremento del conteggio degli examples
+                #             tot_pairs += 1
 
 
                     sys.stdout.write(
@@ -641,28 +642,27 @@ if __name__ == '__main__':
     global dir_data
     global keypoint_num
 
-    dir_save_tfrecord = './data/nuovo dataset/'
-    dir_annotations = './data/nuovo dataset/annotations'
-    dir_data = './data/nuovo dataset'
+    dir_save_tfrecord = './data/BabySynt_single_mov_sample/tfrecord/positive_single_mov'
+    dir_annotations = './data/BabySynt_single_mov_sample/annotations'
+    dir_data = './data/BabySynt_single_mov_sample'
     keypoint_num = 14
 
-    name_tfrecord_train = 'New_BabyPose_train.tfrecord'
-    name_tfrecord_valid = 'New_BabyPose_train.tfrecord'
-    name_tfrecord_test = 'New_BabyPose_train.tfrecord'
+    name_tfrecord_train = 'BabyPose_train.tfrecord'
+    name_tfrecord_valid = 'BabyPose_valid.tfrecord'
+    name_tfrecord_test = 'BabyPose_test.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
-    #lista_pz_train = [3, 4, 5, 11,15,17,21,22,26,30,37,43,73,101,102,103,104,105,106,107,108,109,110,111,112]
-    lista_pz_train = [101,102,103,104,105,106,107,108,109,110,111,112]
-    #lista_pz_valid = [6,7,14,20,24,25,27,29,34,36,39,66,74,76]
+    lista_pz_train = [5, 7, 11, 17, 20, 22, 24, 30, 36, 42, 43, 73, 76, 101,102,103,104,105,106,107,108,109 ]
+    lista_pz_valid = [3, 14, 27, 29, 34, 66, 74, 110, 111, 112]
     lista_pz_test = []
 
     # General information
     radius_keypoints_pose = 1
-    radius_keypoints_mask = 10
-    radius_head_mask = 50
-    dilatation = 35
+    radius_keypoints_mask = 4
+    radius_head_mask = 4
+    dilatation = 10
     flip = True   # Aggiunta dell example con flip verticale
-    mode = "negative"
+    mode = "positive"
     switch = mode == "positive" #lo switch è consentito solamente in modalità positive, se è negative va in automatico
 
 #########################
@@ -682,21 +682,21 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
         tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, flip=flip, mode=mode)
+                                  radius_head_mask, dilatation, flip=flip, mode=mode, switch=switch)
         print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
 
-    # if os.path.exists(output_filename_valid):
-    #     r_v = input("Il tf record di valid esiste già. Sovrascriverlo? Yes[Y] No[N]")
-    #     assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
-    # if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
-    #     tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-    #     tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
-    #                               radius_head_mask, dilatation, flip=flip, mode=mode)
-    #     print("TOT VALID: ", tot_valid)
-    # elif r_v == "N" or r_v == "n":
-    #     print("OK, non farò nulla sul valid set")
+    if os.path.exists(output_filename_valid):
+        r_v = input("Il tf record di valid esiste già. Sovrascriverlo? Yes[Y] No[N]")
+        assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
+    if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
+        tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
+        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
+                                  radius_head_mask, dilatation, flip=flip, mode=mode, switch=switch)
+        print("TOT VALID: ", tot_valid)
+    elif r_v == "N" or r_v == "n":
+        print("OK, non farò nulla sul valid set")
     #
     # if os.path.exists(output_filename_test):
     #     r_te = input("Il tf record di test esiste già. Sovrascriverlo? Yes[Y] No[N]")
@@ -733,7 +733,7 @@ if __name__ == '__main__':
         "test": {
             "name_file": name_tfrecord_test,
             "list_pz": lista_pz_test,
-            "tot": tot_test
+            "tot": 0, #tot_test
         }
     }
     log_tot_sets = os.path.join(dir_save_tfrecord, 'pair_tot_sets.pkl')
