@@ -33,7 +33,7 @@ def PoseMaskLoss1(Y, output_G1):
 
     # La PoseMakLoss1  è quella implementata sul paper
     #primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
-    primo_membro = 0.05 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
+    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
 
@@ -50,10 +50,31 @@ def mse(Y, output_G1):
     elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
 
-    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), dtype=tf.uint16)
-    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 1, 32765.5), dtype=tf.uint16)
+    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), dtype=tf.float16)
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 1, 32765.5), dtype=tf.float16)
 
-    return tf.reduce_mean(tf.square(tf.cast(output_G1 - image_raw_0, dtype=tf.float16)))
+    return tf.reduce_mean(tf.square(output_G1 - image_raw_0))
+
+def mask_mse(Y, output_G1):
+
+    if config.input_image_raw_channel == 3:
+        image_raw_0 = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
+        image_raw_1 = tf.reshape(Y[:, :, :, :3], [-1, 96, 128, 3])
+        mask_1 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
+        output_G1 = tf.reshape(output_G1[:, :, :, 0], [-1, 96, 128, 1])
+
+    elif config.input_image_raw_channel == 1:
+        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
+        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
+        mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
+
+    image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, 1, 32765.5), dtype=tf.float16)
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 1, 32765.5), dtype=tf.float16)
+
+    mask_image_raw_1 = mask_1 * image_raw_1
+    mask_output_G1 = mask_1 * output_G1
+
+    return tf.reduce_mean(tf.square(tf.cast(mask_output_G1 - mask_image_raw_1, dtype=tf.float16)))
 
 
 # Metrica SSIM
@@ -74,11 +95,34 @@ def m_ssim(Y, output_G1):
 
     return mean
 
+def mask_ssim(Y, output_G1):
+
+    if config.input_image_raw_channel == 3:
+        image_raw_0 = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
+        image_raw_1 = tf.reshape(Y[:, :, :, :3], [-1, 96, 128, 3])
+        mask_1 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
+        output_G1 = tf.reshape(output_G1[:, :, :, 0], [-1, 96, 128, 1])
+
+    elif config.input_image_raw_channel == 1:
+        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
+        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
+        mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
+
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+
+    mask_image_raw_1 = mask_1 * image_raw_1
+    mask_output_G1 = mask_1 * output_G1
+
+    result = tf.image.ssim(mask_image_raw_1, mask_output_G1, max_val=tf.math.reduce_max(image_raw_0))
+    mean = tf.reduce_mean(result)
+
+    return mean
 #### Learning rate
 def step_decay(epoch):
-    initial_lrate = 2e-5
+    initial_lrate = 0.0001
     drop_rate = 0.5
-    epoch_rate = 1 #ogni quanto eseguire l aggiornamento
+    epoch_rate = 10 #ogni quanto eseguire l aggiornamento
     return initial_lrate * (drop_rate ** math.floor(epoch/epoch_rate))
 
 
@@ -132,7 +176,7 @@ def build_model(config):
     model = keras.Model(inputs, outputs)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5, beta_2=0.999),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.999),
         #optimizer=tf.keras.optimizers.SGD(learning_rate=0.01),
         #optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
 	    loss=PoseMaskLoss1,
