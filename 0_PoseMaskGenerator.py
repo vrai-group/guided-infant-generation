@@ -199,8 +199,8 @@ def _format_data_flip(id_pz_0, id_pz_1, annotations_0, annotations_1,
     # Read the image info:
     name_img_0_16_bit = annotations_0['image'].split('_')[0] + '_16bit.png'
     name_img_1_16_bit = annotations_1['image'].split('_')[0] + '_16bit.png'
-    img_path_0 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_0, name_img_0_16_bit)
-    img_path_1 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_1, name_img_1_16_bit)
+    img_path_0 = os.path.join(dir_data, pz_0, name_img_0_16_bit)
+    img_path_1 = os.path.join(dir_data, pz_1, name_img_1_16_bit)
 
     # Read immagine
     image_0 = cv2.imread(img_path_0, cv2.IMREAD_UNCHANGED)  # [480,640]
@@ -354,8 +354,8 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
     # Read the image info:
     name_img_0_16_bit = annotations_0['image'].split('_')[0] + '_16bit.png'
     name_img_1_16_bit = annotations_1['image'].split('_')[0] + '_16bit.png'
-    img_path_0 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_0, name_img_0_16_bit)
-    img_path_1 = os.path.join('data/nuovo dataset/BabyPose_nuovo_dataset', pz_1, name_img_1_16_bit)
+    img_path_0 = os.path.join(dir_data, pz_0, name_img_0_16_bit)
+    img_path_1 = os.path.join(dir_data, pz_1, name_img_1_16_bit)
 
     # Read immagine
     image_0 = cv2.imread(img_path_0, cv2.IMREAD_UNCHANGED) #[480,640]
@@ -529,18 +529,21 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                     tot_pairs += 1
 
                     if switch:
-                        example_switch = _format_data_flip(pz_1, pz_0, row_1, row_0)
+                        example_switch = _format_data_flip(pz_1, pz_0, row_1, row_0,radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation,)
                         tfrecord_writer.write(example_switch.SerializeToString())
                         cnt += 1  # incremento del conteggio degli examples
                         tot_pairs += 1
 
                     if flip:
-                        example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1)
+                        example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1,radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation,)
                         tfrecord_writer.write(example_flipped.SerializeToString())
                         cnt += 1  # incremento del conteggio degli examples
                         tot_pairs += 1
                         if switch:
-                            example_switch_flipped = _format_data_flip(pz_1, pz_0, row_1, row_0)
+                            example_switch_flipped = _format_data_flip(pz_1, pz_0, row_1, row_0,radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation,)
                             tfrecord_writer.write(example_switch_flipped.SerializeToString())
                             cnt += 1  # incremento del conteggio degli examples
                             tot_pairs += 1
@@ -594,13 +597,15 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                                 r = input("Sono entrato più di 20 volte nel while")
 
                         # Creazione dell'example tfrecord
-                        example = _format_data(pz_0, pz_1, row_0, row_1)
+                        example = _format_data(pz_0, pz_1, row_0, row_1,radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation,)
                         tfrecord_writer.write(example.SerializeToString())
                         cnt += 1 # incremento del conteggio degli examples
                         tot_pairs += 1
 
                         if flip:
-                            example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1)
+                            example_flipped = _format_data_flip(pz_0, pz_1, row_0, row_1,radius_keypoints_pose, radius_keypoints_mask,
+                radius_head_mask, dilatation,)
                             tfrecord_writer.write(example_flipped.SerializeToString())
                             cnt += 1  # incremento del conteggio degli examples
                             tot_pairs += 1
@@ -639,20 +644,22 @@ if __name__ == '__main__':
     dir_save_tfrecord = './data/nuovo dataset/'
     dir_annotations = './data/nuovo dataset/annotations'
     dir_data = './data/nuovo dataset'
+    keypoint_num = 14
 
     name_tfrecord_train = 'New_BabyPose_train.tfrecord'
     name_tfrecord_valid = 'New_BabyPose_train.tfrecord'
     name_tfrecord_test = 'New_BabyPose_train.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
-    lista_pz_train = [3, 4, 5, 11,15,17,21,22,26,30,37,43,73,101,102,103,104,105,106,107,108,109,110,111,112]
-    lista_pz_valid = [6,7,14,20,24,25,27,29,34,36,39,66,74,76]
+    #lista_pz_train = [3, 4, 5, 11,15,17,21,22,26,30,37,43,73,101,102,103,104,105,106,107,108,109,110,111,112]
+    lista_pz_train = [101,102,103,104,105,106,107,108,109,110,111,112]
+    #lista_pz_valid = [6,7,14,20,24,25,27,29,34,36,39,66,74,76]
     lista_pz_test = []
 
     # General information
-    radius_keypoints_pose = 2
+    radius_keypoints_pose = 1
     radius_keypoints_mask = 10
-    radius_head_mask = 60
+    radius_head_mask = 50
     dilatation = 35
     flip = True   # Aggiunta dell example con flip verticale
     mode = "negative"
@@ -680,27 +687,27 @@ if __name__ == '__main__':
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
 
-    if os.path.exists(output_filename_valid):
-        r_v = input("Il tf record di valid esiste già. Sovrascriverlo? Yes[Y] No[N]")
-        assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
-    if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
-        tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, flip=flip, mode=mode)
-        print("TOT VALID: ", tot_valid)
-    elif r_v == "N" or r_v == "n":
-        print("OK, non farò nulla sul valid set")
-
-    if os.path.exists(output_filename_test):
-        r_te = input("Il tf record di test esiste già. Sovrascriverlo? Yes[Y] No[N]")
-        assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
-    if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
-        tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
-        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, flip=flip, mode=mode)
-        print("TOT TEST: ", tot_test)
-    elif r_te == "N" or r_te == "n":
-        print("OK, non farò nulla sul test set")
+    # if os.path.exists(output_filename_valid):
+    #     r_v = input("Il tf record di valid esiste già. Sovrascriverlo? Yes[Y] No[N]")
+    #     assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
+    # if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
+    #     tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
+    #     tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
+    #                               radius_head_mask, dilatation, flip=flip, mode=mode)
+    #     print("TOT VALID: ", tot_valid)
+    # elif r_v == "N" or r_v == "n":
+    #     print("OK, non farò nulla sul valid set")
+    #
+    # if os.path.exists(output_filename_test):
+    #     r_te = input("Il tf record di test esiste già. Sovrascriverlo? Yes[Y] No[N]")
+    #     assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
+    # if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
+    #     tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
+    #     tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
+    #                               radius_head_mask, dilatation, flip=flip, mode=mode)
+    #     print("TOT TEST: ", tot_test)
+    # elif r_te == "N" or r_te == "n":
+    #     print("OK, non farò nulla sul test set")
 
     dic = {"train": {
 
