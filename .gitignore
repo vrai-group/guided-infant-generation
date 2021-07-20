@@ -1,6 +1,4 @@
 # Directory #
-data/BabyPose
-data/annotations
 data/pyOniExtractor
 logs/*.npy
 Market_transfer/
