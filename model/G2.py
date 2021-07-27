@@ -13,7 +13,9 @@ def Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1):
     # Loss per imbrogliare il discriminatore creando un immagine sempre più reale
     gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.ones_like(D_neg_refined_result)))
 
-    primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
+    mask_0_inv = 1 - mask_0
+    #primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
+    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)
     secondo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1) * mask_1)
     PoseMaskLoss2 = primo_membro + secondo_membro
 
@@ -23,12 +25,32 @@ def Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1):
 
 
 # Metrica
-def m_ssim(refined_result, image_raw_1):
-    image_raw_1 = tf.clip_by_value((image_raw_1 + 127.5) * 127.5, clip_value_min=0, clip_value_max=255)
-    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
-    refined_result = tf.clip_by_value(refined_result, clip_value_min=0, clip_value_max=255)
+def m_ssim(refined_result, image_raw_0):
+    image_raw_0 = tf.reshape(image_raw_0, [-1, 96, 128, 1])
+    refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])
 
-    result = tf.image.ssim(refined_result, image_raw_1, max_val=255)
+    image_raw_0 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    refined_result = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(refined_result, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+
+    result = tf.image.ssim(refined_result, image_raw_0, max_val=tf.math.reduce_max(image_raw_0))
+    mean = tf.reduce_mean(result)
+
+    return mean
+
+
+def mask_ssim(refined_result, image_raw_1, mask_1):
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    mask_1 = tf.reshape(mask_1, [-1, 96, 128, 1])
+    refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])
+
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    refined_result = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(refined_result, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    mask_1 = tf.cast(mask_1, dtype=tf.uint16)
+
+    mask_image_raw_1 = mask_1 * image_raw_1
+    mask_refined_result = mask_1 * refined_result
+
+    result = tf.image.ssim(mask_image_raw_1, mask_refined_result, max_val=tf.math.reduce_max(image_raw_1))
     mean = tf.reduce_mean(result)
 
     return mean
