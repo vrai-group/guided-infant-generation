@@ -10,6 +10,5 @@ Market_transfer/
 *.bat
 *.hdf5
 *.tfrecord
-*.pkl
 *.csv
 *.pyc
