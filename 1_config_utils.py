@@ -5,8 +5,8 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.Dataset = "BabySynt_single_mov"
-        self.type = "negative_single_mov"   # radius_<num> or new
+        self.Dataset = "Syntetich"
+        self.type = "negative_syntetich"   # radius_<num> or new
 
         #Path
         self.data_path = './data/' + self.Dataset # dove si trova il dataset
@@ -22,7 +22,7 @@ class Config:
             with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
                 dic = pickle.load(f)
 
-            self.name_tfrecord_train = dic['train']['name_file'] # nome dataset train
+            self.name_tfrecord_train = "BabyPose_train.tfrecord" #dic['train']['name_file'] # nome dataset train
             self.name_tfrecord_valid = dic['valid']['name_file'] # nome dataset valid
             self.name_tfrecord_test = dic['test']['name_file']  # nome dataset test
 
@@ -46,6 +46,7 @@ class Config:
         #model G1 / G2
         self.input_shape_g1 = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
         self.input_shape_g2 = [96, 128, 2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
+        self.input_shape_d = [96, 128, 1]
 
         # numero di blocchi residuali del G1. --> 4 con height 96
         # Per il G2 verrà considerato un repeat_num - 2
@@ -64,9 +65,9 @@ class Config:
         self.batch_size_valid = 16  # grandezza del batch_size
         self.save_grid_ssim_epoch = 1  # ogni quante epoche devo salvare la griglia per visualizzare le immagini predette dal G2
 
-        self.lr_update_epoch = 10  # epoche di aggiornameto del learning rate
+        self.lr_update_epoch = 1  # epoche di aggiornameto del learning rate
         #google colab
-        self.run_google_colab = True
+        self.run_google_colab = False
         self.download_weight = 5 # step di epoche in cui andremo ad aggiornare il rar dei pesi
 
         self.data_format = 'channels_last'

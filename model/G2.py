@@ -6,16 +6,19 @@ from tensorflow.keras.layers import *
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.losses import BinaryCrossentropy
 
+sys.path.insert(1, '../utils')
+from utils import utils_wgan
+
 
 # Fuinzione di loss
-def Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1):
+def Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0):
 
     # Loss per imbrogliare il discriminatore creando un immagine sempre più reale
     gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.ones_like(D_neg_refined_result)))
 
     mask_0_inv = 1 - mask_0
     #primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
-    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)
+    primo_membro = 0.005 * tf.reduce_mean(tf.abs(refined_result - image_raw_0) * mask_0_inv)
     secondo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1) * mask_1)
     PoseMaskLoss2 = primo_membro + secondo_membro
 

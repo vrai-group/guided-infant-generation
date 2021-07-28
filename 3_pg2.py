@@ -112,7 +112,9 @@ class PG2(object):
             mean_loss_D_train_fake = 0
             mean_loss_D_train_real = 0
             mean_ssim_train = 0
+            mean_mask_ssim_train = 0
             mean_ssim_valid = 0
+            mean_mask_ssim_valid = 0
             cnt_real_predette_train = 0  # counter per le reali (output_G1 + output_G2) predette nel train
             cnt_real_predette_valid = 0 # counter per le reali (output_G1 + output_G2) predette nel valid
 
@@ -241,7 +243,7 @@ class PG2(object):
             if epoch % self.config.lr_update_epoch == self.config.lr_update_epoch - 1:
                 self.opt_G2.lr = self.opt_G2.lr * 0.5
                 self.opt_D.lr = self.opt_G2.lr * 0.5
-                print("Learning rate: ", self.opt_G2.lr)
+                print("Aggiornamento Learning rate: ", self.opt_G2.lr)
 
             # Download from google colab
             if self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
@@ -270,18 +272,21 @@ class PG2(object):
         with tf.GradientTape() as g2_tape, tf.GradientTape() as d_tape:
 
             # G2
+            output_G1 = tf.cast(output_G1, dtype=tf.float16)
             input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
             output_G2 = self.model_G2(input_G2) # [batch, 96, 128, 1]
 
             # D
+            output_G2 = tf.cast(output_G2, dtype=tf.float16)
             refined_result = output_G1 + output_G2 # [batch, 96, 128, 1]
             input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0) # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
             output_D = self.model_D(input_D) # [batch * 3, 1]
             output_D = tf.reshape(output_D, [-1]) # [batch*3]
+            output_D = tf.cast(output_D, dtype=tf.float16)
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3) # [batch]
 
             # Loss
-            loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1, mask_0)
+            loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
             loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
             # metric
@@ -291,7 +296,7 @@ class PG2(object):
 
             #SSIM
             ssim_value = G2.m_ssim(refined_result, image_raw_0)
-            mask_ssim_value = G2.m_ssim(refined_result, image_raw_1, mask_1)
+            mask_ssim_value = G2.m_ssim(refined_result, image_raw_1)
 
         # backprop
         self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
@@ -325,7 +330,7 @@ class PG2(object):
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
         # Loss
-        loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1, mask_0)
+        loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
         loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
                                                                 D_neg_image_raw_0)
 
@@ -343,7 +348,7 @@ class PG2(object):
                                     'G2_ssim_epoch_{epoch}_batch_{batch}_ssim_{mean}.png'.format(batch=id_batch,
                                                                                                  epoch=epoch,
                                                                                                  mean=ssim_value))
-            grid.save_image(output_G1, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+            grid.save_image(refined_result, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), real_predette.shape[0], ssim_value.numpy(), mask_ssim_value.numpy()
 

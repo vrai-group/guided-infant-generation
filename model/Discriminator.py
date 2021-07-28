@@ -31,7 +31,7 @@ def build_model(config):
     #TODO manca inseriemnto regolarizzaione weights conv e dense
     #TODO manca da controllare se la batch normalization corrisponde con quello usato nel paper
 
-    inputs = Input(shape=(96,128,3))
+    inputs = Input(shape=config.input_shape_d)
 
     # Primo layer
     x = Conv2D(filters=64, kernel_size=5, strides = (2,2),
