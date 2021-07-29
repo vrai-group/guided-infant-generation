@@ -248,8 +248,9 @@ class PG2(object):
 
             # Download from google colab
             if self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
-                os.system('rar a /gdrive/MyDrive/weights_and_logs logs/*')
-                os.system('rar a /gdrive/MyDrive/weights_and_logs weights/Model_*_epoch_*-loss_train_*.hdf5')
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar logs/')
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar weights/')
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar results_ssim/')
                 print("RAR CREATO\n")
 
     def _train_step(self, train_it, epoch, id_batch):
@@ -292,7 +293,7 @@ class PG2(object):
 
             #SSIM
             ssim_value = G2.m_ssim(refined_result, image_raw_0)
-            mask_ssim_value = G2.mask_ssim(refined_result, image_raw_1)
+            mask_ssim_value = G2.mask_ssim(refined_result, image_raw_1, mask_1)
 
         # backprop
         self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
