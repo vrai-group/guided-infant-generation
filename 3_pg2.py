@@ -137,7 +137,7 @@ class PG2(object):
             for id_batch in range(num_batches_train):
                 loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
                 loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
-                real_predette_train, ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step(train_it)
+                real_predette_train, ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step(train_it, epoch, id_batch)
 
                 # Calcolo media
                 # Loss
@@ -206,8 +206,8 @@ class PG2(object):
             #Save weights
             name_model = "Model_G2_epoch_{epoch:03d}-loss_{loss:2f}-ssmi_{ssmi:2f}-mask_ssmi_{mask_ssim:2f}-real_train_{real_train}" \
                          "-val_loss_{val_loss}-val_ssim_{val_ssim:2f}-val_mask_ssim_{val_mask_ssim:2f}-real_valid_{real_valid}.hdf5".format(
-                          epoch=epoch+1, loss=mean_loss_G2_train, ssmi=mean_ssim_train, mask_ssim=mask_ssim_train,  real_train=cnt_real_predette_train,
-                          val_loss=mean_loss_G2_valid, val_ssim=mean_ssim_valid, val_mask_ssim=mask_ssim_valid, real_valid=cnt_real_predette_valid, )
+                          epoch=epoch+1, loss=mean_loss_G2_train, ssmi=mean_ssim_train, mask_ssim=mean_mask_ssim_train,  real_train=cnt_real_predette_train,
+                          val_loss=mean_loss_G2_valid, val_ssim=mean_ssim_valid, val_mask_ssim=mean_mask_ssim_valid, real_valid=cnt_real_predette_valid )
             filepath = os.path.join(self.config.weigths_path, name_model)
             self.model_G2.save_weights(filepath)
 
@@ -217,13 +217,13 @@ class PG2(object):
                          "loss_{loss:2f}-" \
                          "loss_values_D_fake{loss_D_fake:2f}-" \
                          "loss_values_D_real{loss_D_real:2f}-" \
-                         "real_train_{real_train}.hdf5" \
+                         "real_train_{real_train}-" \
                          "val_loss_{val_loss:2f}-" \
                          "val_loss_values_D_fake{val_loss_D_real}-" \
                          "val_loss_values_D_real{val_loss_D_fake}-" \
-                         "val_real_valid_{real_valid}.hdf5".format(
+                         "val_real_valid_{real_valid}-real_valid_{real_valid}.hdf5".format(
                           epoch=epoch+1, loss=mean_loss_D_train, loss_D_fake=mean_loss_D_train_fake, loss_D_real=mean_loss_D_train_real,
-                          real_train=real_train, val_loss=mean_loss_D_valid, val_loss_D_real=mean_loss_D_valid_real, val_loss_D_fake=mean_loss_D_valid_fake, real_valid=cnt_real_predette_valid,
+                          real_train=cnt_real_predette_train, val_loss=mean_loss_D_valid, val_loss_D_real=mean_loss_D_valid_real, val_loss_D_fake=mean_loss_D_valid_fake, real_valid=cnt_real_predette_valid,
                           )
             filepath = os.path.join(self.config.weigths_path, name_model)
             self.model_D.save_weights(filepath)
@@ -243,20 +243,16 @@ class PG2(object):
             if epoch % self.config.lr_update_epoch == self.config.lr_update_epoch - 1:
                 self.opt_G2.lr = self.opt_G2.lr * 0.5
                 self.opt_D.lr = self.opt_G2.lr * 0.5
-                print("Aggiornamento Learning rate: ", self.opt_G2.lr)
+                print("Aggiornamento Learning rate: ", self.opt_G2.lr.numpy())
+                print("Aggiornamento Learning rate: ", self.opt_D.lr.numpy())
 
             # Download from google colab
             if self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
                 os.system('rar a /gdrive/MyDrive/weights_and_logs logs/*')
                 os.system('rar a /gdrive/MyDrive/weights_and_logs weights/Model_*_epoch_*-loss_train_*.hdf5')
                 print("RAR CREATO\n")
-            # Salvataggio non in Colab
-            elif not self.config.run_google_colab and (epoch % self.config.download_weight == self.config.download_weight-1):
-                os.system('rar a weights_and_logs logs/*')
-                os.system('rar a weights_and_logs weights/Model_*_epoch_*-loss_train_*.hdf5')
-                print("RAR CREATO\n")
 
-    def _train_step(self, train_it):
+    def _train_step(self, train_it, epoch, id_batch):
 
         batch = next(train_it)
         image_raw_0 = batch[0] #[batch, 96, 128, 1]
@@ -296,11 +292,24 @@ class PG2(object):
 
             #SSIM
             ssim_value = G2.m_ssim(refined_result, image_raw_0)
-            mask_ssim_value = G2.m_ssim(refined_result, image_raw_1)
+            mask_ssim_value = G2.mask_ssim(refined_result, image_raw_1)
 
         # backprop
         self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
         self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+
+        # Save griglia di immagini predette
+        if epoch % self.config.save_grid_ssim_epoch_train == self.config.save_grid_ssim_epoch_train - 1:
+            name_directory = os.path.join("./results_ssim/train", str(epoch))
+            if not os.path.exists(name_directory):
+                os.mkdir(name_directory)
+            name_grid = os.path.join(name_directory, 'G2_ssim_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim{mask_ssim}.png'.format(
+                                         epoch=epoch,
+                                         batch=id_batch,
+                                         ssim=ssim_value,
+                                         mask_ssim=mask_ssim_value))
+            refined_result = utils_wgan.unprocess_image(refined_result, 350, 32765.5)
+            grid.save_image(refined_result, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
 
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), real_predette_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy()
@@ -319,14 +328,17 @@ class PG2(object):
         output_G1 = self.model_G1(input_G1) # output_g1 --> [batch, 96, 128, 1]
 
         # G2
+        output_G1 = tf.cast(output_G1, dtype=tf.float16)
         input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
         output_G2 = self.model_G2(input_G2)  # [batch, 96, 128, 1]
 
         # D
+        output_G2 = tf.cast(output_G2, dtype=tf.float16)
         refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
         input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
         output_D = self.model_D(input_D)  # [batch * 3, 1]
         output_D = tf.reshape(output_D, [-1])  # [batch*3]
+        output_D = tf.cast(output_D, dtype=tf.float16)
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
         # Loss
@@ -338,16 +350,19 @@ class PG2(object):
         real_predette = output_D[output_D > 0]
         # SSIM
         ssim_value = G2.m_ssim(refined_result, image_raw_0)
-        mask_ssim_value = G2.m_ssim(refined_result, image_raw_1, mask_1)
+        mask_ssim_value = G2.mask_ssim(refined_result, image_raw_1, mask_1)
 
         # Save griglia di immagini predette
-        if epoch % self.config.save_grid_ssim_epoch == self.config.save_grid_ssim_epoch - 1:
-            name_directory = os.path.join("./results_ssim", str(epoch))
-            os.mkdir(name_directory)
+        if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
+            name_directory = os.path.join("./results_ssim/valid", str(epoch))
+            if not os.path.exists(name_directory):
+                os.mkdir(name_directory)
             name_grid = os.path.join(name_directory,
-                                    'G2_ssim_epoch_{epoch}_batch_{batch}_ssim_{mean}.png'.format(batch=id_batch,
-                                                                                                 epoch=epoch,
-                                                                                                 mean=ssim_value))
+                                    'G2_ssim_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim{mask_ssim}.png'.format(epoch=epoch,
+                                                                                                 batch=id_batch,
+                                                                                                 ssim=ssim_value,
+                                                                                                 mask_ssim=mask_ssim_value))
+            refined_result = utils_wgan.unprocess_image(refined_result, 350, 32765.5)
             grid.save_image(refined_result, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), real_predette.shape[0], ssim_value.numpy(), mask_ssim_value.numpy()

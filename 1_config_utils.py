@@ -63,11 +63,12 @@ class Config:
         self.epochs = 100
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
-        self.save_grid_ssim_epoch = 1  # ogni quante epoche devo salvare la griglia per visualizzare le immagini predette dal G2
+        self.save_grid_ssim_epoch_valid = 1  # ogni quante epoche devo salvare la griglia per visualizzare le immagini predette dal G2
+        self.save_grid_ssim_epoch_train = 5
 
         self.lr_update_epoch = 1  # epoche di aggiornameto del learning rate
         #google colab
-        self.run_google_colab = False
-        self.download_weight = 5 # step di epoche in cui andremo ad aggiornare il rar dei pesi
+        self.run_google_colab = True
+        self.download_weight = 2 # step di epoche in cui andremo ad aggiornare il rar dei pesi
 
         self.data_format = 'channels_last'
