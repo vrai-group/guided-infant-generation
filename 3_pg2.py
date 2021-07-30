@@ -339,9 +339,9 @@ class PG2(object):
             stack_pz = np.array([[p[0].decode('utf-8'), p[1].decode('utf-8')] for p in stack_pz])
             stack_im = np.c_[name_0.numpy(), name_1.numpy()]
             stack_im = np.array([[p[0].decode('utf-8'), p[1].decode('utf-8')] for p in stack_im])
-            txt_file = 'pz_condition: {stack_pz} \n\n\n ' \
+            txt_file = 'pz_pair: \n\n {stack_pz} \n\n\n ' \
                        '########'\
-                       'im_condition: {stack_im}'.format(
+                       'im_pair: \n\n {stack_im}'.format(
                 stack_pz=np.array2string(stack_pz),
                 stack_im=np.array2string(stack_im))
             file = open(name_directory + '/' + 'G2_ssim_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,  batch=id_batch), "w")
@@ -409,9 +409,9 @@ class PG2(object):
             stack_pz = np.array([[p[0].decode('utf-8'), p[1].decode('utf-8')] for p in stack_pz])
             stack_im = np.c_[name_0.numpy(), name_1.numpy()]
             stack_im = np.array([[p[0].decode('utf-8'), p[1].decode('utf-8')] for p in stack_im])
-            txt_file = 'pz_condition: {stack_pz} \n\n\n ' \
-                       '########' \
-                       'im_condition: {stack_im}'.format(
+            txt_file = 'pz_pair: \n\n {stack_pz} \n\n\n ' \
+                       '######## \n\n' \
+                       'im_pair: \n\n {stack_im}'.format(
                 stack_pz=np.array2string(stack_pz),
                 stack_im=np.array2string(stack_im))
             file = open(name_directory+'/'+ 'G2_ssim_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1, batch=id_batch), "w")
