@@ -11,8 +11,8 @@ def make_grid(tensor, nrow=8, padding=2,
               normalize=False, scale_each=False):
     """Code based on https://github.com/pytorch/vision/blob/master/torchvision/utils.py"""
     nmaps = tensor.shape[0]
-    xmaps = min(nrow, nmaps)
-    ymaps = int(math.ceil(float(nmaps) / xmaps))
+    xmaps = min(nrow, nmaps) # numero di colonne
+    ymaps = int(math.ceil(float(nmaps) / xmaps)) # numero di righe
     height, width = int(tensor.shape[1] + padding), int(tensor.shape[2] + padding)
     grid = np.zeros([height * ymaps + 1 + padding // 2, width * xmaps + 1 + padding // 2, 3], dtype=np.uint8)
     k = 0
