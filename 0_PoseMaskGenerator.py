@@ -642,9 +642,9 @@ if __name__ == '__main__':
     global dir_data
     global keypoint_num
 
-    dir_save_tfrecord = './data/BabySynt_single_mov_sample/tfrecord/positive_single_mov'
-    dir_annotations = './data/BabySynt_single_mov_sample/annotations'
-    dir_data = './data/BabySynt_single_mov_sample'
+    dir_data = './data/Syntetich'
+    dir_annotations = './data/Syntetich/annotations'
+    dir_save_tfrecord = './data/Syntetich/tfrecord/negative_syntetich'
     keypoint_num = 14
 
     name_tfrecord_train = 'BabyPose_train.tfrecord'
@@ -652,17 +652,17 @@ if __name__ == '__main__':
     name_tfrecord_test = 'BabyPose_test.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
-    lista_pz_train = [5, 7, 11, 17, 20, 22, 24, 30, 36, 42, 43, 73, 76, 101,102,103,104,105,106,107,108,109 ]
-    lista_pz_valid = [3, 14, 27, 29, 34, 66, 74, 110, 111, 112]
+    lista_pz_train = [101, 102, 103, 104, 105, 106, 107, 109, 111]
+    lista_pz_valid = [108, 110, 112]
     lista_pz_test = []
 
     # General information
     radius_keypoints_pose = 1
-    radius_keypoints_mask = 4
-    radius_head_mask = 4
-    dilatation = 10
+    radius_keypoints_mask = 10
+    radius_head_mask = 40
+    dilatation = 35
     flip = True   # Aggiunta dell example con flip verticale
-    mode = "positive"
+    mode = "negative"
     switch = mode == "positive" #lo switch è consentito solamente in modalità positive, se è negative va in automatico
 
 #########################
@@ -709,7 +709,7 @@ if __name__ == '__main__':
     # elif r_te == "N" or r_te == "n":
     #     print("OK, non farò nulla sul test set")
 
-    dic = {"train": {
+    dic = {
 
         "general": {
             "radius_keypoints_pose": radius_keypoints_pose,
@@ -720,6 +720,7 @@ if __name__ == '__main__':
             "mode": mode
         },
 
+        "train": {
         "name_file": name_tfrecord_train,
         "list_pz": lista_pz_train,
         "tot": tot_train
