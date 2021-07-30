@@ -64,7 +64,7 @@ def view_tfrecord():
     import matplotlib.pyplot as plt
 
     # raw_dataset = tf.data.TFRecordDataset('../data/tfrecord/radius_10/BabyPose_train.tfrecord')
-    raw_dataset = tf.data.TFRecordDataset('../data/tfrecord/new/New_BabyPose_train.tfrecord')
+    raw_dataset = tf.data.TFRecordDataset('../data/BabySynt_single_mov/tfrecord/negative_single_mov/BabyPose_train.tfrecord')
     #raw_dataset = tf.data.TFRecordDataset(' C:/Users/canna/Desktop/New_BabyPose_valid.tfrecord')
 
     def _parse_image_function(example_proto):
@@ -104,11 +104,11 @@ def view_tfrecord():
         cnt += 1
         print(cnt)
 
-        if cnt >= 11:
+        if cnt >= 0:
 
             pz_0 = image_features['pz_0'].numpy().decode('utf-8')
             pz_1 = image_features['pz_1'].numpy().decode('utf-8')
-            if pz_0 == "pz5" and pz_1 == "pz4":
+            if True:
                 image_name_0 = image_features['image_name_0'].numpy().decode('utf-8')
                 image_name_1 = image_features['image_name_1'].numpy().decode('utf-8')
                 print(pz_0, "  ", pz_1)
@@ -140,8 +140,8 @@ def view_tfrecord():
                 values_r4_1 = tf.io.decode_raw(image_features['values_r4_1'], np.int64)
                 pose_1 = tf.sparse.SparseTensor(indices=indices_r4_1, values=values_r4_1, dense_shape=[96, 128, 14])
                 pose_1 = tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False)
-                pose_1 = tf.reshape(pose_1[:, :, 7], (96, 128, 1)).numpy()
-                #pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96,128,1)
+                #pose_1 = tf.reshape(pose_1[:, :, 7], (96, 128, 1)).numpy()
+                pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96,128,1)
                 #mask
                 pose_mask_r4_0 = image_features['pose_mask_r4_0'].numpy().reshape(96, 128, 1)
                 pose_mask_r4_1 = image_features['pose_mask_r4_1'].numpy().reshape(96, 128, 1)
