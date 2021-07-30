@@ -167,7 +167,7 @@ class BabyPose():
             mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
             mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
 
-            return image_raw_0, image_raw_1, pose_1, mask_1, mask_0
+            return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, pz_0, pz_1, name_0, name_1
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
