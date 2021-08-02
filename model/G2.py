@@ -17,8 +17,8 @@ def Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1,
     gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.ones_like(D_neg_refined_result)))
 
     mask_0_inv = 1 - mask_0
-    #primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
-    primo_membro = 0.005 * tf.reduce_mean(tf.abs(refined_result - image_raw_0) * mask_0_inv)
+    primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
+    #primo_membro = 0.005 * tf.reduce_mean(tf.abs(refined_result - image_raw_0) * mask_0_inv)
     secondo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1) * mask_1)
     PoseMaskLoss2 = primo_membro + secondo_membro
 
@@ -28,14 +28,14 @@ def Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1,
 
 
 # Metrica
-def m_ssim(refined_result, image_raw_0):
-    image_raw_0 = tf.reshape(image_raw_0, [-1, 96, 128, 1])
+def m_ssim(refined_result, image_raw_1):
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
     refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])
 
-    image_raw_0 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     refined_result = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(refined_result, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
-    result = tf.image.ssim(refined_result, image_raw_0, max_val=tf.math.reduce_max(image_raw_0))
+    result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(image_raw_1))
     mean = tf.reduce_mean(result)
 
     return mean
@@ -60,7 +60,7 @@ def mask_ssim(refined_result, image_raw_1, mask_1):
 
 # Optimizer
 def optimizer():
-    return tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5)
+    return tf.keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5)
 
 
 def build_model(config):

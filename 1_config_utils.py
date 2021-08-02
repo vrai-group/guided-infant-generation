@@ -22,7 +22,7 @@ class Config:
             with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
                 dic = pickle.load(f)
 
-            self.name_tfrecord_train = "BabyPose_train.tfrecord" #dic['train']['name_file'] # nome dataset train
+            self.name_tfrecord_train = dic['train']['name_file'] # nome dataset train
             self.name_tfrecord_valid = dic['valid']['name_file'] # nome dataset valid
             self.name_tfrecord_test = dic['test']['name_file']  # nome dataset test
 
@@ -64,11 +64,11 @@ class Config:
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
         self.save_grid_ssim_epoch_valid = 1  # ogni quante epoche devo salvare la griglia per visualizzare le immagini predette dal G2
-        self.save_grid_ssim_epoch_train = 5
+        self.save_grid_ssim_epoch_train = 1
+        self.lr_update_epoch = 10  # epoche di aggiornameto del learning rate
 
-        self.lr_update_epoch = 1  # epoche di aggiornameto del learning rate
         #google colab
-        self.run_google_colab = True
+        self.run_google_colab = False
         self.download_weight = 2 # step di epoche in cui andremo ad aggiornare il rar dei pesi
 
         self.data_format = 'channels_last'

@@ -23,7 +23,7 @@ def Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0):
 
 # Optimizer
 def optimizer():
-    return tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5)
+    return tf.keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5)
 
 ###### MODEL
 def build_model(config):
