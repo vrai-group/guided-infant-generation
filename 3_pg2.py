@@ -110,17 +110,23 @@ class PG2(object):
             logs_loss_train_D = np.empty((self.config.epochs))
             logs_loss_train_D_fake = np.empty((self.config.epochs))
             logs_loss_train_D_real = np.empty((self.config.epochs))
-            logs_loss_mask_ssim = np.empty((self.config.epochs))
-            logs_loss_ssim = np.empty((self.config.epochs))
+            logs_mask_ssim = np.empty((self.config.epochs))
+            logs_ssim = np.empty((self.config.epochs))
+            logs_r_r = np.empty((self.config.epochs))
+            logs_img_0 = np.empty((self.config.epochs))
+            logs_img_1 = np.empty((self.config.epochs))
 
-            a = np.load('logs_loss_train_G2.npy')
+            a = np.load(os.path.join(config.logs_path, 'logs_loss_train_G2.npy'))
             num = a.shape[0]
-            logs_loss_train_G2[:num] = np.load(os.path.join(config.logs_path,'logs_loss_train_G2.npy'))
-            logs_loss_train_D[:num] = np.load(os.path.join(config.logs_path,'logs_loss_train_D_total.npy'))
-            logs_loss_train_D_fake[:num] = np.load(os.path.join(config.logs_path,'logs_loss_train_D_fake.npy'))
-            logs_loss_train_D_real[:num] = np.load(os.path.join(config.logs_path,'logs_loss_train_D_fake.npy'))
-            logs_loss_mask_ssim[:num] = np.load(os.path.join(config.logs_path,'logs_loss_mask_ssim.npy'))
-            logs_loss_ssim[:num] = np.load(os.path.join(config.logs_path,'logs_loss_ssim.npy'))
+            logs_loss_train_G2[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_G2.npy'))
+            logs_loss_train_D[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_D_total.npy'))
+            logs_loss_train_D_fake[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_D_fake.npy'))
+            logs_loss_train_D_real[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_D_fake.npy'))
+            logs_mask_ssim[:num] = np.load(os.path.join(config.logs_path, 'logs_mask_ssim.npy'))
+            logs_ssim[:num] = np.load(os.path.join(config.logs_path, 'logs_ssim.npy'))
+            logs_r_r[:num] = np.load(os.path.join(config.logs_path, 'logs_r_r.npy'))
+            logs_img_0[:num] = np.load(os.path.join(config.logs_path, 'logs_img_0.npy'))
+            logs_img_1[:num] = np.load(os.path.join(config.logs_path, 'logs_img_1.npy'))
 
 
         else:
@@ -129,8 +135,11 @@ class PG2(object):
             logs_loss_train_D = np.empty((self.config.epochs))
             logs_loss_train_D_fake = np.empty((self.config.epochs))
             logs_loss_train_D_real = np.empty((self.config.epochs))
-            logs_loss_mask_ssim = np.empty((self.config.epochs))
-            logs_loss_ssim = np.empty((self.config.epochs))
+            logs_mask_ssim = np.empty((self.config.epochs))
+            logs_ssim = np.empty((self.config.epochs))
+            logs_r_r = np.empty((self.config.epochs))
+            logs_img_0 = np.empty((self.config.epochs))
+            logs_img_1 = np.empty((self.config.epochs))
 
         for epoch in range(self.config.epochs):
             train_it = iter(dataset_train)  # rinizializzo l iteratore sul train dataset
@@ -194,7 +203,7 @@ class PG2(object):
                 sys.stdout.write('Epoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2f}, '
                                  'loss_D: {loss_D:2f}, loss_D_fake: {loss_D_fake:2f}, loss_D_real: {loss_D_real:2f},'
                                  'ssmi: {ssmi:2f}, mask_ssmi: {mask_ssmi:2f},'
-                                 'real_predette:: r_r:{r_r:1}, im_0:{im_0}, im_1:{im_1} / {total_train}'.format(
+                                 'real_predette:: r_r:{r_r:1}, im_0:{im_0:1}, im_1:{im_1:1} / {total_train}'.format(
                     epoch=epoch + 1,
                     id_batch=id_batch, num_batches=num_batches_train, loss_G2=mean_loss_G2_train,
                     loss_D=mean_loss_D_train, loss_D_fake=mean_loss_D_train_fake, loss_D_real=mean_loss_D_train_real,
@@ -239,7 +248,7 @@ class PG2(object):
             sys.stdout.write('\r')
             sys.stdout.write('val_loss_G2: {loss_G2:2f}, val_loss_D: {loss_D:2f}, val_loss_D_fake: {loss_D_fake:2f}, '
                              'val_loss_D_real: {loss_D_real:2f}, val_ssmi: {ssmi:2f}, val_mask_ssmi: {mask_ssmi:2f} \n\n'
-                             'val_real_predette: r_r:{r_r:1}, im_0:{im_0}, im_1:{im_1} / {total_valid}'.format(
+                             'val_real_predette: r_r:{r_r:1}, im_0:{im_0:1}, im_1:{im_1:1} / {total_valid}'.format(
                 loss_G2=mean_loss_G2_valid, loss_D=mean_loss_D_valid,
                 loss_D_fake=mean_loss_D_valid_fake, loss_D_real=mean_loss_D_valid_real,
                 r_r=cnt_predette_refined_result_valid, im_0=cnt_predette_image_raw_0_valid,
@@ -257,7 +266,7 @@ class PG2(object):
                          "r_r_train_{r_r}-" \
                          "im_0_train_{im_0}-" \
                          "im_1_train_{im_1}-" \
-                         "val_loss_{val_loss}-" \
+                         "val_loss_{val_loss:2f}-" \
                          "val_ssim_{val_ssim:2f}-" \
                          "val_mask_ssim_{val_mask_ssim:2f}-" \
                          "val_r_r_train_{val_r_r}-" \
@@ -277,11 +286,11 @@ class PG2(object):
             # loss_values_valid_D_fake[id_batch], loss_values_valid_D_real
             name_model = "Model_D_epoch_{epoch:03d}-" \
                          "loss_{loss:2f}-" \
-                         "loss_values_D_fake{loss_D_fake:2f}-" \
-                         "loss_values_D_real{loss_D_real:2f}-" \
+                         "loss_values_D_fake_{loss_D_fake:2f}-" \
+                         "loss_values_D_real_{loss_D_real:2f}-" \
                          "val_loss_{val_loss:2f}-" \
-                         "val_loss_values_D_fake{val_loss_D_real}-" \
-                         "val_loss_values_D_real{val_loss_D_fake}.hdf5".format(
+                         "val_loss_values_D_fake_{val_loss_D_real:2f}-" \
+                         "val_loss_values_D_real_{val_loss_D_fake:2f}.hdf5".format(
                 epoch=epoch + 1, loss=mean_loss_D_train, loss_D_fake=mean_loss_D_train_fake,
                 loss_D_real=mean_loss_D_train_real,
                 val_loss=mean_loss_D_valid, val_loss_D_real=mean_loss_D_valid_real,
@@ -294,15 +303,23 @@ class PG2(object):
             logs_loss_train_D[epoch] = mean_loss_D_train
             logs_loss_train_D_fake[epoch] = mean_loss_D_train_fake
             logs_loss_train_D_real[epoch] = mean_loss_D_train_real
-            logs_loss_mask_ssim[epoch] = mean_ssim_train
-            logs_loss_ssim[epoch] = mean_ssim_train
+            logs_mask_ssim[epoch] = mean_ssim_train
+            logs_ssim[epoch] = mean_ssim_train
+            logs_r_r[epoch] = cnt_predette_refined_result_train
+            logs_img_0[epoch] = cnt_predette_image_raw_0_train
+            logs_img_1[epoch] = cnt_predette_image_raw_1_train
 
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_G2.npy'),logs_loss_train_G2[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_D_total.npy'),logs_loss_train_D[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_D_fake.npy'),logs_loss_train_D_fake[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_D_real.npy'),logs_loss_train_D_real[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_mask_ssim.npy'),logs_loss_mask_ssim[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_ssim.npy'),logs_loss_ssim[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_G2.npy'), logs_loss_train_G2[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_D_total.npy'), logs_loss_train_D[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_D_fake.npy'),
+                    logs_loss_train_D_fake[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_D_real.npy'),
+                    logs_loss_train_D_real[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_mask_ssim.npy'), logs_mask_ssim[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_ssim.npy'), logs_ssim[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_r_r.npy'), logs_r_r[epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_img_0.npy'), logs_img_0[epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_img_1.npy'), logs_img_1[epoch + 1])
 
             # Update learning rate
             if epoch % self.config.lr_update_epoch == self.config.lr_update_epoch - 1:
@@ -413,9 +430,10 @@ class PG2(object):
             if not os.path.exists(name_directory):
                 os.mkdir(name_directory)
             name_grid = os.path.join(name_directory,
-                                     'G2_ssim_epoch_{epoch}_batch_{batch}_mask_ssim{mask_ssim}.png'.format(
+                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim{mask_ssim}.png'.format(
                                          epoch=epoch + 1,
                                          batch=id_batch,
+                                         ssim=ssim_value,
                                          mask_ssim=mask_ssim_value))
             refined_result = utils_wgan.unprocess_image(refined_result, 350, 32765.5)
             grid.save_image(refined_result,
@@ -426,7 +444,7 @@ class PG2(object):
                 [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
                  stack_pairs])
             txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-            file = open(name_directory + '/' + 'G2_ssim_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
+            file = open(name_directory + '/' + 'G2_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
                                                                                                 batch=id_batch), "w")
             file.write(txt_file)
             file.close()
@@ -495,9 +513,10 @@ class PG2(object):
             if not os.path.exists(name_directory):
                 os.mkdir(name_directory)
             name_grid = os.path.join(name_directory,
-                                     'G2_ssim_epoch_{epoch}_batch_{batch}_mask_ssim{mask_ssim}.png'.format(
+                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim{mask_ssim}.png'.format(
                                          epoch=epoch + 1,
                                          batch=id_batch,
+                                         ssim=ssim_value,
                                          mask_ssim=mask_ssim_value))
             refined_result = utils_wgan.unprocess_image(refined_result, 350, 32765.5)
             grid.save_image(refined_result,
@@ -508,7 +527,7 @@ class PG2(object):
                 [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
                  stack_pairs])
             txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-            file = open(name_directory + '/' + 'G2_ssim_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
+            file = open(name_directory + '/' + 'G2_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
                                                                                                 batch=id_batch), "w")
             file.write(txt_file)
             file.close()
