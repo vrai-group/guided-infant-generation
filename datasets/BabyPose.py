@@ -162,7 +162,6 @@ class BabyPose():
             pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
             pose_1 = pose_1 * 2
             pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
-            #pose_1 = utils_wgan.process_image(pose_1, mean_pose_1, 1)
 
             mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
             mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
