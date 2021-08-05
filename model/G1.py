@@ -50,8 +50,8 @@ def mse(Y, output_G1):
     elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
 
-    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), dtype=tf.float16)
-    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 1, 32765.5), dtype=tf.float16)
+    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 350, 32765.5), dtype=tf.uint1616)
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 350, 32765.5), dtype=tf.uint16)
 
     return tf.reduce_mean(tf.square(output_G1 - image_raw_0))
 
@@ -68,13 +68,13 @@ def mask_mse(Y, output_G1):
         image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
         mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
 
-    image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, 1, 32765.5), dtype=tf.float16)
-    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 1, 32765.5), dtype=tf.float16)
+    image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, 350, 32765.5), dtype=tf.uint16)
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 350, 32765.5), dtype=tf.uint16)
 
     mask_image_raw_1 = mask_1 * image_raw_1
     mask_output_G1 = mask_1 * output_G1
 
-    return tf.reduce_mean(tf.square(tf.cast(mask_output_G1 - mask_image_raw_1, dtype=tf.float16)))
+    return tf.reduce_mean(tf.square(tf.cast(mask_output_G1 - mask_image_raw_1, dtype=tf.uint16)))
 
 
 # Metrica SSIM
@@ -87,8 +87,8 @@ def m_ssim(Y, output_G1):
     elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
 
-    image_raw_0 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_0, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    image_raw_0 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_0, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
     result = tf.image.ssim(output_G1, image_raw_0, max_val=tf.math.reduce_max(image_raw_0))
     mean = tf.reduce_mean(result)
@@ -108,8 +108,8 @@ def mask_ssim(Y, output_G1):
         image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
         mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
 
-    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
     mask_image_raw_1 = mask_1 * image_raw_1
     mask_output_G1 = mask_1 * output_G1
