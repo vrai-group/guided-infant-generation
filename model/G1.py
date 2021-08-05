@@ -50,8 +50,8 @@ def mse(Y, output_G1):
     elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
 
-    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 350, 32765.5), dtype=tf.uint1616)
-    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 350, 32765.5), dtype=tf.uint16)
+    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, 350, 32765.5), dtype=tf.float16)
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, 350, 32765.5), dtype=tf.float16)
 
     return tf.reduce_mean(tf.square(output_G1 - image_raw_0))
 
@@ -86,11 +86,12 @@ def m_ssim(Y, output_G1):
 
     elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
+        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
 
-    image_raw_0 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_0, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
-    result = tf.image.ssim(output_G1, image_raw_0, max_val=tf.math.reduce_max(image_raw_0))
+    result = tf.image.ssim(output_G1, image_raw_1, max_val=tf.math.reduce_max(image_raw_1))
     mean = tf.reduce_mean(result)
 
     return mean
@@ -110,17 +111,20 @@ def mask_ssim(Y, output_G1):
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    mask_1 = tf.cast(mask_1, dtype=tf.uint16)
 
     mask_image_raw_1 = mask_1 * image_raw_1
     mask_output_G1 = mask_1 * output_G1
 
-    result = tf.image.ssim(mask_image_raw_1, mask_output_G1, max_val=tf.math.reduce_max(image_raw_0))
+    result = tf.image.ssim(mask_image_raw_1, mask_output_G1, max_val=tf.math.reduce_max(image_raw_1))
     mean = tf.reduce_mean(result)
+    mean = tf.cast(mean, dtype=tf.float32)
 
     return mean
+
 #### Learning rate
 def step_decay(epoch):
-    initial_lrate = 0.0001
+    initial_lrate = 2e-5
     drop_rate = 0.5
     epoch_rate = 10 #ogni quanto eseguire l aggiornamento
     return initial_lrate * (drop_rate ** math.floor(epoch/epoch_rate))
@@ -176,11 +180,11 @@ def build_model(config):
     model = keras.Model(inputs, outputs)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.5, beta_2=0.999),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5, beta_2=0.999),
         #optimizer=tf.keras.optimizers.SGD(learning_rate=0.01),
         #optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
 	    loss=PoseMaskLoss1,
-        metrics=[mse, m_ssim],
+        metrics=[mask_ssim, m_ssim],
     )
 
     return model
