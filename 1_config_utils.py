@@ -61,12 +61,19 @@ class Config:
         self.keypoint_num = 14  # numero di keypoints
 
         # Training / test parameters
-        self.epochs = 200
+        self.epochs_G1 = 200
+        self.lr_update_epoch_G1 = 10  # epoche di aggiornameto del learning rate
+
+        self.epochs_GAN = 500
+        self.lr_update_epoch_GAN = 5  # epoche di aggiornameto del learning rate
+        self.save_grid_ssim_epoch_valid = 1  # GAN
+        self.save_grid_ssim_epoch_train = 1  # GAN
+
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
-        self.save_grid_ssim_epoch_valid = 1  # ogni quante epoche devo salvare la griglia per visualizzare le immagini predette dal G2
-        self.save_grid_ssim_epoch_train = 1
-        self.lr_update_epoch = 5  # epoche di aggiornameto del learning rate
+
+
+
 
         #google colab
         self.run_google_colab = False

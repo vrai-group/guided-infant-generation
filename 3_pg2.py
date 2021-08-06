@@ -27,7 +27,7 @@ class PG2(object):
         dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
-        dataset_train = dataset_train.repeat(self.config.epochs)
+        dataset_train = dataset_train.repeat(self.config.epochs_G1)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.prefetch(
             tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
@@ -38,7 +38,7 @@ class PG2(object):
         dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
         # dataset_valid = dataset_valid.shuffle(self.config.dataset_valid_len, reshuffle_each_iteration=True)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
-        dataset_valid = dataset_valid.repeat(self.config.epochs)
+        dataset_valid = dataset_valid.repeat(self.config.epochs_G1)
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
         valid_it = iter(dataset_valid)
 
@@ -49,14 +49,14 @@ class PG2(object):
 
         # CallBacks
         filepath = os.path.join(self.config.weigths_path,
-                                'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-mse_{mse:2f}-ssim_{m_ssim:2f}-mask_ssim_{mask_ssim:2f}-val_loss_{val_loss:2f}-val_mse_{val_mse:2f}-val_ssim_{val_m_ssim:2f}_val_mask_ssim_{val_mask_ssim:2f}.hdf5')
+                                'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-ssim_{m_ssim:2f}-mask_ssim_{mask_ssim:2f}-val_loss_{val_loss:2f}-val_ssim_{val_m_ssim:2f}_val_mask_ssim_{val_mask_ssim:2f}.hdf5')
         checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False,
                                      save_weights_only=True, period=1)
 
         learning_rate_decay = LearningRateScheduler(G1.step_decay)
 
         model_g1.fit(train_it,
-                     epochs=self.config.epochs,  # 100
+                     epochs=self.config.epochs_G1,  # 100
                      steps_per_epoch=int(self.config.dataset_train_len / self.config.batch_size_train),  # 25600/4
                      callbacks=[checkPoint, learning_rate_decay],
                      validation_data=valid_it,
@@ -106,15 +106,15 @@ class PG2(object):
         # Logs da salvare nella cartella logs per ogni epoca
         if os.path.exists(os.path.join(config.logs_path, 'logs_loss_train_G2.npy')):
             # Se esistenti, precarico i logs
-            logs_loss_train_G2 = np.empty((self.config.epochs))
-            logs_loss_train_D = np.empty((self.config.epochs))
-            logs_loss_train_D_fake = np.empty((self.config.epochs))
-            logs_loss_train_D_real = np.empty((self.config.epochs))
-            logs_mask_ssim = np.empty((self.config.epochs))
-            logs_ssim = np.empty((self.config.epochs))
-            logs_r_r = np.empty((self.config.epochs))
-            logs_img_0 = np.empty((self.config.epochs))
-            logs_img_1 = np.empty((self.config.epochs))
+            logs_loss_train_G2 = np.empty((self.config.epochs_GAN))
+            logs_loss_train_D = np.empty((self.config.epochs_GAN))
+            logs_loss_train_D_fake = np.empty((self.config.epochs_GAN))
+            logs_loss_train_D_real = np.empty((self.config.epochs_GAN))
+            logs_mask_ssim = np.empty((self.config.epochs_GAN))
+            logs_ssim = np.empty((self.config.epochs_GAN))
+            logs_r_r = np.empty((self.config.epochs_GAN))
+            logs_img_0 = np.empty((self.config.epochs_GAN))
+            logs_img_1 = np.empty((self.config.epochs_GAN))
 
             a = np.load(os.path.join(config.logs_path, 'logs_loss_train_G2.npy'))
             num = a.shape[0]
@@ -131,17 +131,17 @@ class PG2(object):
 
         else:
             # Altrimenti li creo ex novo
-            logs_loss_train_G2 = np.empty((self.config.epochs))
-            logs_loss_train_D = np.empty((self.config.epochs))
-            logs_loss_train_D_fake = np.empty((self.config.epochs))
-            logs_loss_train_D_real = np.empty((self.config.epochs))
-            logs_mask_ssim = np.empty((self.config.epochs))
-            logs_ssim = np.empty((self.config.epochs))
-            logs_r_r = np.empty((self.config.epochs))
-            logs_img_0 = np.empty((self.config.epochs))
-            logs_img_1 = np.empty((self.config.epochs))
+            logs_loss_train_G2 = np.empty((self.config.epochs_GAN))
+            logs_loss_train_D = np.empty((self.config.epochs_GAN))
+            logs_loss_train_D_fake = np.empty((self.config.epochs_GAN))
+            logs_loss_train_D_real = np.empty((self.config.epochs_GAN))
+            logs_mask_ssim = np.empty((self.config.epochs_GAN))
+            logs_ssim = np.empty((self.config.epochs_GAN))
+            logs_r_r = np.empty((self.config.epochs_GAN))
+            logs_img_0 = np.empty((self.config.epochs_GAN))
+            logs_img_1 = np.empty((self.config.epochs_GAN))
 
-        for epoch in range(self.config.epochs):
+        for epoch in range(self.config.epochs_GAN):
             train_it = iter(dataset_train)  # rinizializzo l iteratore sul train dataset
             valid_it = iter(dataset_valid)  # rinizializzo l iteratore sul valid dataset
 
@@ -322,7 +322,7 @@ class PG2(object):
             np.save(os.path.join(self.config.logs_path, 'logs_img_1.npy'), logs_img_1[epoch + 1])
 
             # Update learning rate
-            if epoch % self.config.lr_update_epoch == self.config.lr_update_epoch - 1:
+            if epoch % self.config.lr_update_epoch_GAN == self.config.lr_update_epoch_GAN - 1:
                 self.opt_G2.lr = self.opt_G2.lr * 0.5
                 self.opt_D.lr = self.opt_D.lr * 0.5
                 print("-Aggiornamento Learning rate G2: ", self.opt_G2.lr.numpy())
@@ -543,5 +543,5 @@ if __name__ == "__main__":
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
-    # pg2.train_G1()
-    pg2.train_conditional_GAN()
+    pg2.train_G1()
+    # pg2.train_conditional_GAN()

@@ -89,7 +89,7 @@ def mask_ssim(Y, output_G1):
 def step_decay(epoch):
     initial_lrate = 2e-5
     drop_rate = 0.5
-    epoch_rate = 10 #ogni quanto eseguire l aggiornamento
+    epoch_rate = config.lr_update_epoch_G1 #ogni quanto eseguire l aggiornamento
     return initial_lrate * (drop_rate ** math.floor(epoch/epoch_rate))
 
 

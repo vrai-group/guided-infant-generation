@@ -11,6 +11,7 @@ from utils import grid
 from utils import utils_wgan
 from model import G1, G2, Discriminator
 from datasets.BabyPose import BabyPose
+from skimage.metrics import structural_similarity as ssim
 
 def predict_G1(config):
     babypose_obj = BabyPose(config)
@@ -28,9 +29,9 @@ def predict_G1(config):
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     model_G1 = G1.build_model(config)
-    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_200-loss_0.000185-mse_inf-ssim_0.094355-mask_ssim_0.811881-val_loss_0.000289-val_mse_inf-val_ssim_0.027771_val_mask_ssim_0.799022.hdf5'))
+    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_074-loss_0.000185-ssim_0.647072-mask_ssim_0.918737-val_loss_0.000280-val_ssim_0.619923_val_mask_ssim_0.899278.hdf5'))
     #model_G1.load_weights(os.path.join(config.weigths_path,'weights00000650.hdf5'))
-    model_G1.summary()
+    #model_G1.summary()
     cnt = 0
 
     # Per effettuare incroci tra le img di condizione di test e le pose di train
@@ -110,7 +111,7 @@ def predict_G1(config):
         print(pz_0, '-', pz_1)
 
         if cnt >= 0:
-            if pz_0 == "pz112" and pz_1 == "pz111":
+            #if pz_0 == "pz101" and pz_1 == "pz102":
 
                 if config.input_image_raw_channel == 3:
                     image_raw_0 = X[:, :, :, :3]
@@ -127,11 +128,11 @@ def predict_G1(config):
                 predizione = model_G1.predict(X, verbose=1)
 
                 #Unprocess
-                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 1, 32765.5)
-                image_raw_0 = tf.cast(image_raw_0, dtype=tf.float32)[0].numpy()
+                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 350, 32765.5)
+                image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
 
-                image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 1, 32765.5)
-                image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)[0].numpy()
+                image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1,  350, 32765.5),clip_value_min=0, clip_value_max=32765)
+                image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
 
                 pose_1 = pose_1.numpy()[0]
                 pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
@@ -143,14 +144,18 @@ def predict_G1(config):
                 mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96,128,1)
                 mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96,128,1) * 255
 
-                predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, 400, 32765.5), clip_value_min=0, clip_value_max=32765)
-                predizione = tf.cast(predizione, dtype=tf.uint8)[0]
+                predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, 350, 32765.5), clip_value_min=0, clip_value_max=32765)
+                #predizione = utils_wgan.unprocess_image(predizione, 900, 32765.5)
+                predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
+
+                result = tf.image.ssim(predizione.reshape(96,128,1), image_raw_1.reshape(96,128,1), max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
+                print(result)
 
 
                 fig = plt.figure(figsize=(10, 2))
                 columns = 5
                 rows = 1
-                imgs = [predizione, image_raw_0, pose_1, image_raw_1 , mask_1]
+                imgs = [predizione, image_raw_0, pose_1, image_raw_1, mask_1]
                 labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Target", "Maschera posa desiderata"]
                 for i in range(1, columns * rows + 1):
                     sub = fig.add_subplot(rows, columns, i)
@@ -296,7 +301,7 @@ def predict_conditional_GAN (config):
     for id_batch in range(int(config.dataset_train_len / 1)):
 
         batch = next(dataset)
-        if id_batch > 1000:
+        if id_batch > 50:
             image_raw_0 = batch[0]  # [batch, 96, 128, 1]
             image_raw_1 = batch[1]  # [batch, 96,128, 1]
             pose_1 = batch[2]  # [batch, 96,128, 14]
@@ -319,11 +324,11 @@ def predict_conditional_GAN (config):
             refined_result = output_G1 + output_G2
 
             # Unprocess
-            image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 1, 32765.5)
-            image_raw_0 = tf.cast(image_raw_0, dtype=tf.float32)[0].numpy()
+            image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 350, 32765.5)
+            image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
 
-            # image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 1, 32765.5)
-            # image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)[0].numpy()
+            image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 350, 32765.5)
+            image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
 
             pose_1 = pose_1.numpy()[0]
             pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
@@ -336,25 +341,17 @@ def predict_conditional_GAN (config):
             mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
 
             refined_result = tf.cast(utils_wgan.unprocess_image(refined_result, 350, 32765.5),  dtype=tf.uint16)[0]
-            image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, 350, 32765.5),  dtype=tf.uint16)[0]
 
-            mask_image_raw_1 = mask_1 * image_raw_1
-            mask_refined_result = mask_1 * refined_result
-
-            result = tf.image.ssim(mask_image_raw_1, mask_refined_result, max_val=tf.math.reduce_max(image_raw_1))
-
-
-
-            # result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(image_raw_1))
+            result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(refined_result))
             print(result)
 
-            output_G1 = tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 400, 32765.5), clip_value_min=0,
+            output_G1 = tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5), clip_value_min=0,
                                               clip_value_max=32765)
-            output_G1 = tf.cast(output_G1, dtype=tf.float32)[0]
+            output_G1 = tf.cast(output_G1, dtype=tf.uint16)[0]
 
-            output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, 400, 32765.5), clip_value_min=0,
+            output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, 350, 32765.5), clip_value_min=0,
                                          clip_value_max=32765)
-            output_G2 = tf.cast(output_G2, dtype=tf.float32)[0]
+            output_G2 = tf.cast(output_G2, dtype=tf.uint16)[0]
 
             #Save img
             # import cv2
@@ -373,7 +370,7 @@ def predict_conditional_GAN (config):
             fig = plt.figure(figsize=(10, 10))
             columns = 6
             rows = 1
-            imgs = [ output_G1, output_G2, mask_refined_result, pose_1, image_raw_0, mask_image_raw_1 ]
+            imgs = [ output_G1, output_G2, refined_result, pose_1, image_raw_0, image_raw_1 ]
             for i in range(1, columns * rows + 1):
                 fig.add_subplot(rows, columns, i)
                 plt.imshow(imgs[i - 1])
@@ -384,5 +381,5 @@ if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
     #predict_G1_view_more_epochs(config)
-    #predict_G1(config)
-    predict_conditional_GAN(config)
+    predict_G1(config)
+    #predict_conditional_GAN(config)
