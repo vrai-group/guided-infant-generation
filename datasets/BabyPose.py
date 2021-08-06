@@ -10,11 +10,11 @@ import tensorflow as tf
 sys.path.insert(1, '../')
 from utils import utils_wgan
 
-# Per maggiori info su tf.records vedi: https://towardsdatascience.com/a-practical-guide-to-tfrecords-584536bc786c
-_FILE_PATTERN = '%s_%s_*.tfrecord'
+Config_file = __import__('1_config_utils')
+config = Config_file.Config()
 
 class BabyPose():
-    def __init__(self, config):
+    def __init__(self):
         self.keypoint_num = config.keypoint_num
         self.config = config
         self.example_description = {
@@ -47,7 +47,7 @@ class BabyPose():
 
 
     # ritorna un TF.data
-    def get_unprocess_dataset(self, dataset_dir, name_tfrecord):
+    def get_unprocess_dataset(self):
         # deve sempre ritornare uno o piu elementi
         def _decode_function(example_proto):
             example = tf.io.parse_single_example(example_proto, self.example_description)
@@ -83,7 +83,7 @@ class BabyPose():
 
             return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1
 
-        file_pattern = os.path.join(dataset_dir, name_tfrecord)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
+        file_pattern = os.path.join(self.config.data_tfrecord_path, self.config.name_tfrecord_train)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
         reader = tf.data.TFRecordDataset(file_pattern)
         dataset = reader.map(_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
 

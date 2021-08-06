@@ -12,8 +12,8 @@ class Config:
         self.data_path = './data/' + self.Dataset # dove si trova il dataset
         self.data_tfrecord_path = './data/' + self.Dataset + '/tfrecord/' + self.type  # dove si trova il dataset in tfrecord
         self.weigths_path = './weights' # dove salvare i pesi
-        self.logs_path = './logs'
-        self.training_weights_path = './Training/'
+        self.logs_path = './logs' # dove salvare i logs
+        self.training_weights_path = './Training/' # cartella dove sono tutti i vari training effettuati
 
         # - Dataset
         self.img_H = 96 #'input image height'
@@ -30,6 +30,10 @@ class Config:
             self.dataset_train_len = int(dic['train']['tot']) # numero di pair nel train
             self.dataset_valid_len = int(dic['valid']['tot'])  # numero di pair nel valid
             self.dataset_test_len = int(dic['test']['tot'])   # numero di pair nel test
+
+            self.dataset_train_list = dic['train']['list_pz']
+            self.dataset_valid_list = dic['valid']['list_pz']
+            self.dataset_test_list = dic['test']['list_pz']
 
         else:
             print("Dataset no presente. Eventualmente è ancora da formare")
@@ -92,9 +96,9 @@ class Config:
         print("- " + self.name_tfrecord_test + " : ", self.dataset_test_len)
 
         print("List pz:")
-        print(dic['train']['list_pz'])
-        print(dic['valid']['list_pz'])
-        print(dic['test']['list_pz'])
+        print(self.dataset_train_list)
+        print(self.dataset_valid_list)
+        print(self.dataset_test_list )
 
         if self.trainig_G1:
             print("Allenamento G1:")

@@ -19,12 +19,12 @@ class PG2(object):
     def __init__(self, config):
         # Trainer.__init__(self, config, data_loader=None)
         self.config = config
-        self.babypose_obj = BabyPose(config)
+        self.babypose_obj = BabyPose()
 
     def train_G1(self):
 
         # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
+        dataset_train = self.babypose_obj.get_unprocess_dataset()
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
         dataset_train = dataset_train.repeat(self.config.epochs_G1)
@@ -34,7 +34,7 @@ class PG2(object):
         train_it = iter(dataset_train)
 
         # Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
+        dataset_valid = self.babypose_obj.get_unprocess_dataset()
         dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
         # dataset_valid = dataset_valid.shuffle(self.config.dataset_valid_len, reshuffle_each_iteration=True)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
@@ -43,7 +43,7 @@ class PG2(object):
         valid_it = iter(dataset_valid)
 
         # Costruzione modello
-        model_g1 = G1.build_model(self.config)
+        model_g1 = G1.build_model()
         # model_g1.load_weights(os.path.join(self.config.weigths_path, ''))
         # model_g1.summary()
 
@@ -68,32 +68,32 @@ class PG2(object):
         # Note: G1 è preaddestrato
 
         # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
+        dataset_train = self.babypose_obj.get_unprocess_dataset()
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_GAN_dataset(dataset_train)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)
 
         # Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
+        dataset_valid = self.babypose_obj.get_unprocess_dataset()
         dataset_valid = self.babypose_obj.get_preprocess_GAN_dataset(dataset_valid)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
 
         # Carico il modello preaddestrato G1
-        self.model_G1 = G1.build_model(self.config)
+        self.model_G1 = G1.build_model()
         self.model_G1.load_weights(os.path.join(self.config.weigths_path,
                                                 'Model_G1_epoch_200-loss_0.000185-mse_inf-ssim_0.094355-mask_ssim_0.811881-val_loss_0.000289-val_mse_inf-val_ssim_0.027771_val_mask_ssim_0.799022.hdf5'))
 
         # Buildo la GAN
         # G2
-        self.model_G2 = G2.build_model(self.config)  # architettura Generatore G2
+        self.model_G2 = G2.build_model()  # architettura Generatore G2
         # self.model_G2.summary()
         # self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
         self.opt_G2 = G2.optimizer()  # ottimizzatore
 
         # D
-        self.model_D = Discriminator.build_model(self.config)
+        self.model_D = Discriminator.build_model()
         # self.model_D.summary()
         # self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
         self.opt_D = Discriminator.optimizer()

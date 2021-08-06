@@ -94,7 +94,7 @@ def step_decay(epoch):
 
 
 ###### MODEL
-def build_model(config):
+def build_model():
     #####Encoder
     encoder_layer_list = []
     inputs = keras.Input(shape=config.input_shape_g1)
@@ -143,7 +143,7 @@ def build_model(config):
     model = keras.Model(inputs, outputs)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=config.lr_initial, beta_1=0.5, beta_2=0.999),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=config.lr_initial_G1, beta_1=0.5, beta_2=0.999),
         #optimizer=tf.keras.optimizers.SGD(learning_rate=0.01),
         #optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
 	    loss=PoseMaskLoss1,

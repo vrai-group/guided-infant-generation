@@ -14,21 +14,21 @@ from datasets.BabyPose import BabyPose
 from skimage.metrics import structural_similarity as ssim
 
 def predict_G1(config):
-    babypose_obj = BabyPose(config)
+    babypose_obj = BabyPose()
 
     # Preprocess Dataset train
-    dataset_train = babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
+    dataset_train = babypose_obj.get_unprocess_dataset()
     dataset_train = babypose_obj.get_preprocess_predizione(dataset_train)
     dataset_train = dataset_train.batch(1)
     dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
     # Preprocess Dataset test
-    dataset = babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_valid)
+    dataset = babypose_obj.get_unprocess_dataset()
     dataset = babypose_obj.get_preprocess_predizione(dataset)
     dataset = dataset.batch(1)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
-    model_G1 = G1.build_model(config)
+    model_G1 = G1.build_model()
     model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_074-loss_0.000185-ssim_0.647072-mask_ssim_0.918737-val_loss_0.000280-val_ssim_0.619923_val_mask_ssim_0.899278.hdf5'))
     #model_G1.load_weights(os.path.join(config.weigths_path,'weights00000650.hdf5'))
     #model_G1.summary()
@@ -278,21 +278,21 @@ def predict_G1_view_more_epochs(config):
 
 
 def predict_conditional_GAN (config):
-    babypose_obj = BabyPose(config)
+    babypose_obj = BabyPose()
 
     # Preprocess Dataset
-    dataset = babypose_obj.get_unprocess_dataset(config.data_tfrecord_path, config.name_tfrecord_train)
+    dataset = babypose_obj.get_unprocess_dataset()
     dataset = babypose_obj.get_preprocess_GAN_dataset(dataset)
     dataset = dataset.batch(1)
     dataset = iter(dataset)
 
     # Carico il modello preaddestrato G1
-    model_G1 = G1.build_model(config)
+    model_G1 = G1.build_model()
     model_G1.load_weights(os.path.join(config.weigths_path,'Model_G1_epoch_200-loss_0.000185-mse_inf-ssim_0.094355-mask_ssim_0.811881-val_loss_0.000289-val_mse_inf-val_ssim_0.027771_val_mask_ssim_0.799022.hdf5'))
 
     # Carico il modello preaddestrato GAN
     # G2
-    model_G2 = G2.build_model(config)  # architettura Generatore G2
+    model_G2 = G2.build_model()  # architettura Generatore G2
     model_G2.load_weights(os.path.join(config.weigths_path, 'a.hdf5'))
     # D
     # model_D = Discriminator.build_model(config)
@@ -380,6 +380,7 @@ def predict_conditional_GAN (config):
 if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
+    config.print_info()
     #predict_G1_view_more_epochs(config)
     predict_G1(config)
     #predict_conditional_GAN(config)

@@ -9,6 +9,9 @@ from tensorflow.keras.losses import BinaryCrossentropy
 sys.path.insert(1, '../utils')
 from utils import utils_wgan
 
+Config_file = __import__('1_config_utils')
+config = Config_file.Config()
+
 
 # Fuinzione di loss
 def Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0):
@@ -63,7 +66,7 @@ def optimizer():
     return tf.keras.optimizers.Adam(learning_rate=config.lr_initial_G2, beta_1=0.5)
 
 
-def build_model(config):
+def build_model():
     #####Encoder
     encoder_layer_list = []
     inputs = keras.Input(shape=config.input_shape_g2)

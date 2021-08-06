@@ -6,6 +6,10 @@ from tensorflow.keras.layers import *
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.initializers import RandomUniform
 
+Config_file = __import__('1_config_utils')
+config = Config_file.Config()
+
+
 ####### LOSS
 def Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0):
 
@@ -26,7 +30,7 @@ def optimizer():
     return tf.keras.optimizers.Adam(learning_rate=config.lr_initial_D, beta_1=0.5)
 
 ###### MODEL
-def build_model(config):
+def build_model():
 
     inputs = Input(shape=config.input_shape_d)
 
