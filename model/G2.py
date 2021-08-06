@@ -60,7 +60,7 @@ def mask_ssim(refined_result, image_raw_1, mask_1):
 
 # Optimizer
 def optimizer():
-    return tf.keras.optimizers.Adam(learning_rate=1e-5, beta_1=0.5)
+    return tf.keras.optimizers.Adam(learning_rate=config.lr_initial_G2, beta_1=0.5)
 
 
 def build_model(config):

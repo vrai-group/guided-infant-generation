@@ -540,8 +540,11 @@ class PG2(object):
 if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
+    config.print_info()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
-    pg2.train_G1()
-    # pg2.train_conditional_GAN()
+    if self.trainig_G1:
+        pg2.train_G1()
+    elif self.trainig_GAN:
+        pg2.train_conditional_GAN()

@@ -87,8 +87,8 @@ def mask_ssim(Y, output_G1):
 
 #### Learning rate
 def step_decay(epoch):
-    initial_lrate = 2e-5
-    drop_rate = 0.5
+    initial_lrate = config.lr_initial_G1
+    drop_rate = config.drop_rate_G1
     epoch_rate = config.lr_update_epoch_G1 #ogni quanto eseguire l aggiornamento
     return initial_lrate * (drop_rate ** math.floor(epoch/epoch_rate))
 
@@ -143,7 +143,7 @@ def build_model(config):
     model = keras.Model(inputs, outputs)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=2e-5, beta_1=0.5, beta_2=0.999),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=config.lr_initial, beta_1=0.5, beta_2=0.999),
         #optimizer=tf.keras.optimizers.SGD(learning_rate=0.01),
         #optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
 	    loss=PoseMaskLoss1,
