@@ -35,7 +35,7 @@ def m_ssim(refined_result, image_raw_1):
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     refined_result = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(refined_result, 350, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
-    result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(image_raw_1))
+    result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
     mean = tf.reduce_mean(result)
 
     return mean
@@ -53,7 +53,7 @@ def mask_ssim(refined_result, image_raw_1, mask_1):
     mask_image_raw_1 = mask_1 * image_raw_1
     mask_refined_result = mask_1 * refined_result
 
-    result = tf.image.ssim(mask_image_raw_1, mask_refined_result, max_val=tf.math.reduce_max(image_raw_1))
+    result = tf.image.ssim(mask_image_raw_1, mask_refined_result, max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
     mean = tf.reduce_mean(result)
 
     return mean

@@ -18,6 +18,7 @@ class Config:
         #Dataset
         self.img_H = 96 #'input image height'
         self.img_W = 128 #'input image width'
+        self.mean_img = 900
         if os.path.exists(os.path.join(self.data_tfrecord_path , 'pair_tot_sets.pkl')):
             with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
                 dic = pickle.load(f)
@@ -60,12 +61,12 @@ class Config:
         self.keypoint_num = 14  # numero di keypoints
 
         # Training / test parameters
-        self.epochs = 100
+        self.epochs = 200
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
         self.save_grid_ssim_epoch_valid = 1  # ogni quante epoche devo salvare la griglia per visualizzare le immagini predette dal G2
         self.save_grid_ssim_epoch_train = 1
-        self.lr_update_epoch = 10  # epoche di aggiornameto del learning rate
+        self.lr_update_epoch = 5  # epoche di aggiornameto del learning rate
 
         #google colab
         self.run_google_colab = False
