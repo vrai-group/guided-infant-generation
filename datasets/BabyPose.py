@@ -93,10 +93,10 @@ class BabyPose():
     def get_preprocess_G1_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
 
-            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
-            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
+            # mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
+            # mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
+            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), self.config.mean_img, 32765.5)
+            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), self.config.mean_img, 32765.5)
 
             if self.config.input_image_raw_channel == 3:
                 image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
@@ -105,7 +105,6 @@ class BabyPose():
             pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
             pose_1 = pose_1 * 2
             pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
-            #pose_1 = utils_wgan.process_image(pose_1, mean_pose_1, 1)
 
             mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
             mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
@@ -121,10 +120,10 @@ class BabyPose():
     def get_preprocess_predizione(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
 
-            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
-            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
+            # mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
+            # mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
+            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), self.config.mean_img, 32765.5)
+            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), self.config.mean_img, 32765.5)
 
             if self.config.input_image_raw_channel == 3:
                 image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
