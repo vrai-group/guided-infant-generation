@@ -32,8 +32,8 @@ def PoseMaskLoss1(Y, output_G1):
 
 
     # La PoseMakLoss1  è quella implementata sul paper
-    #primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
-    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
+    primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
+    #primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
 
@@ -50,9 +50,13 @@ def m_ssim(Y, output_G1):
     elif config.input_image_raw_channel == 1:
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
         image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
+        img_0_real = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
+        img_1_real = tf.reshape(Y[:, :, :, 5], [-1, 96, 128, 1])
+        mean_0 = tf.cast(tf.reduce_mean(img_0_real), dtype=tf.float32)
+        mean_1 = tf.cast(tf.reduce_mean(img_1_real), dtype=tf.float32)
 
-    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, config.mean_img, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, config.mean_img, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
     result = tf.image.ssim(output_G1, image_raw_1, max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
     mean = tf.reduce_mean(result)
@@ -71,9 +75,13 @@ def mask_ssim(Y, output_G1):
         image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
         image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
         mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
+        img_0_real = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
+        img_1_real = tf.reshape(Y[:, :, :, 5], [-1, 96, 128, 1])
+        mean_0 = tf.cast(tf.reduce_mean(img_0_real), dtype=tf.float32)
+        mean_1 = tf.cast(tf.reduce_mean(img_1_real), dtype=tf.float32)
 
-    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, config.img_mean, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, config.img_mean, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     mask_1 = tf.cast(mask_1, dtype=tf.uint16)
 
     mask_image_raw_1 = mask_1 * image_raw_1

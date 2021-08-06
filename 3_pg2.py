@@ -24,7 +24,7 @@ class PG2(object):
     def train_G1(self):
 
         # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset()
+        dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
         dataset_train = dataset_train.repeat(self.config.epochs_G1)
@@ -34,7 +34,7 @@ class PG2(object):
         train_it = iter(dataset_train)
 
         # Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset()
+        dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
         dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
         # dataset_valid = dataset_valid.shuffle(self.config.dataset_valid_len, reshuffle_each_iteration=True)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
@@ -68,14 +68,14 @@ class PG2(object):
         # Note: G1 è preaddestrato
 
         # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset()
+        dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_GAN_dataset(dataset_train)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)
 
         # Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset()
+        dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
         dataset_valid = self.babypose_obj.get_preprocess_GAN_dataset(dataset_valid)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
@@ -430,7 +430,7 @@ class PG2(object):
             if not os.path.exists(name_directory):
                 os.mkdir(name_directory)
             name_grid = os.path.join(name_directory,
-                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim{mask_ssim}.png'.format(
+                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
                                          epoch=epoch + 1,
                                          batch=id_batch,
                                          ssim=ssim_value,
@@ -513,7 +513,7 @@ class PG2(object):
             if not os.path.exists(name_directory):
                 os.mkdir(name_directory)
             name_grid = os.path.join(name_directory,
-                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim{mask_ssim}.png'.format(
+                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
                                          epoch=epoch + 1,
                                          batch=id_batch,
                                          ssim=ssim_value,
@@ -544,7 +544,7 @@ if __name__ == "__main__":
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
-    if self.trainig_G1:
+    if config.trainig_G1:
         pg2.train_G1()
-    elif self.trainig_GAN:
+    elif config.trainig_GAN:
         pg2.train_conditional_GAN()

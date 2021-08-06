@@ -18,7 +18,6 @@ class Config:
         # - Dataset
         self.img_H = 96 #'input image height'
         self.img_W = 128 #'input image width'
-        self.mean_img = 900
         if os.path.exists(os.path.join(self.data_tfrecord_path , 'pair_tot_sets.pkl')):
             with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
                 dic = pickle.load(f)

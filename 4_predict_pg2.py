@@ -11,25 +11,24 @@ from utils import grid
 from utils import utils_wgan
 from model import G1, G2, Discriminator
 from datasets.BabyPose import BabyPose
-from skimage.metrics import structural_similarity as ssim
 
 def predict_G1(config):
     babypose_obj = BabyPose()
 
     # Preprocess Dataset train
-    dataset_train = babypose_obj.get_unprocess_dataset()
+    dataset_train = babypose_obj.get_unprocess_dataset(config.name_tfrecord_train)
     dataset_train = babypose_obj.get_preprocess_predizione(dataset_train)
     dataset_train = dataset_train.batch(1)
     dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
 
     # Preprocess Dataset test
-    dataset = babypose_obj.get_unprocess_dataset()
+    dataset = babypose_obj.get_unprocess_dataset(config.name_tfrecord_valid)
     dataset = babypose_obj.get_preprocess_predizione(dataset)
     dataset = dataset.batch(1)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     model_G1 = G1.build_model()
-    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_074-loss_0.000185-ssim_0.647072-mask_ssim_0.918737-val_loss_0.000280-val_ssim_0.619923_val_mask_ssim_0.899278.hdf5'))
+    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_052-loss_0.001084-ssim_0.643171-mask_ssim_0.920665-val_loss_0.001551-val_ssim_0.646315_val_mask_ssim_0.905953.hdf5'))
     #model_G1.load_weights(os.path.join(config.weigths_path,'weights00000650.hdf5'))
     #model_G1.summary()
     cnt = 0
@@ -105,7 +104,7 @@ def predict_G1(config):
     # Per effettuare le predizioni solamente su dataset di valid/test
     for e in dataset:
         cnt += 1
-        X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0 = e
+        X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1 = e
         pz_0 = pz_0.numpy()[0].decode("utf-8")
         pz_1 = pz_1.numpy()[0].decode("utf-8")
         print(pz_0, '-', pz_1)
@@ -128,10 +127,10 @@ def predict_G1(config):
                 predizione = model_G1.predict(X, verbose=1)
 
                 #Unprocess
-                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 350, 32765.5)
+                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5)
                 image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
 
-                image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1,  350, 32765.5),clip_value_min=0, clip_value_max=32765)
+                image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1,  mean_1, 32765.5),clip_value_min=0, clip_value_max=32765)
                 image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
 
                 pose_1 = pose_1.numpy()[0]
@@ -144,12 +143,12 @@ def predict_G1(config):
                 mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96,128,1)
                 mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96,128,1) * 255
 
-                predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, 350, 32765.5), clip_value_min=0, clip_value_max=32765)
+                predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765)
                 #predizione = utils_wgan.unprocess_image(predizione, 900, 32765.5)
                 predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
 
-                result = tf.image.ssim(predizione.reshape(96,128,1), image_raw_1.reshape(96,128,1), max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
-                print(result)
+                #result = tf.image.ssim(predizione.reshape(96,128,1), image_raw_1.reshape(96,128,1), max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
+                #print(result)
 
 
                 fig = plt.figure(figsize=(10, 2))
@@ -204,7 +203,7 @@ def predict_G1_view_more_epochs(config):
         os.mkdir('pred_' + tipo_set + '_' + giorno_training)
 
     training_weights_path = os.path.join("Training", counter + '_pesi_'+giorno_training, 'weights')
-    dataset = babypose_obj.get_unprocess_dataset(tfrecord_path, name_dataset)
+    dataset = babypose_obj.get_unprocess_dataset(name_dataset)
     dataset = babypose_obj.get_preprocess_predizione(dataset)
     dataset = dataset.batch(1)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
@@ -281,10 +280,15 @@ def predict_conditional_GAN (config):
     babypose_obj = BabyPose()
 
     # Preprocess Dataset
-    dataset = babypose_obj.get_unprocess_dataset()
+    dataset = babypose_obj.get_unprocess_dataset(config.name_tfrecord_train)
     dataset = babypose_obj.get_preprocess_GAN_dataset(dataset)
     dataset = dataset.batch(1)
     dataset = iter(dataset)
+
+    dataset_valid = babypose_obj.get_unprocess_dataset(config.name_tfrecord_valid)
+    dataset_valid = babypose_obj.get_preprocess_GAN_dataset(dataset_valid)
+    dataset_valid = dataset_valid.batch(1)
+    dataset_valid = iter(dataset_valid)
 
     # Carico il modello preaddestrato G1
     model_G1 = G1.build_model()
@@ -298,9 +302,122 @@ def predict_conditional_GAN (config):
     # model_D = Discriminator.build_model(config)
     # model_D.load_weights(os.path.join(config.weigths_path, 'Model_D_epoch_352-loss_0.689711-loss_values_D_fake_0.345768-loss_values_D_real_0.343946-val_loss_0.687609-val_loss_values_D_fake_0.358670-val_loss_values_D_real_0.328993.hdf5'))
 
+
+    # cnt2 = 0
+    # cnt = 0
+    # p = []  # per raccogliere le pose del train
+    # raw1 = []  # per raccogliere le target del train
+    #
+    # for id_batch in range(int(config.dataset_train_len / 1)):
+    #
+    #     batch = next(dataset)
+    #     image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+    #     image_raw_1 = batch[1]  # [batch, 96,128, 1]
+    #     pose_1 = batch[2]  # [batch, 96,128, 14]
+    #     mask_1 = batch[3]  # [batch, 96,128, 1]
+    #     mask_0 = batch[4]  # [batch, 96,128, 1]
+    #     pz_0 = batch[5]  # [batch, 1]
+    #     pz_1 = batch[6]  # [batch, 1]
+    #     name_0 = batch[7]  # [batch, 1]
+    #     name_1 = batch[8]  # [batch, 1]
+    #
+    #     pz_0 = pz_0.numpy()[0].decode("utf-8")
+    #     pz_1 = pz_1.numpy()[0].decode("utf-8")
+    #     print(pz_0, '-', pz_1)
+    #
+    #     if cnt >= 0:
+    #         if pz_0 == "pz11" and pz_1 == "pz5": #salviamo la posa del pz_1
+    #
+    #             p.append(pose_1)
+    #
+    #         if len(p) >= 10:
+    #             print("Terminata raccolta pose")
+    #             for id_batch in range(int(config.dataset_train_len / 1)):
+    #
+    #                 batch = next(dataset_valid)
+    #                 image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+    #                 image_raw_1 = batch[1]  # [batch, 96,128, 1]
+    #                 pose_1 = batch[2]  # [batch, 96,128, 14]
+    #                 mask_1 = batch[3]  # [batch, 96,128, 1]
+    #                 mask_0 = batch[4]  # [batch, 96,128, 1]
+    #                 pz_0 = batch[5]  # [batch, 1]
+    #                 pz_1 = batch[6]  # [batch, 1]
+    #                 name_0 = batch[7]  # [batch, 1]
+    #                 name_1 = batch[8]  # [batch, 1]
+    #
+    #
+    #                 if pz_0 == "pz101":
+    #                     # G1
+    #                     input_G1 = tf.concat([image_raw_0, p[cnt2]], axis=-1)  # [batch, 96, 128, 15]
+    #                     output_G1 = model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+    #                     output_G1 = tf.cast(output_G1, dtype=tf.float16)
+    #
+    #                     # G2
+    #                     input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
+    #                     output_G2 = model_G2(input_G2)  # [batch, 96, 128, 1]
+    #                     output_G2 = tf.cast(output_G2, dtype=tf.float16)
+    #                     refined_result = output_G1 + output_G2
+    #
+    #                     # Unprocess
+    #                     image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 350, 32765.5)
+    #                     image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
+    #
+    #                     image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 350, 32765.5)
+    #                     image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
+    #
+    #                     pose_1 = p[cnt2].numpy()[0]
+    #                     pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
+    #                     pose_1 = pose_1 / 2
+    #                     pose_1 = tf.reshape(pose_1, [96, 128, 14]) * 255
+    #                     pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+    #                     pose_1 = tf.cast(pose_1, dtype=tf.float32)
+    #
+    #                     mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96, 128, 1)
+    #                     mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
+    #
+    #                     refined_result = \
+    #                     tf.cast(utils_wgan.unprocess_image(refined_result, 350, 32765.5), dtype=tf.uint16)[0]
+    #
+    #                     result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(refined_result))
+    #                     print(result)
+    #
+    #                     output_G1 = tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5),
+    #                                                  clip_value_min=0,
+    #                                                  clip_value_max=32765)
+    #                     output_G1 = tf.cast(output_G1, dtype=tf.uint16)[0]
+    #
+    #                     output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, 350, 32765.5),
+    #                                                  clip_value_min=0,
+    #                                                  clip_value_max=32765)
+    #                     output_G2 = tf.cast(output_G2, dtype=tf.uint16)[0]
+    #
+    #                     # Save img
+    #                     # import cv2
+    #                     # refined_result = tf.cast((refined_result*32765.5)+350, dtype=tf.uint16)[0]
+    #                     # cv2.imwrite("t.png", refined_result.numpy())
+    #
+    #                     # Predizione D
+    #                     # input_D = tf.concat([image_raw_1, refined_result, image_raw_0],
+    #                     #                     axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
+    #                     # output_D = self.model_D(input_D)  # [batch * 3, 1]
+    #                     # output_D = tf.reshape(output_D, [-1])  # [batch*3]
+    #                     # output_D = tf.cast(output_D, dtype=tf.float16)
+    #                     # D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
+    #
+    #                     fig = plt.figure(figsize=(10, 10))
+    #                     columns = 4
+    #                     rows = 1
+    #                     imgs = [output_G1, output_G2, refined_result, pose_1]
+    #                     for i in range(1, columns * rows + 1):
+    #                         fig.add_subplot(rows, columns, i)
+    #                         plt.imshow(imgs[i - 1])
+    #                     plt.show()
+    #                     cnt2+=1
+
+
     for id_batch in range(int(config.dataset_train_len / 1)):
 
-        batch = next(dataset)
+        batch = next(dataset_valid)
         if id_batch > 50:
             image_raw_0 = batch[0]  # [batch, 96, 128, 1]
             image_raw_1 = batch[1]  # [batch, 96,128, 1]
@@ -340,16 +457,16 @@ def predict_conditional_GAN (config):
             mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96, 128, 1)
             mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
 
-            refined_result = tf.cast(utils_wgan.unprocess_image(refined_result, 350, 32765.5),  dtype=tf.uint16)[0]
+            refined_result = tf.cast(utils_wgan.unprocess_image(refined_result, 900, 32765.5),  dtype=tf.uint16)[0]
 
             result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(refined_result))
             print(result)
 
-            output_G1 = tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 350, 32765.5), clip_value_min=0,
+            output_G1 = tf.clip_by_value(utils_wgan.unprocess_image(output_G1, 900, 32765.5), clip_value_min=0,
                                               clip_value_max=32765)
             output_G1 = tf.cast(output_G1, dtype=tf.uint16)[0]
 
-            output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, 350, 32765.5), clip_value_min=0,
+            output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, 900, 32765.5), clip_value_min=0,
                                          clip_value_max=32765)
             output_G2 = tf.cast(output_G2, dtype=tf.uint16)[0]
 

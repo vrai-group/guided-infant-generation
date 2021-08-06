@@ -47,7 +47,7 @@ class BabyPose():
 
 
     # ritorna un TF.data
-    def get_unprocess_dataset(self):
+    def get_unprocess_dataset(self, name_tfrecord):
         # deve sempre ritornare uno o piu elementi
         def _decode_function(example_proto):
             example = tf.io.parse_single_example(example_proto, self.example_description)
@@ -83,7 +83,7 @@ class BabyPose():
 
             return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1
 
-        file_pattern = os.path.join(self.config.data_tfrecord_path, self.config.name_tfrecord_train)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
+        file_pattern = os.path.join(self.config.data_tfrecord_path, name_tfrecord)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
         reader = tf.data.TFRecordDataset(file_pattern)
         dataset = reader.map(_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
 
@@ -93,10 +93,12 @@ class BabyPose():
     def get_preprocess_G1_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
 
-            # mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-            # mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), self.config.mean_img, 32765.5)
-            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), self.config.mean_img, 32765.5)
+            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
+            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
+            img_0_real = tf.cast(image_raw_0, dtype=tf.float16)
+            img_1_real = tf.cast(image_raw_1, dtype=tf.float16)
+            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
+            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
 
             if self.config.input_image_raw_channel == 3:
                 image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
@@ -110,7 +112,7 @@ class BabyPose():
             mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
 
             X = tf.concat([image_raw_0, pose_1], axis=-1)
-            Y = tf.concat([image_raw_1, mask_1, image_raw_0, mask_0], axis=-1)
+            Y = tf.concat([image_raw_1, mask_1, image_raw_0, mask_0, img_0_real, img_1_real], axis=-1)
 
             return X, Y
 
@@ -120,10 +122,10 @@ class BabyPose():
     def get_preprocess_predizione(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
 
-            # mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-            # mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), self.config.mean_img, 32765.5)
-            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), self.config.mean_img, 32765.5)
+            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
+            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
+            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
+            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
 
             if self.config.input_image_raw_channel == 3:
                 image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
@@ -141,7 +143,7 @@ class BabyPose():
             X = tf.concat([image_raw_0, pose_1], axis=-1)
             Y = tf.concat([image_raw_1, mask_1], axis=-1)
 
-            return X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0
+            return X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
