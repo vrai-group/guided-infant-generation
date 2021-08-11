@@ -64,7 +64,7 @@ def view_tfrecord():
     import matplotlib.pyplot as plt
 
     # raw_dataset = tf.data.TFRecordDataset('../data/tfrecord/radius_10/BabyPose_train.tfrecord')
-    raw_dataset = tf.data.TFRecordDataset('../data/BabySynt_single_mov/tfrecord/negative_single_mov/BabyPose_train.tfrecord')
+    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich_complete/tfrecord/negative_1/BabyPose_train.tfrecord')
     #raw_dataset = tf.data.TFRecordDataset(' C:/Users/canna/Desktop/New_BabyPose_valid.tfrecord')
 
     def _parse_image_function(example_proto):
@@ -152,7 +152,7 @@ def view_tfrecord():
                 imgs = [image_raw_0 + pose_0*255, image_raw_1 +  pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
                 for i in range(1, columns * rows + 1):
                     fig.add_subplot(rows, columns, i)
-                    plt.imshow(imgs[i - 1])
+                    plt.imshow(imgs[i - 1], cmap='gray')
                 plt.show()
 
 
