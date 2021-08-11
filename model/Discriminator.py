@@ -32,31 +32,32 @@ def optimizer():
 ###### MODEL
 def build_model():
 
-    inputs = Input(shape=config.input_shape_d)
+    inputs = Input(shape=config.input_shape_D)
 
     # Primo layer
     x = Conv2D(filters=64, kernel_size=5, strides = (2,2),
-                kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
+                #kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
                 bias_initializer='zeros', padding='same')(inputs)
+    x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
 
     # Secondo layer
     x = Conv2D(filters=64 * 2, kernel_size=5, strides =(2, 2),
-               kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
+               #kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
                bias_initializer='zeros',padding='same')(x)
     x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
 
     # Terzo layer
     x = Conv2D(filters=64 * 4, kernel_size=5, strides =(2, 2),
-               kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
+               #kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
                bias_initializer='zeros',padding='same')(x)
     x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
 
     # Quarto layer
     x = Conv2D(filters=64 * 8, kernel_size=5, strides =(2, 2),
-               kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
+               #kernel_initializer=RandomUniform(minval=-0.02 * np.sqrt(3), maxval=0.02 * np.sqrt(3)),
                bias_initializer='zeros',padding='same')(x)
     x = BatchNormalization()(x)
     x = LeakyReLU(alpha=0.2)(x)
