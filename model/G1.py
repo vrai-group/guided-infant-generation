@@ -34,7 +34,7 @@ def PoseMaskLoss1(Y, output_G1):
     # La PoseMakLoss1  è quella implementata sul paper
     primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
     #primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
-    secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
+    secondo_membro = 10*tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
 
     return PoseMaskLoss1
@@ -105,7 +105,7 @@ def step_decay(epoch):
 def build_model():
     #####Encoder
     encoder_layer_list = []
-    inputs = keras.Input(shape=config.input_shape_g1)
+    inputs = keras.Input(shape=config.input_shape_G1)
     x = Conv2D(config.conv_hidden_num, 3, (1, 1), padding='same', activation=config.activation_fn, data_format=config.data_format)(inputs)
 
     for idx in range(config.repeat_num):
