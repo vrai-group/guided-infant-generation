@@ -6,7 +6,6 @@ import pdb
 import pickle
 import sys
 import tensorflow as tf
-
 sys.path.insert(1, '../')
 from utils import utils_wgan
 
@@ -118,8 +117,8 @@ class BabyPose():
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
-    # ritorna un TF.data preprocessato in G1 per video
-    def get_preprocess_predizione(self, unprocess_dataset):
+    # predizione di G1
+    def get_preprocess_predizione_G1(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1):
 
             mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
@@ -167,7 +166,7 @@ class BabyPose():
             mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
             mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
 
-            return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, pz_0, pz_1, name_0, name_1
+            return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, pz_0, pz_1, name_0, name_1, mean_0, mean_1
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
