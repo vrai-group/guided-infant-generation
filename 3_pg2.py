@@ -180,13 +180,13 @@ class PG2(object):
             # Train
             for id_batch in range(num_batches_train):
 
-                if epoch % 2 == 0:
+                if (epoch+1) % 2 == 0:
                     loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
                     loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
                     real_predette_refined_result_train, real_predette_image_raw_0_train, real_predette_image_raw_1_train, \
                     ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step_G2(train_it, epoch, id_batch)
 
-                if epoch % 2 == 1:
+                if (epoch+1) % 2 == 1:
                     loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
                     loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
                     real_predette_refined_result_train, real_predette_image_raw_0_train, real_predette_image_raw_1_train, \
