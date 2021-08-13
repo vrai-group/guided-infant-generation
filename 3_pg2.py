@@ -44,7 +44,7 @@ class PG2(object):
 
         # Costruzione modello
         model_g1 = G1.build_model()
-        # model_g1.load_weights(os.path.join(self.config.weigths_path, ''))
+        model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_010-loss_0.001224-ssim_0.595070-mask_ssim_0.941551-val_loss_0.001531-val_ssim_0.592082_val_mask_ssim_0.929145.hdf5'))
         # model_g1.summary()
 
         # CallBacks
@@ -82,13 +82,13 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model()
-        self.model_G1.load_weights(os.path.join(self.config.weigths_path,
-                                                'Model_G1_epoch_030-loss_0.000312-ssim_0.788846-mask_ssim_0.982531-val_loss_0.000795-val_ssim_0.730199_val_mask_ssim_0.946310.hdf5'))
+        # self.model_G1.load_weights(os.path.join(self.config.weigths_path,
+        #                                         'Model_G1_epoch_010-loss_0.001224-ssim_0.595070-mask_ssim_0.941551-val_loss_0.001531-val_ssim_0.592082_val_mask_ssim_0.929145.hdf5'))
 
         # Buildo la GAN
         # G2
         self.model_G2 = G2.build_model()  # architettura Generatore G2
-        # self.model_G2.summary()
+        self.model_G2.summary()
         # self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
         self.opt_G2 = G2.optimizer()  # ottimizzatore
 
@@ -179,18 +179,10 @@ class PG2(object):
 
             # Train
             for id_batch in range(num_batches_train):
-
-                if (epoch+1) % 2 == 0:
-                    loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
-                    loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
-                    real_predette_refined_result_train, real_predette_image_raw_0_train, real_predette_image_raw_1_train, \
-                    ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step_G2(train_it, epoch, id_batch)
-
-                if (epoch+1) % 2 == 1:
-                    loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
-                    loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
-                    real_predette_refined_result_train, real_predette_image_raw_0_train, real_predette_image_raw_1_train, \
-                    ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step_D(train_it, epoch, id_batch)
+                loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
+                loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
+                real_predette_refined_result_train, real_predette_image_raw_0_train, real_predette_image_raw_1_train, \
+                ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step(train_it, epoch, id_batch)
 
                 # Calcolo media
                 # Loss
@@ -311,7 +303,7 @@ class PG2(object):
             logs_loss_train_D[epoch] = mean_loss_D_train
             logs_loss_train_D_fake[epoch] = mean_loss_D_train_fake
             logs_loss_train_D_real[epoch] = mean_loss_D_train_real
-            logs_mask_ssim[epoch] = mean_mask_ssim_train
+            logs_mask_ssim[epoch] = mean_ssim_train
             logs_ssim[epoch] = mean_ssim_train
             logs_r_r[epoch] = cnt_predette_refined_result_train
             logs_img_0[epoch] = cnt_predette_image_raw_0_train
@@ -352,7 +344,7 @@ class PG2(object):
     Questo metodo esegue un training alternato tra generatore e discriminatore. Dapprima viene allenato il generatore e successivamente il discriminatore
     """
 
-    def _train_step_G2(self, train_it, epoch, id_batch):
+    def _train_step(self, train_it, epoch, id_batch):
 
         batch = next(train_it)
         image_raw_0 = batch[0]  # [batch, 96, 128, 1]
@@ -364,8 +356,8 @@ class PG2(object):
         pz_1 = batch[6]  # [batch, 1]
         name_0 = batch[7]  # [batch, 1]
         name_1 = batch[8]  # [batch, 1]
-        mean_0 = tf.reshape(batch[9], (-1,1,1,1))
-        mean_1 = tf.reshape(batch[10], (-1,1,1,1))
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 15]
@@ -391,79 +383,9 @@ class PG2(object):
             # Loss G2
             loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
 
-            # Loss D
-            loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
-                                                                    D_neg_image_raw_0)
-
-        # backprop G2
-        self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
-
-        # Metrics
-        # - SSIM
-        ssim_value = G2.m_ssim(refined_result, image_raw_1, mean_0, mean_1)
-        mask_ssim_value = G2.mask_ssim(refined_result, image_raw_1, mask_1, mean_0, mean_1)
-
-        # - Real predette di refined_result dal discriminatore
-        np_array_D_neg_refined_result = D_neg_refined_result.numpy()
-        real_predette_refined_result_train = np_array_D_neg_refined_result[np_array_D_neg_refined_result > 0]
-
-        # - Real predette di image_raw_0 dal discriminatore
-        np_array_D_neg_image_raw_0 = D_neg_image_raw_0.numpy()
-        real_predette_image_raw_0_train = np_array_D_neg_image_raw_0[np_array_D_neg_image_raw_0 > 0]
-
-        # - Real predette di image_raw_1 (Target) dal discriminatore
-        np_array_D_pos_image_raw_1 = D_pos_image_raw_1.numpy()
-        real_predette_image_raw_1_train = np_array_D_pos_image_raw_1[np_array_D_pos_image_raw_1 > 0]
-
-        # Save griglia di immagini predette
-        if epoch % self.config.save_grid_ssim_epoch_train == self.config.save_grid_ssim_epoch_train - 1:
-            name_directory = os.path.join("./results_ssim/train", str(epoch + 1))
-            if not os.path.exists(name_directory):
-                os.mkdir(name_directory)
-            name_grid = os.path.join(name_directory,
-                                     'G2_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-                                         epoch=epoch + 1,
-                                         batch=id_batch,
-                                         ssim=ssim_value,
-                                         mask_ssim=mask_ssim_value))
-
-            refined_result = utils_wgan.unprocess_image(refined_result, mean_0, 32765.5)
-            grid.save_image(refined_result,
-                            name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
-
-            stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
-            stack_pairs = np.array(
-                [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
-                 stack_pairs])
-            txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-            file = open(name_directory + '/' + 'G2_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
-                                                                                                batch=id_batch), "w")
-            file.write(txt_file)
-            file.close()
-
-        return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
-               real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
-               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy()
-
-    def _train_step_D(self, train_it, epoch, id_batch):
-
-        batch = next(train_it)
-        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
-        image_raw_1 = batch[1]  # [batch, 96,128, 1]
-        pose_1 = batch[2]  # [batch, 96,128, 14]
-        mask_1 = batch[3]  # [batch, 96,128, 1]
-        mask_0 = batch[4]  # [batch, 96,128, 1]
-        pz_0 = batch[5]  # [batch, 1]
-        pz_1 = batch[6]  # [batch, 1]
-        name_0 = batch[7]  # [batch, 1]
-        name_1 = batch[8]  # [batch, 1]
-        mean_0 = tf.reshape(batch[9], (-1,1,1,1))
-        mean_1 = tf.reshape(batch[10], (-1,1,1,1))
-
-        # G1
-        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 15]
-        output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
-        output_G1 = tf.cast(output_G1, dtype=tf.float16)
+        if (id_batch + 1) % 2 == 1:
+            # backprop G2
+            self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
 
         with tf.GradientTape() as d_tape:
 
@@ -481,15 +403,13 @@ class PG2(object):
             output_D = tf.cast(output_D, dtype=tf.float16)
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
-            # Loss G2
-            loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
-
             # Loss D
             loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
                                                                     D_neg_image_raw_0)
 
-        # backprop D
-        self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+        if (id_batch + 1) % 2 == 0:
+            # backprop D
+            self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
 
         # Metrics
         # - SSIM
@@ -519,7 +439,6 @@ class PG2(object):
                                          batch=id_batch,
                                          ssim=ssim_value,
                                          mask_ssim=mask_ssim_value))
-
             refined_result = utils_wgan.unprocess_image(refined_result, mean_0, 32765.5)
             grid.save_image(refined_result,
                             name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
@@ -550,8 +469,8 @@ class PG2(object):
         pz_1 = batch[6]  # [batch, 1]
         name_0 = batch[7]  # [batch, 1]
         name_1 = batch[8]  # [batch, 1]
-        mean_0 = tf.reshape(batch[9], (-1,1,1,1))
-        mean_1 = tf.reshape(batch[10], (-1,1,1,1))
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 1]
@@ -605,7 +524,6 @@ class PG2(object):
                                          batch=id_batch,
                                          ssim=ssim_value,
                                          mask_ssim=mask_ssim_value))
-
             refined_result = utils_wgan.unprocess_image(refined_result, mean_0, 32765.5)
             grid.save_image(refined_result,
                             name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
@@ -629,7 +547,6 @@ if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
     config.print_info()
-    config.save_info()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
