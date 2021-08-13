@@ -642,9 +642,9 @@ if __name__ == '__main__':
     global dir_data
     global keypoint_num
 
-    dir_data = './data/Syntetich'
-    dir_annotations = './data/Syntetich/annotations'
-    dir_save_tfrecord = './data/Syntetich/tfrecord/negative_syntetich'
+    dir_data = './data/Syntetich_complete'
+    dir_annotations = './data/Syntetich_complete/annotations'
+    dir_save_tfrecord = './data/Syntetich_complete/tfrecord/negative_1'
     keypoint_num = 14
 
     name_tfrecord_train = 'BabyPose_train.tfrecord'
@@ -652,16 +652,16 @@ if __name__ == '__main__':
     name_tfrecord_test = 'BabyPose_test.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
-    lista_pz_train = [101, 102, 103, 104, 105, 106, 107, 109, 111]
-    lista_pz_valid = [108, 110, 112]
-    lista_pz_test = []
+    lista_pz_train = [101, 103, 104, 105, 106, 107, 109, 112]
+    lista_pz_valid = [108, 110]
+    lista_pz_test = [102,111]
 
     # General information
     radius_keypoints_pose = 1
-    radius_keypoints_mask = 10
+    radius_keypoints_mask = 2
     radius_head_mask = 40
     dilatation = 35
-    flip = True   # Aggiunta dell example con flip verticale
+    flip = False  # Aggiunta dell example con flip verticale
     mode = "negative"
     switch = mode == "positive" #lo switch è consentito solamente in modalità positive, se è negative va in automatico
 
@@ -697,17 +697,17 @@ if __name__ == '__main__':
         print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
-    #
-    # if os.path.exists(output_filename_test):
-    #     r_te = input("Il tf record di test esiste già. Sovrascriverlo? Yes[Y] No[N]")
-    #     assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
-    # if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
-    #     tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
-    #     tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
-    #                               radius_head_mask, dilatation, flip=flip, mode=mode)
-    #     print("TOT TEST: ", tot_test)
-    # elif r_te == "N" or r_te == "n":
-    #     print("OK, non farò nulla sul test set")
+
+    if os.path.exists(output_filename_test):
+        r_te = input("Il tf record di test esiste già. Sovrascriverlo? Yes[Y] No[N]")
+        assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
+    if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
+        tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
+        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
+                                  radius_head_mask, dilatation, flip=flip, mode=mode)
+        print("TOT TEST: ", tot_test)
+    elif r_te == "N" or r_te == "n":
+        print("OK, non farò nulla sul test set")
 
     dic = {
 
@@ -734,7 +734,7 @@ if __name__ == '__main__':
         "test": {
             "name_file": name_tfrecord_test,
             "list_pz": lista_pz_test,
-            "tot": 0, #tot_test
+            "tot": tot_test
         }
     }
     log_tot_sets = os.path.join(dir_save_tfrecord, 'pair_tot_sets.pkl')
