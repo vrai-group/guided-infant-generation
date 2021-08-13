@@ -76,15 +76,15 @@ def predict_G1(config):
 
 
     model_G1 = G1.build_model()
-    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_018-loss_0.001146-ssim_0.813221-mask_ssim_0.964586-val_loss_0.001773-val_ssim_0.762865_val_mask_ssim_0.939242.hdf5'))
+    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_094-loss_0.000338-ssim_0.520507-mask_ssim_0.932854-val_loss_0.000556-val_ssim_0.516011_val_mask_ssim_0.912812.hdf5'))
     #model_G1.load_weights(os.path.join(config.weigths_path,'weights00000650.hdf5'))
     model_G1.summary()
     cnt = 0
 
     #Per effettuare incroci tra le img di condizione di test e le pose di train
-    # cnt2 = 0
-    # p = []  # per raccogliere le pose del train
-    # raw1 = []  # per raccogliere le target del train
+    cnt2 = 0
+    p = []  # per raccogliere le pose del train
+    raw1 = []  # per raccogliere le target del train
     # for e in dataset_valid:
     #     cnt += 1
     #     X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1 = e
@@ -93,7 +93,7 @@ def predict_G1(config):
     #     print(pz_0, '-', pz_1)
     #
     #     if cnt >= 0:
-    #         if pz_0 == "pz3" and pz_1 == "pz112": #salviamo la posa del pz_1
+    #         if pz_0 == "pz3" and pz_1 == "pz34": #salviamo la posa del pz_1
     #
     #             pose_1 = X[:,:,:,1:]
     #             p.append(pose_1)
@@ -108,7 +108,7 @@ def predict_G1(config):
     #
     #                 print(pz_0)
     #
-    #                 if pz_0 == "pz110":
+    #                 if pz_0 == "pz111":
     #                     image_raw_0 = X[:, :, :, 0]
     #                     image_raw_0  = tf.reshape(image_raw_0, (1, 96, 128, 1))
     #
@@ -152,7 +152,7 @@ def predict_G1(config):
     #                     #plt.savefig("pred_train/pred_{id}.png".format(id=cnt2,pz_0=pz_0,pz_1=pz_1))
 
     # Per effettuare le predizioni solamente su dataset di valid/test
-    for e in dataset_train:
+    for e in dataset_valid:
         cnt += 1
         X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1 = e
         pz_0 = pz_0.numpy()[0].decode("utf-8")
@@ -160,7 +160,7 @@ def predict_G1(config):
         print(pz_0, '-', pz_1)
 
         if cnt >= 0:
-            if pz_0 == "pz104" and pz_1 == "pz107":
+            #if pz_0 == "pz104" and pz_1 == "pz107":
 
                 if config.input_image_raw_channel == 3:
                     image_raw_0 = X[:, :, :, :3]
@@ -196,7 +196,7 @@ def predict_G1(config):
 
                 predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
                                               clip_value_max=32765)
-                predizione = tf.cast(predizione, dtype=tf.uint8)[0].numpy()
+                predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
 
                 # result = tf.image.ssim(predizione.reshape(96, 128, 1), image_raw_1.reshape(96, 128, 1),
                 #                        max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
@@ -225,7 +225,7 @@ Lo script preleva i checkpoint nel path: Training/pesi_<giorno_training>/weights
 def predict_G1_view_more_epochs(config):
     babypose_obj = BabyPose()
 
-    tipo_set = "train"
+    tipo_set = "valid"
     counter = "13"
     giorno_training = "10_08"
     img_save = 10 #quante img salvare per epoch
@@ -235,13 +235,14 @@ def predict_G1_view_more_epochs(config):
 
     if tipo_set == "train":
         #,"43-73","30-105","30-73","26-17","22-3","17-21", "5-22","5-101", "104-108", "109-110", "30-105","5-5",
-        pair = ["30-73","26-17","22-3"]
+        pair = ["43-73"]
         name_dataset = "BabyPose_train.tfrecord"
     if tipo_set == "valid":
         #"6-7", "27-34","29-34", "24-25",  "66-74","7-14", "20-66",
         #"3-3", "14-14", "27-27", "34-34", "66-66", "110-110"
-        pair = ["110-110"]
-        #pair = ["7-14", "20-66", "36-76"]
+        #"3-14", "27-34","29-34", "14-110",
+        pair = [ "3-14","14-110","27-34","29-34"]
+        #pair = ["71-14", "20-66", "36-76"]
         name_dataset = "BabyPose_valid.tfrecord"
     if tipo_set == "test":
         pair = []
@@ -250,7 +251,7 @@ def predict_G1_view_more_epochs(config):
     if not os.path.exists('pred_' + tipo_set + '_' + giorno_training):
         os.mkdir('pred_' + tipo_set + '_' + giorno_training)
 
-    training_weights_path = os.path.join("Training", 'G1','13_Syntetich_esperimenti_mask',counter + '_pesi_'+giorno_training+'_(mask pesata 5)', 'weights')
+    training_weights_path = os.path.join("Training", 'G1','13_Syntetich_esperimenti_mask',counter + '_pesi_'+giorno_training, 'weights')
     dataset = babypose_obj.get_unprocess_dataset(name_dataset)
     dataset = babypose_obj.get_preprocess_predizione_G1(dataset)
     dataset = dataset.batch(1)
@@ -345,14 +346,14 @@ def predict_conditional_GAN (config):
 
     # Carico il modello preaddestrato G1
     model_G1 = G1.build_model()
-    model_G1.load_weights(os.path.join(config.weigths_path,'Model_G1_epoch_200-loss_0.000185-mse_inf-ssim_0.094355-mask_ssim_0.811881-val_loss_0.000289-val_mse_inf-val_ssim_0.027771_val_mask_ssim_0.799022.hdf5'))
+    model_G1.load_weights(os.path.join(config.weigths_path,'Model_G1_epoch_030-loss_0.000312-ssim_0.788846-mask_ssim_0.982531-val_loss_0.000795-val_ssim_0.730199_val_mask_ssim_0.946310.hdf5'))
     # Carico il modello preaddestrato GAN
     # G2
     model_G2 = G2.build_model()  # architettura Generatore G2
-    model_G2.load_weights(os.path.join(config.weigths_path, 'a_239.hdf5'))
+    model_G2.load_weights(os.path.join(config.weigths_path, 'a.hdf5'))
     # D
-    # model_D = Discriminator.build_model(config)
-    # model_D.load_weights(os.path.join(config.weigths_path, 'Model_D_epoch_352-loss_0.689711-loss_values_D_fake_0.345768-loss_values_D_real_0.343946-val_loss_0.687609-val_loss_values_D_fake_0.358670-val_loss_values_D_real_0.328993.hdf5'))
+    model_D = Discriminator.build_model()
+    # model_D.load_weights(os.path.join(config.weigths_path, 'b.hdf5'))
 
 
     # cnt2 = 0
@@ -362,7 +363,7 @@ def predict_conditional_GAN (config):
     #
     # for id_batch in range(int(config.dataset_train_len / 1)):
     #
-    #     batch = next(dataset)
+    #     batch = next(dataset_valid)
     #     image_raw_0 = batch[0]  # [batch, 96, 128, 1]
     #     image_raw_1 = batch[1]  # [batch, 96,128, 1]
     #     pose_1 = batch[2]  # [batch, 96,128, 14]
@@ -378,11 +379,11 @@ def predict_conditional_GAN (config):
     #     print(pz_0, '-', pz_1)
     #
     #     if cnt >= 0:
-    #         if pz_0 == "pz11" and pz_1 == "pz5": #salviamo la posa del pz_1
+    #         if pz_0 == "pz3" and pz_1 == "pz34": #salviamo la posa del pz_1
     #
     #             p.append(pose_1)
     #
-    #         if len(p) >= 10:
+    #         if len(p) >= 5:
     #             print("Terminata raccolta pose")
     #             for id_batch in range(int(config.dataset_train_len / 1)):
     #
@@ -398,7 +399,7 @@ def predict_conditional_GAN (config):
     #                 name_1 = batch[8]  # [batch, 1]
     #
     #
-    #                 if pz_0 == "pz101":
+    #                 if pz_0 == "pz110":
     #                     # G1
     #                     input_G1 = tf.concat([image_raw_0, p[cnt2]], axis=-1)  # [batch, 96, 128, 15]
     #                     output_G1 = model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
@@ -428,7 +429,7 @@ def predict_conditional_GAN (config):
     #                     mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
     #
     #                     refined_result = \
-    #                     tf.cast(utils_wgan.unprocess_image(refined_result, 350, 32765.5), dtype=tf.uint16)[0]
+    #                     tf.cast(utils_wgan.unprocess_image(refined_result, 900, 32765.5), dtype=tf.uint16)[0]
     #
     #                     result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(refined_result))
     #                     print(result)
@@ -457,9 +458,9 @@ def predict_conditional_GAN (config):
     #                     # D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
     #
     #                     fig = plt.figure(figsize=(10, 10))
-    #                     columns = 4
+    #                     columns = 6
     #                     rows = 1
-    #                     imgs = [output_G1, output_G2, refined_result, pose_1]
+    #                     imgs = [output_G1, output_G2, refined_result, pose_1, image_raw_1, image_raw_0]
     #                     for i in range(1, columns * rows + 1):
     #                         fig.add_subplot(rows, columns, i)
     #                         plt.imshow(imgs[i - 1])
@@ -480,6 +481,9 @@ def predict_conditional_GAN (config):
             pz_1 = batch[6]  # [batch, 1]
             name_0 = batch[7]  # [batch, 1]
             name_1 = batch[8]  # [batch, 1]
+            mean_0 = batch[9]  # [batch, 1]
+            mean_1 = batch[10]  # [batch, 1]
+
 
             # G1
             input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 15]
@@ -492,12 +496,22 @@ def predict_conditional_GAN (config):
             output_G2 = tf.cast(output_G2, dtype=tf.float16)
             refined_result = output_G1 + output_G2
 
+            # Predizione D
+            input_D = tf.concat([image_raw_1, refined_result, image_raw_0],
+                                axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
+            output_D = model_D(input_D)  # [batch * 3, 1]
+            output_D = tf.reshape(output_D, [-1])  # [batch*3]
+            output_D = tf.cast(output_D, dtype=tf.float16)
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
+
+            print("Reale? ", D_neg_refined_result)
+
 
             # Unprocess
-            image_raw_0 = utils_wgan.unprocess_image(image_raw_0, 350, 32765.5)
+            image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5)
             image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
 
-            image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 350, 32765.5)
+            image_raw_1 = utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5)
             image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
 
             pose_1 = pose_1.numpy()[0]
@@ -510,34 +524,29 @@ def predict_conditional_GAN (config):
             mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96, 128, 1)
             mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
 
-            refined_result = tf.cast(utils_wgan.unprocess_image(refined_result, 900, 32765.5),  dtype=tf.uint16)[0]
+            refined_result = tf.cast(utils_wgan.unprocess_image(refined_result, mean_0, 32765.5),  dtype=tf.uint16)[0]
 
-            result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(refined_result))
-            print(result)
+            # result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.math.reduce_max(refined_result))
+            # print(result)
 
 
-            output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, 900, 32765.5), clip_value_min=0,
+            output_G2 = tf.clip_by_value(utils_wgan.unprocess_image(output_G2, mean_0, 32765.5), clip_value_min=0,
                                          clip_value_max=32765)
             output_G2 = tf.cast(output_G2, dtype=tf.uint16)[0]
 
+            output_G1 = tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_1, 32765.5), clip_value_min=0,
+                                         clip_value_max=32765)
+            output_G1 = tf.cast(output_G1, dtype=tf.uint16)[0]
+
             #Save img
             # import cv2
-            # refined_result = tf.cast((refined_result*32765.5)+350, dtype=tf.uint16)[0]
+            # refined_result = tf.cast(refined_result, dtype=tf.uint16)
             # cv2.imwrite("t.png", refined_result.numpy())
 
-
-            # Predizione D
-            # input_D = tf.concat([image_raw_1, refined_result, image_raw_0],
-            #                     axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-            # output_D = self.model_D(input_D)  # [batch * 3, 1]
-            # output_D = tf.reshape(output_D, [-1])  # [batch*3]
-            # output_D = tf.cast(output_D, dtype=tf.float16)
-            # D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
-
             fig = plt.figure(figsize=(10, 10))
-            columns = 5
+            columns = 6
             rows = 1
-            imgs = [output_G2, refined_result, pose_1, image_raw_0, image_raw_1 ]
+            imgs = [output_G1, output_G2, refined_result, pose_1, image_raw_0, image_raw_1]
             for i in range(1, columns * rows + 1):
                 fig.add_subplot(rows, columns, i)
                 plt.imshow(imgs[i - 1])
