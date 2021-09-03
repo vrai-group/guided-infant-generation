@@ -1,9 +1,10 @@
-import tensorflow as tf
-import numpy as np
-import cv2
 import os
-import math
+import cv2
 import sys
+import math
+import numpy as np
+import tensorflow as tf
+
 from utils import dataset_utils
 
 #TODO prendere il radius dal rtfrecord
@@ -213,7 +214,7 @@ def apply_augumentation(unprocess_dataset_it, config, type):
     output_filename = os.path.join(config.data_tfrecord_path, name_tfrecord)
     tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(output_filename)
 
-    for id_batch in range(num_batches):
+    for id_batch in range(num_batches//11100):
         sys.stdout.write('\r')
         sys.stdout.write('id_batch: {id} / {tot}'.format(id=id_batch,tot=num_batches))
 
@@ -232,7 +233,6 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         values_1 = batch[13]  # [batch, ]
         original_peaks_0 = batch[14]
         original_peaks_1 = batch[15]
-        a = pz_0.numpy()[0].decode('utf-8')
 
         dic_data = {
 
@@ -247,9 +247,9 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             'original_peaks_0': original_peaks_0.numpy()[0],
             'original_peaks_1': original_peaks_1.numpy()[0],
 
-            'pose_mask_r4_0': mask_0.numpy()[0],
+            'pose_mask_r4_0': mask_0.numpy()[0].astype(np.uint8),
             # maschera binaria a radius 4 con shape [96, 128, 1]
-            'pose_mask_r4_1': mask_1.numpy()[0],
+            'pose_mask_r4_1': mask_1.numpy()[0].astype(np.uint8),
             # maschera binaria a radius 4 con shape [96, 128, 1]
 
             'indices_r4_0': indices_0.numpy()[0],
@@ -264,12 +264,17 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         example = _format_example(dic_data)
         tfrecord_writer.write(example.SerializeToString())
         cnt_dataset += 1
+        # flip
+        dic_data_flip = _aug_flip(dic_data.copy())
+        example = _format_example(dic_data_flip)
+        tfrecord_writer.write(example.SerializeToString())
+        cnt_dataset += 1
 
         # Vettore booleano che mi consente di scegliere randomicamente quale trasformazione applicare sul pair iniziale
         # Il vettore ha dimensione [10,3]:
         #     - 10 trasformazioni
         #     - 3 boolenani cosi distribuiti [trasformazione,   ]
-        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,3], minval=0, maxval=2, dtype=tf.int64).numpy()
+        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,3], minval=1, maxval=2, dtype=tf.int64).numpy()
 
         # Rotazione 45
         if random_bool_trasformation_on_initial_pair[0][0]: #trasformazione

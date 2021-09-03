@@ -14,46 +14,18 @@ config = Config_file.Config()
 
 ####### LOSS
 # Fuinzione di loss input: y_true, y_pred
-def PoseMaskLoss1(Y, output_G1):
-
-    if config.input_image_raw_channel == 3:
-        image_raw_1 = tf.reshape(Y[:, :, :, :3], [-1, 96, 128, 3])
-        mask_1 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
-        image_raw_0 = tf.reshape(Y[:, :, :, 4:7], [-1, 96, 128, 3])
-        mask_0 = tf.reshape(Y[:, :, :, 7], [-1, 96, 128, 1])
-        mask_0_inv = 1 - mask_0
-
-    elif config.input_image_raw_channel == 1:
-        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
-        mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
-        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
-        mask_0 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
-        mask_0_inv = 1 - mask_0
-
+def PoseMaskLoss1(output_G1, image_raw_1, mask_1):
 
     # La PoseMakLoss1  è quella implementata sul paper
     primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
-    #primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
-    secondo_membro = 10*tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
+    secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
 
     return PoseMaskLoss1
 
 ###### METRICA
 # Metrica SSIM
-def m_ssim(Y, output_G1):
-
-    if config.input_image_raw_channel == 3:
-        image_raw_0 = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
-        output_G1 = tf.reshape(output_G1[:,:,:,0], [-1, 96, 128, 1])
-
-    elif config.input_image_raw_channel == 1:
-        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
-        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
-        img_0_real = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
-        img_1_real = tf.reshape(Y[:, :, :, 5], [-1, 96, 128, 1])
-        mean_0 = tf.cast(tf.reduce_mean(img_0_real), dtype=tf.float32)
-        mean_1 = tf.cast(tf.reduce_mean(img_1_real), dtype=tf.float32)
+def m_ssim(output_G1, image_raw_1, mean_0, mean_1):
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
@@ -63,22 +35,7 @@ def m_ssim(Y, output_G1):
 
     return mean
 
-def mask_ssim(Y, output_G1):
-
-    if config.input_image_raw_channel == 3:
-        image_raw_0 = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
-        image_raw_1 = tf.reshape(Y[:, :, :, :3], [-1, 96, 128, 3])
-        mask_1 = tf.reshape(Y[:, :, :, 3], [-1, 96, 128, 1])
-        output_G1 = tf.reshape(output_G1[:, :, :, 0], [-1, 96, 128, 1])
-
-    elif config.input_image_raw_channel == 1:
-        image_raw_0 = tf.reshape(Y[:, :, :, 2], [-1, 96, 128, 1])
-        image_raw_1 = tf.reshape(Y[:, :, :, 0], [-1, 96, 128, 1])
-        mask_1 = tf.reshape(Y[:, :, :, 1], [-1, 96, 128, 1])
-        img_0_real = tf.reshape(Y[:, :, :, 4], [-1, 96, 128, 1])
-        img_1_real = tf.reshape(Y[:, :, :, 5], [-1, 96, 128, 1])
-        mean_0 = tf.cast(tf.reduce_mean(img_0_real), dtype=tf.float32)
-        mean_1 = tf.cast(tf.reduce_mean(img_1_real), dtype=tf.float32)
+def mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1):
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)

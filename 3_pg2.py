@@ -13,7 +13,7 @@ from utils import utils_wgan
 from utils import dataset_utils
 from model import G1, G2, Discriminator
 from datasets.BabyPose import BabyPose
-from  Augumentation import apply_augumentation
+from Augumentation import apply_augumentation
 
 
 class PG2(object):
@@ -49,26 +49,24 @@ class PG2(object):
 
             ## Augumentazione Dataset
             dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
-            dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
+            #dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
             dataset_train = dataset_train.batch(1)
             it = iter(dataset_train)
             name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(it, config, "train")
 
             dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
-            dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
             dataset_valid = dataset_valid.batch(1)
             it = iter(dataset_valid)
             name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(it, config, "valid")
 
-            print(" ")
-            print("Augumentazione terminata: ")
-            print("- lunghezza train: ", dataset_valid_aug_len)
-            print("- lunghezza valid: ", dataset_train_aug_len)
-            print(" ")
+            print("\nAugumentazione terminata: ")
+            print("- lunghezza train: ", dataset_train_aug_len)
+            print("- lunghezza valid: ", dataset_valid_aug_len)
+            print("\n")
 
             ## Preprocess Dataset
             dataset_train_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_train)
-            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_len, reshuffle_each_iteration=True)
+            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
             dataset_train_aug = self.babypose_obj.get_preprocess_G1_dataset(dataset_train_aug)
             dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
             dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
@@ -82,8 +80,6 @@ class PG2(object):
                 dataset_train_aug_len / self.config.batch_size_train)  # numero di batches nel dataset di train
             num_batches_valid = int(
                 dataset_valid_aug_len / self.config.batch_size_valid)  # numero di batches nel dataset di valid
-
-
 
             train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
             valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
@@ -107,7 +103,7 @@ class PG2(object):
 
             # Train
             for id_batch in range(num_batches_train):
-                loss_value_train_G1[id_batch], ssim_train[id_batch], mask_ssim_train[id_batch] \
+                loss_values_train_G1[id_batch], ssim_train[id_batch], mask_ssim_train[id_batch] \
                     = self._train_step_G1(train_it, epoch, id_batch)
 
                 # Calcolo media
@@ -153,7 +149,7 @@ class PG2(object):
             sys.stdout.write('\r')
             sys.stdout.write('\r')
             sys.stdout.write('val_loss_G1: {loss_G1:2f}, val_ssmi: {ssmi:2f}, val_mask_ssmi: {mask_ssmi:2f}'.format(
-                loss_G1=mean_loss_G2_valid,
+                loss_G1=mean_loss_G1_valid,
                 ssmi=mean_ssim_valid, mask_ssmi=mean_mask_ssim_valid,
                 total_valid=dataset_valid_aug))
             sys.stdout.flush()
@@ -193,49 +189,58 @@ class PG2(object):
                 print("")
 
 
-
-
     def _train_step_G1(self, train_it, epoch, id_batch):
 
         batch = next(train_it)
-        X = batch[0] #[batch,96,128,15]
-        Y = batch[1]  # [batch,96,128,6]
+        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+        image_raw_1 = batch[1]  # [batch, 96,128, 1]
+        pose_1 = batch[2]  # [batch, 96,128, 14]
+        mask_1 = batch[3]  # [batch, 96,128, 1]
+        mask_0 = batch[4]  # [batch, 96,128, 1]
+        mean_0 = tf.reshape(batch[5], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[6], (-1, 1, 1, 1))
 
         with tf.GradientTape() as g1_tape:
 
             # G1
-            input_G1 = X
+            input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
             output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+            output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
             # Loss G1
-            loss_value_G1 = G1.PoseMaskLoss1(Y,output_G1)
+            loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
 
         self.opt_G1.minimize(loss_value_G1, var_list=self.model_G1.trainable_weights, tape=g1_tape)
 
         # Metrics
         # - SSIM
-        ssim_value = G1.m_ssim(Y, output_G1)
-        mask_ssim_value = G1.mask_ssim(Y, output_G1)
+        ssim_value = G1.m_ssim(output_G1, image_raw_1, mean_0, mean_1)
+        mask_ssim_value = G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
 
         return loss_value_G1, ssim_value, mask_ssim_value
 
     def _valid_step_G1(self, valid_it, epoch, id_batch):
 
-        batch = next(train_it)
-        X = batch[0] #[batch,96,128,15]
-        Y = batch[1]  # [batch,96,128,6]
+        batch = next(valid_it)
+        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+        image_raw_1 = batch[1]  # [batch, 96,128, 1]
+        pose_1 = batch[2]  # [batch, 96,128, 14]
+        mask_1 = batch[3]  # [batch, 96,128, 1]
+        mask_0 = batch[4]  # [batch, 96,128, 1]
+        mean_0 = tf.reshape(batch[5], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[6], (-1, 1, 1, 1))
 
         # G1
         input_G1 = X
         output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
 
         # Loss G1
-        loss_value_G1 = G1.PoseMaskLoss1(Y,output_G1)
+        loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
 
         # Metrics
         # - SSIM
-        ssim_value = G1.m_ssim(Y, output_G1)
-        mask_ssim_value = G1.mask_ssim(Y, output_G1)
+        ssim_value = G1.m_ssim(output_G1, image_raw_1, mean_0, mean_1)
+        mask_ssim_value = G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
 
         return loss_value_G1, ssim_value, mask_ssim_value
 
@@ -724,7 +729,7 @@ class PG2(object):
 if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
-    #config.print_info()
+    config.print_info()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
