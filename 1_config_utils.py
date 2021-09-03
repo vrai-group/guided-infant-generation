@@ -58,8 +58,8 @@ class Config:
         self.input_shape_G1 = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
 
         # -- Training / test parameters
-        self.epochs_G1 = 200
-        self.lr_update_epoch_G1 = 10
+        self.epochs_G1 = 100
+        self.lr_update_epoch_G1 = 1
         self.lr_initial_G1 = 2e-5
         self.drop_rate_G1 = 0.5
 
@@ -80,8 +80,8 @@ class Config:
         self.save_grid_ssim_epoch_valid = 1  # GAN
         self.save_grid_ssim_epoch_train = 1  # GAN
 
-        self.batch_size_train = 1  # grandezza del batch_size
-        self.batch_size_valid = 1  # grandezza del batch_size
+        self.batch_size_train = 16  # grandezza del batch_size
+        self.batch_size_valid = 16  # grandezza del batch_size
 
         #google colab
         self.run_google_colab = False
