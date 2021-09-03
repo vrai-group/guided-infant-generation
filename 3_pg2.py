@@ -33,16 +33,17 @@ class PG2(object):
         #model_g1.summary()
 
         # Logs da salvare nella cartella logs per ogni epoca
-        logs_loss_train_G1 = np.empty((self.config.epochs_G1))
-        logs_mask_ssim = np.empty((self.config.epochs_G1))
-        logs_ssim = np.empty((self.config.epochs_G1))
+        history = {'loss_train_G1': np.empty((self.config.epochs_G1)),
+                'logs_mask_ssim': np.empty((self.config.epochs_G1)),
+                'logs_ssim': np.empty((self.config.epochs_G1))}
+
         if os.path.exists(os.path.join(config.logs_path, 'logs_loss_train_G1.npy')):
             # Se esistenti, precarico i logs
             a = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
             num = a.shape[0]
-            logs_loss_train_G1[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
-            logs_mask_ssim[:num] = np.load(os.path.join(config.logs_path, 'logs_mask_ssim.npy'))
-            logs_ssim[:num] = np.load(os.path.join(config.logs_path, 'logs_ssim.npy'))
+            history['loss_train_G1'][:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
+            history['logs_mask_ssim'][:num] = np.load(os.path.join(config.logs_path, 'logs_mask_ssim.npy'))
+            history['logs_ssim'][:num] = np.load(os.path.join(config.logs_path, 'logs_ssim.npy'))
 
 
         for epoch in range(self.config.epochs_G1):
@@ -174,17 +175,17 @@ class PG2(object):
             self.model_G1.save_weights(filepath)
 
             # Save logs
-            logs_loss_train_G1[epoch] = mean_loss_G1_train
-            logs_mask_ssim[epoch] = mean_ssim_train
-            logs_ssim[epoch] = mean_ssim_train
+            history['loss_train_G1'][epoch] = mean_loss_G1_train
+            history['logs_mask_ssim'][epoch] = mean_ssim_train
+            history['logs_ssim'][epoch] = mean_ssim_train
 
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_G1.npy'), logs_loss_train_G1[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_mask_ssim.npy'), logs_mask_ssim[:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_ssim.npy'), logs_ssim[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_G1.npy'), history['loss_train_G1'][:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_mask_ssim.npy'), history['logs_mask_ssim'][:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_ssim.npy'), history['logs_ssim'][:epoch + 1])
 
             # Update learning rate
             if epoch % self.config.lr_update_epoch_G1 == self.config.lr_update_epoch_G1 - 1:
-                self.opt_G1.lr = self.opt_G1.lr * 0.5
+                self.opt_G1.lr = self.opt_G1.lr * self.config.drop_rate_G1
                 print("-Aggiornamento Learning rate G1: ", self.opt_G1.lr.numpy())
                 print("")
 
