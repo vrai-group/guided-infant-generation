@@ -21,30 +21,30 @@ class BabyPose():
         self.example_description = {
 
             'pz_0': tf.io.FixedLenFeature([], tf.string),  # nome del pz
-        'pz_1': tf.io.FixedLenFeature([], tf.string),
+            'pz_1': tf.io.FixedLenFeature([], tf.string),
 
-        'image_name_0': tf.io.FixedLenFeature([], tf.string),  # nome img
-        'image_name_1': tf.io.FixedLenFeature([], tf.string),
-        'image_raw_0': tf.io.FixedLenFeature([], tf.string),  # condizioni al contorno
-        'image_raw_1': tf.io.FixedLenFeature([], tf.string),  # GT
+            'image_name_0': tf.io.FixedLenFeature([], tf.string),  # nome img
+            'image_name_1': tf.io.FixedLenFeature([], tf.string),
+            'image_raw_0': tf.io.FixedLenFeature([], tf.string),  # condizioni al contorno
+            'image_raw_1': tf.io.FixedLenFeature([], tf.string),  # GT
 
-        'image_height': tf.io.FixedLenFeature([], tf.int64, default_value=96),
-        'image_width': tf.io.FixedLenFeature([], tf.int64, default_value=128),
+            'image_height': tf.io.FixedLenFeature([], tf.int64, default_value=96),
+            'image_width': tf.io.FixedLenFeature([], tf.int64, default_value=128),
 
-        "original_peaks_0": tf.io.FixedLenFeature((), dtype=tf.string),
-        "original_peaks_1": tf.io.FixedLenFeature((), dtype=tf.string),
-        'shape_len_original_peaks_0': tf.io.FixedLenFeature([], tf.int64),
-        'shape_len_original_peaks_1': tf.io.FixedLenFeature([], tf.int64),
+            "original_peaks_0": tf.io.FixedLenFeature((), dtype=tf.string),
+            "original_peaks_1": tf.io.FixedLenFeature((), dtype=tf.string),
+            'shape_len_original_peaks_0': tf.io.FixedLenFeature([], tf.int64),
+            'shape_len_original_peaks_1': tf.io.FixedLenFeature([], tf.int64),
 
-        'pose_mask_r4_0': tf.io.FixedLenFeature([96 * 128 * 1], tf.uint8),
-        'pose_mask_r4_1': tf.io.FixedLenFeature([96 * 128 * 1], tf.uint8),
+            'pose_mask_r4_0': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
+            'pose_mask_r4_1': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
 
-        'indices_r4_0': tf.io.FixedLenFeature((), dtype=tf.string),
-        'values_r4_0': tf.io.FixedLenFeature((), dtype=tf.string),
-        'indices_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
-        'values_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
-        'shape_len_indices_0': tf.io.FixedLenFeature([], tf.int64),
-        'shape_len_indices_1': tf.io.FixedLenFeature([], tf.int64),
+            'indices_r4_0': tf.io.FixedLenFeature((), dtype=tf.string),
+            'values_r4_0': tf.io.FixedLenFeature((), dtype=tf.string),
+            'indices_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
+            'values_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
+            'shape_len_indices_0': tf.io.FixedLenFeature([], tf.int64),
+            'shape_len_indices_1': tf.io.FixedLenFeature([], tf.int64),
         }
 
     # ritorna un TF.data
@@ -106,16 +106,11 @@ class BabyPose():
     def get_preprocess_G1_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
                            indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1):
+
             mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
             mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            img_0_real = tf.cast(image_raw_0, dtype=tf.float16)
-            img_1_real = tf.cast(image_raw_1, dtype=tf.float16)
             image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
             image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
-
-            if self.config.input_image_raw_channel == 3:
-                image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
-                image_raw_1 = tf.concat([image_raw_1, image_raw_1, image_raw_1], axis=-1)
 
             pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
             pose_1 = pose_1 * 2
@@ -124,10 +119,7 @@ class BabyPose():
             mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
             mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
 
-            X = tf.concat([image_raw_0, pose_1], axis=-1)
-            Y = tf.concat([image_raw_1, mask_1, image_raw_0, mask_0, img_0_real, img_1_real], axis=-1)
-
-            return X, Y
+            return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, mean_0, mean_1
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
@@ -139,10 +131,6 @@ class BabyPose():
             mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
             image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
             image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
-
-            if self.config.input_image_raw_channel == 3:
-                image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
-                image_raw_1 = tf.concat([image_raw_1, image_raw_1, image_raw_1], axis=-1)
 
             pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
             pose_1 = pose_1 * 2
@@ -168,10 +156,6 @@ class BabyPose():
             mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
             image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
             image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
-
-            if self.config.input_image_raw_channel == 3:
-                image_raw_0 = tf.concat([image_raw_0, image_raw_0, image_raw_0], axis=-1)
-                image_raw_1 = tf.concat([image_raw_1, image_raw_1, image_raw_1], axis=-1)
 
             pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
             pose_1 = pose_1 * 2
