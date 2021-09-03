@@ -134,7 +134,7 @@ def _aug_shift(dic_data, type, tx=0, ty=0):
 
 def random_brightness(dic_data):
     dic_data["image_raw_1"] = tf.keras.preprocessing.image.random_brightness(dic_data["image_raw_1"],
-                                                                             (1.5, 2.0)).astype(np.uint16)
+                                                                             (0.5, 2.0)).astype(np.uint16)
 
     return dic_data
 
@@ -203,20 +203,20 @@ def apply_augumentation(unprocess_dataset_it, config, type):
     sys.stdout.write("Applico augumentazione {type}".format(type=type))
     sys.stdout.write('\n')
 
-    num_batches = None
+    num_example = None
     if type == "train":
-        num_batches = int(config.dataset_train_len / config.batch_size_train)
+        num_example = config.dataset_train_len
     elif type == "valid":
-        num_batches = int(config.dataset_valid_len / config.batch_size_valid)
+        num_example = config.dataset_valid_len
 
     name_tfrecord = type+'_augumentation.tfrecord'
     cnt_dataset = 0
     output_filename = os.path.join(config.data_tfrecord_path, name_tfrecord)
     tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(output_filename)
 
-    for id_batch in range(num_batches//11100):
+    for id_batch in range(num_example):
         sys.stdout.write('\r')
-        sys.stdout.write('id_batch: {id} / {tot}'.format(id=id_batch,tot=num_batches))
+        sys.stdout.write('Example: {id} / {tot}'.format(id=id_batch,tot=num_example))
 
         batch = next(unprocess_dataset_it)
         image_raw_0 = batch[0]  # [batch, 96, 128, 1]
@@ -264,139 +264,113 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         example = _format_example(dic_data)
         tfrecord_writer.write(example.SerializeToString())
         cnt_dataset += 1
-        # flip
-        dic_data_flip = _aug_flip(dic_data.copy())
-        example = _format_example(dic_data_flip)
-        tfrecord_writer.write(example.SerializeToString())
-        cnt_dataset += 1
 
         # Vettore booleano che mi consente di scegliere randomicamente quale trasformazione applicare sul pair iniziale
-        # Il vettore ha dimensione [10,3]:
-        #     - 10 trasformazioni
-        #     - 3 boolenani cosi distribuiti [trasformazione,   ]
-        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,3], minval=1, maxval=2, dtype=tf.int64).numpy()
+        # Il vettore ha dimensione [8,3]:
+        #     - 8 trasformazioni affini
+        #     - 2 boolenani cosi distribuiti [trasformazione,  img_0 ]
+        #TODO: adesso le trasformazioni tranne il flip vengono applicate sulla target (immagine e posa) capire se ha senso farlo sulla condizione
+        # l idea potreebbe essere applicarla sempre sulla target e random sulla condizione
+        # lasciando in questo modo G1 vedremmo solo per la condizione lo stesso input mentre la posa cambierebbe di volta in volta
+        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,2], minval=1, maxval=2, dtype=tf.int64).numpy()
+
+        vec_dic_affine = [] # conterra i dic con le trasfromazioni affini
+        vec_dic_affine.append(dic_data)
 
         # Rotazione 45
         if random_bool_trasformation_on_initial_pair[0][0]: #trasformazione
-            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 45)
-            example = _format_example(dic_data_rotate)
+            dic_data_rotate_1 = _aug_rotation_angle(dic_data.copy(), 45)
+            example = _format_example(dic_data_rotate_1)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_rotate.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
+            vec_dic_affine.append(dic_data_rotate_1)
 
         # Rotazione -45
         if random_bool_trasformation_on_initial_pair[1][0]:
-            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), -45)
-            example = _format_example(dic_data_rotate)
+            dic_data_rotate_2 = _aug_rotation_angle(dic_data.copy(), -45)
+            example = _format_example(dic_data_rotate_2)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_rotate.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
+            vec_dic_affine.append(dic_data_rotate_2)
 
         # Rotazione 90
         if random_bool_trasformation_on_initial_pair[2][0]:
-            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 90)
-            example = _format_example(dic_data_rotate)
+            dic_data_rotate_3 = _aug_rotation_angle(dic_data.copy(), 90)
+            example = _format_example(dic_data_rotate_3)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_rotate.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
+            vec_dic_affine.append(dic_data_rotate_3)
+
 
         # Rotazione -90
         if random_bool_trasformation_on_initial_pair[3][0]:
-            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), -90)
-            example = _format_example(dic_data_rotate)
+            dic_data_rotate_4 = _aug_rotation_angle(dic_data.copy(), -90)
+            example = _format_example(dic_data_rotate_4)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_rotate.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
-
+            vec_dic_affine.append(dic_data_rotate_4)
 
         # Shift orizzontale 30
         if random_bool_trasformation_on_initial_pair[4][0]:
-            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=10)
-            example = _format_example(dic_data_shifted)
+            dic_data_shifted_5 = _aug_shift(dic_data.copy(), type="or", tx=30)
+            example = _format_example(dic_data_shifted_5)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_shifted.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
+            vec_dic_affine.append(dic_data_shifted_5)
+
 
         # Shift orizzontale -30
         if random_bool_trasformation_on_initial_pair[5][0]:
-            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=-10)
-            example = _format_example(dic_data_shifted)
+            dic_data_shifted_6 = _aug_shift(dic_data.copy(), type="or", tx=-30)
+            example = _format_example(dic_data_shifted_6)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_shifted.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
+            vec_dic_affine.append(dic_data_shifted_6)
+
 
         # Shift verticale 10
         if random_bool_trasformation_on_initial_pair[6][0]:
-            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=10)
-            example = _format_example(dic_data_shifted)
+            dic_data_shifted_7 = _aug_shift(dic_data.copy(), type="or", tx=10)
+            example = _format_example(dic_data_shifted_7)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_shifted.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
+            vec_dic_affine.append(dic_data_shifted_7)
 
 
         # Shift verticale -10
         if random_bool_trasformation_on_initial_pair[7][0]:
-            dic_data_shifted = _aug_shift(dic_data.copy(), type="ver", ty=-10)
-            example = _format_example(dic_data_shifted)
+            dic_data_shifted_8 = _aug_shift(dic_data.copy(), type="ver", ty=-10)
+            example = _format_example(dic_data_shifted_8)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_shifted.copy())
-            example = _format_example(dic_data_flip)
+            vec_dic_affine.append(dic_data_shifted_8)
+
+
+        vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C
+        # Random B
+        for dic in vec_dic_affine:
+            dic_aug = random_brightness(dic.copy())
+            example = _format_example(dic_aug)
+            tfrecord_writer.write(example.SerializeToString())
+            cnt_dataset += 1
+            vec_dic_structural.append(dic_aug)
+
+
+        # Random C
+        for dic in vec_dic_affine:
+            dic_aug = random_contrast(dic.copy())
+            example = _format_example(dic_aug)
+            tfrecord_writer.write(example.SerializeToString())
+            cnt_dataset += 1
+            vec_dic_structural.append(dic_aug)
+
+        # Flip
+        vec_tot_trasformation = vec_dic_affine + vec_dic_structural
+        for dic in vec_tot_trasformation:
+            dic_aug = _aug_flip(dic.copy())
+            example = _format_example(dic_aug)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
 
-
-        # Random Brightness
-        if random_bool_trasformation_on_initial_pair[8][0]:
-            dic_data_random_b = random_brightness(dic_data.copy())
-            example = _format_example(dic_data_random_b)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_random_b.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
-
-        # Random Contrast
-        if random_bool_trasformation_on_initial_pair[9][0]:
-            dic_data_random_c = random_contrast(dic_data.copy())
-            example = _format_example(dic_data_random_c)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
-            # flip
-            dic_data_flip = _aug_flip(dic_data_random_c.copy())
-            example = _format_example(dic_data_flip)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
 
     return name_tfrecord, cnt_dataset
