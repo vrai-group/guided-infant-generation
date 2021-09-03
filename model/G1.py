@@ -100,6 +100,9 @@ def step_decay(epoch):
     epoch_rate = config.lr_update_epoch_G1 #ogni quanto eseguire l aggiornamento
     return initial_lrate * (drop_rate ** math.floor(epoch/epoch_rate))
 
+# Optimizer
+def optimizer():
+    return tf.keras.optimizers.Adam(learning_rate=config.lr_initial_G1, beta_1=0.5, beta_2=0.999)
 
 ###### MODEL
 def build_model():
@@ -149,14 +152,12 @@ def build_model():
     outputs = Conv2D(config.input_image_raw_channel, 3, 1, padding='same', activation=None, data_format=config.data_format)(x)
 
     model = keras.Model(inputs, outputs)
-
-    model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=config.lr_initial_G1, beta_1=0.5, beta_2=0.999),
-        #optimizer=tf.keras.optimizers.SGD(learning_rate=0.01),
-        #optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-	    loss=PoseMaskLoss1,
-        metrics=[mask_ssim, m_ssim],
-    )
+    #
+    # model.compile(
+    #     optimizer=tf.keras.optimizers.Adam(learning_rate=config.lr_initial_G1, beta_1=0.5, beta_2=0.999),
+	#     loss=PoseMaskLoss1,
+    #     metrics=[mask_ssim, m_ssim],
+    # )
 
     return model
 

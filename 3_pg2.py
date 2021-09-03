@@ -10,8 +10,10 @@ import matplotlib.pyplot as plt
 
 from utils import grid
 from utils import utils_wgan
+from utils import dataset_utils
 from model import G1, G2, Discriminator
 from datasets.BabyPose import BabyPose
+from  Augumentation import apply_augumentation
 
 
 class PG2(object):
@@ -20,48 +22,222 @@ class PG2(object):
         # Trainer.__init__(self, config, data_loader=None)
         self.config = config
         self.babypose_obj = BabyPose()
+        self.cnt_d = 0
 
     def train_G1(self):
 
-        # Preprocess Dataset train
-        dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
-        dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
-        dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
-        dataset_train = dataset_train.repeat(self.config.epochs_G1)
-        dataset_train = dataset_train.batch(self.config.batch_size_train)
-        dataset_train = dataset_train.prefetch(
-            tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
-        train_it = iter(dataset_train)
-
-        # Preprocess Dataset valid
-        dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
-        dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
-        # dataset_valid = dataset_valid.shuffle(self.config.dataset_valid_len, reshuffle_each_iteration=True)
-        dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
-        dataset_valid = dataset_valid.repeat(self.config.epochs_G1)
-        dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
-        valid_it = iter(dataset_valid)
-
         # Costruzione modello
-        model_g1 = G1.build_model()
-        model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_010-loss_0.001224-ssim_0.595070-mask_ssim_0.941551-val_loss_0.001531-val_ssim_0.592082_val_mask_ssim_0.929145.hdf5'))
-        # model_g1.summary()
+        self.model_G1 = G1.build_model()
+        self.opt_G1 = G1.optimizer()
+        #model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_012-loss_0.000578-ssim_0.699761-mask_ssim_0.961482-val_loss_0.001102-val_ssim_0.678297_val_mask_ssim_0.939384.hdf5'))
+        #model_g1.summary()
 
-        # CallBacks
-        filepath = os.path.join(self.config.weigths_path,
-                                'Model_G1_epoch_{epoch:03d}-loss_{loss:2f}-ssim_{m_ssim:2f}-mask_ssim_{mask_ssim:2f}-val_loss_{val_loss:2f}-val_ssim_{val_m_ssim:2f}_val_mask_ssim_{val_mask_ssim:2f}.hdf5')
-        checkPoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=False,
-                                     save_weights_only=True, period=1)
+        # Logs da salvare nella cartella logs per ogni epoca
+        logs_loss_train_G1 = np.empty((self.config.epochs_G1))
+        logs_mask_ssim = np.empty((self.config.epochs_G1))
+        logs_ssim = np.empty((self.config.epochs_G1))
+        if os.path.exists(os.path.join(config.logs_path, 'logs_loss_train_G1.npy')):
+            # Se esistenti, precarico i logs
+            a = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
+            num = a.shape[0]
+            logs_loss_train_G1[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
+            logs_mask_ssim[:num] = np.load(os.path.join(config.logs_path, 'logs_mask_ssim.npy'))
+            logs_ssim[:num] = np.load(os.path.join(config.logs_path, 'logs_ssim.npy'))
 
-        learning_rate_decay = LearningRateScheduler(G1.step_decay)
 
-        model_g1.fit(train_it,
-                     epochs=self.config.epochs_G1,  # 100
-                     steps_per_epoch=int(self.config.dataset_train_len / self.config.batch_size_train),  # 25600/4
-                     callbacks=[checkPoint, learning_rate_decay],
-                     validation_data=valid_it,
-                     validation_steps=int(self.config.dataset_valid_len / self.config.batch_size_valid)
-                     )
+        for epoch in range(self.config.epochs_G1):
+
+            ## Augumentazione Dataset
+            dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
+            dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
+            dataset_train = dataset_train.batch(1)
+            it = iter(dataset_train)
+            name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(it, config, "train")
+
+            dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
+            dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
+            dataset_valid = dataset_valid.batch(1)
+            it = iter(dataset_valid)
+            name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(it, config, "valid")
+
+            print(" ")
+            print("Augumentazione terminata: ")
+            print("- lunghezza train: ", dataset_valid_aug_len)
+            print("- lunghezza valid: ", dataset_train_aug_len)
+            print(" ")
+
+            ## Preprocess Dataset
+            dataset_train_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_train)
+            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_len, reshuffle_each_iteration=True)
+            dataset_train_aug = self.babypose_obj.get_preprocess_G1_dataset(dataset_train_aug)
+            dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
+            dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
+
+            dataset_valid_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_valid)
+            dataset_valid_aug = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid_aug)
+            dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
+            dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
+
+            num_batches_train = int(
+                dataset_train_aug_len / self.config.batch_size_train)  # numero di batches nel dataset di train
+            num_batches_valid = int(
+                dataset_valid_aug_len / self.config.batch_size_valid)  # numero di batches nel dataset di valid
+
+
+
+            train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
+            valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
+
+            mean_loss_G1_train = 0  # calcolo la media della loss ad ogni iterazione sul batch
+            mean_ssim_train = 0
+            mean_mask_ssim_train = 0
+
+            mean_loss_G1_valid = 0
+            mean_ssim_valid = 0
+            mean_mask_ssim_valid = 0
+
+            # Mi servono per il calcolo della media della loss per ogni batch da printare a schermo
+            loss_values_train_G1 = np.empty((num_batches_train))
+            ssim_train = np.empty((num_batches_train))
+            mask_ssim_train = np.empty((num_batches_train))
+
+            loss_values_valid_G1 = np.empty((num_batches_valid))
+            ssim_valid = np.empty((num_batches_valid))
+            mask_ssim_valid = np.empty((num_batches_valid))
+
+            # Train
+            for id_batch in range(num_batches_train):
+                loss_value_train_G1[id_batch], ssim_train[id_batch], mask_ssim_train[id_batch] \
+                    = self._train_step_G1(train_it, epoch, id_batch)
+
+                # Calcolo media
+                # Loss
+                mean_loss_G1_train = np.mean(loss_values_train_G1[:id_batch + 1])
+
+                # Metrics
+                mean_ssim_train = np.mean(ssim_train[:id_batch + 1])
+                mean_mask_ssim_train = np.mean(mask_ssim_train[:id_batch + 1])
+
+                # Logs a schermo
+                sys.stdout.write('\r')
+                sys.stdout.write('Epoch {epoch} step {id_batch} / {num_batches} --> loss_G1: {loss_G1:2f}, '
+                                 'ssmi: {ssmi:2f}, mask_ssmi: {mask_ssmi:2f}'.format(
+                    epoch=epoch + 1,
+                    id_batch=id_batch, num_batches=num_batches_train, loss_G1=mean_loss_G1_train,
+                    ssmi=mean_ssim_train, mask_ssmi=mean_mask_ssim_train,
+                    total_train= dataset_train_aug_len))
+                sys.stdout.flush()
+
+            sys.stdout.write('\n')
+            sys.stdout.write('Validazione..')
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+
+            # Valid
+            for id_batch in range(num_batches_valid):
+                loss_value_valid_G1[id_batch], ssim_valid[id_batch], mask_ssim_valid[id_batch] \
+                    = self._valid_step_G1(valid_it, epoch, id_batch)
+
+                sys.stdout.write('\r')
+                sys.stdout.write('{id_batch} / {total}'.format(id_batch=id_batch, total=num_batches_valid))
+                sys.stdout.flush()
+
+            # Calcolo media
+            # Loss
+            mean_loss_G1_valid = np.mean(loss_values_valid_G1)
+
+            # Metrics
+            mean_ssim_valid = np.mean(ssim_valid)
+            mean_mask_ssim_valid = np.mean(mask_ssim_valid)
+
+            sys.stdout.write('\r')
+            sys.stdout.write('\r')
+            sys.stdout.write('val_loss_G1: {loss_G1:2f}, val_ssmi: {ssmi:2f}, val_mask_ssmi: {mask_ssmi:2f}'.format(
+                loss_G1=mean_loss_G2_valid,
+                ssmi=mean_ssim_valid, mask_ssmi=mean_mask_ssim_valid,
+                total_valid=dataset_valid_aug))
+            sys.stdout.flush()
+            sys.stdout.flush()
+            sys.stdout.write('\n')
+            sys.stdout.write('\n')
+
+            # CallBacks
+            #Save weights
+            name_model = 'Model_G1_epoch_{epoch:03d}-' \
+                         'loss_{loss:2f}-' \
+                         'ssim_{m_ssim:2f}-' \
+                         'mask_ssim_{mask_ssim:2f}-' \
+                         'val_loss_{val_loss:2f}-' \
+                         'val_ssim_{val_m_ssim:2f}-' \
+                         'val_mask_ssim_{val_mask_ssim:2f}.hdf5'.format(
+                    epoch=epoch + 1, loss=mean_loss_G1_train, m_ssim=mean_ssim_train,
+                    mask_ssim=mean_mask_ssim_train,
+                    val_loss=mean_loss_G1_valid, val_m_ssim=mean_ssim_valid,
+                    val_mask_ssim=mean_mask_ssim_valid)
+            filepath = os.path.join(self.config.weigths_path, name_model)
+            self.model_G1.save_weights(filepath)
+
+            # Save logs
+            logs_loss_train_G1[epoch] = mean_loss_G1_train
+            logs_mask_ssim[epoch] = mean_ssim_train
+            logs_ssim[epoch] = mean_ssim_train
+
+            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_G1.npy'), logs_loss_train_G1[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_mask_ssim.npy'), logs_mask_ssim[:epoch + 1])
+            np.save(os.path.join(self.config.logs_path, 'logs_ssim.npy'), logs_ssim[:epoch + 1])
+
+            # Update learning rate
+            if epoch % self.config.lr_update_epoch_G1 == self.config.lr_update_epoch_G1 - 1:
+                self.opt_G1.lr = self.opt_G1.lr * 0.5
+                print("-Aggiornamento Learning rate G1: ", self.opt_G1.lr.numpy())
+                print("")
+
+
+
+
+    def _train_step_G1(self, train_it, epoch, id_batch):
+
+        batch = next(train_it)
+        X = batch[0] #[batch,96,128,15]
+        Y = batch[1]  # [batch,96,128,6]
+
+        with tf.GradientTape() as g1_tape:
+
+            # G1
+            input_G1 = X
+            output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+
+            # Loss G1
+            loss_value_G1 = G1.PoseMaskLoss1(Y,output_G1)
+
+        self.opt_G1.minimize(loss_value_G1, var_list=self.model_G1.trainable_weights, tape=g1_tape)
+
+        # Metrics
+        # - SSIM
+        ssim_value = G1.m_ssim(Y, output_G1)
+        mask_ssim_value = G1.mask_ssim(Y, output_G1)
+
+        return loss_value_G1, ssim_value, mask_ssim_value
+
+    def _valid_step_G1(self, valid_it, epoch, id_batch):
+
+        batch = next(train_it)
+        X = batch[0] #[batch,96,128,15]
+        Y = batch[1]  # [batch,96,128,6]
+
+        # G1
+        input_G1 = X
+        output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+
+        # Loss G1
+        loss_value_G1 = G1.PoseMaskLoss1(Y,output_G1)
+
+        # Metrics
+        # - SSIM
+        ssim_value = G1.m_ssim(Y, output_G1)
+        mask_ssim_value = G1.mask_ssim(Y, output_G1)
+
+        return loss_value_G1, ssim_value, mask_ssim_value
 
     def train_conditional_GAN(self):
 
@@ -82,20 +258,20 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model()
-        # self.model_G1.load_weights(os.path.join(self.config.weigths_path,
-        #                                         'Model_G1_epoch_010-loss_0.001224-ssim_0.595070-mask_ssim_0.941551-val_loss_0.001531-val_ssim_0.592082_val_mask_ssim_0.929145.hdf5'))
+        self.model_G1.load_weights(os.path.join(self.config.weigths_path,
+                                                 'Model_G1_epoch_010-loss_0.001224-ssim_0.595070-mask_ssim_0.941551-val_loss_0.001531-val_ssim_0.592082_val_mask_ssim_0.929145.hdf5'))
 
         # Buildo la GAN
         # G2
         self.model_G2 = G2.build_model()  # architettura Generatore G2
-        self.model_G2.summary()
+        #self.model_G2.summary()
         # self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
         self.opt_G2 = G2.optimizer()  # ottimizzatore
 
         # D
         self.model_D = Discriminator.build_model()
         # self.model_D.summary()
-        # self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_2.855738_real_valid_13_real_train_2790.hdf5'))
+        #self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_D_epoch_005-loss_0.483811-loss_values_D_fake_0.275987-loss_values_D_real_0.207833-val_loss_0.497179-val_loss_values_D_fake_0.176609-val_loss_values_D_real_0.320597.hdf5'))
         self.opt_D = Discriminator.optimizer()
 
         num_batches_train = int(
@@ -104,18 +280,17 @@ class PG2(object):
             self.config.dataset_valid_len / self.config.batch_size_valid)  # numero di batches nel dataset di valid
 
         # Logs da salvare nella cartella logs per ogni epoca
+        logs_loss_train_G2 = np.empty((self.config.epochs_GAN))
+        logs_loss_train_D = np.empty((self.config.epochs_GAN))
+        logs_loss_train_D_fake = np.empty((self.config.epochs_GAN))
+        logs_loss_train_D_real = np.empty((self.config.epochs_GAN))
+        logs_mask_ssim = np.empty((self.config.epochs_GAN))
+        logs_ssim = np.empty((self.config.epochs_GAN))
+        logs_r_r = np.empty((self.config.epochs_GAN))
+        logs_img_0 = np.empty((self.config.epochs_GAN))
+        logs_img_1 = np.empty((self.config.epochs_GAN))
         if os.path.exists(os.path.join(config.logs_path, 'logs_loss_train_G2.npy')):
             # Se esistenti, precarico i logs
-            logs_loss_train_G2 = np.empty((self.config.epochs_GAN))
-            logs_loss_train_D = np.empty((self.config.epochs_GAN))
-            logs_loss_train_D_fake = np.empty((self.config.epochs_GAN))
-            logs_loss_train_D_real = np.empty((self.config.epochs_GAN))
-            logs_mask_ssim = np.empty((self.config.epochs_GAN))
-            logs_ssim = np.empty((self.config.epochs_GAN))
-            logs_r_r = np.empty((self.config.epochs_GAN))
-            logs_img_0 = np.empty((self.config.epochs_GAN))
-            logs_img_1 = np.empty((self.config.epochs_GAN))
-
             a = np.load(os.path.join(config.logs_path, 'logs_loss_train_G2.npy'))
             num = a.shape[0]
             logs_loss_train_G2[:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_G2.npy'))
@@ -128,18 +303,6 @@ class PG2(object):
             logs_img_0[:num] = np.load(os.path.join(config.logs_path, 'logs_img_0.npy'))
             logs_img_1[:num] = np.load(os.path.join(config.logs_path, 'logs_img_1.npy'))
 
-
-        else:
-            # Altrimenti li creo ex novo
-            logs_loss_train_G2 = np.empty((self.config.epochs_GAN))
-            logs_loss_train_D = np.empty((self.config.epochs_GAN))
-            logs_loss_train_D_fake = np.empty((self.config.epochs_GAN))
-            logs_loss_train_D_real = np.empty((self.config.epochs_GAN))
-            logs_mask_ssim = np.empty((self.config.epochs_GAN))
-            logs_ssim = np.empty((self.config.epochs_GAN))
-            logs_r_r = np.empty((self.config.epochs_GAN))
-            logs_img_0 = np.empty((self.config.epochs_GAN))
-            logs_img_1 = np.empty((self.config.epochs_GAN))
 
         for epoch in range(self.config.epochs_GAN):
             train_it = iter(dataset_train)  # rinizializzo l iteratore sul train dataset
@@ -177,12 +340,18 @@ class PG2(object):
             ssim_valid = np.empty((num_batches_valid))
             mask_ssim_valid = np.empty((num_batches_valid))
 
+            # if self.cnt_d == 2:
+            #     self.cnt_d = 0
+            # else:
+            #     self.cnt_d += 1
+
             # Train
             for id_batch in range(num_batches_train):
                 loss_values_train_G2[id_batch], loss_values_train_D[id_batch], \
                 loss_values_train_D_fake[id_batch], loss_values_train_D_real[id_batch], \
                 real_predette_refined_result_train, real_predette_image_raw_0_train, real_predette_image_raw_1_train, \
                 ssim_train[id_batch], mask_ssim_train[id_batch] = self._train_step(train_it, epoch, id_batch)
+
 
                 # Calcolo media
                 # Loss
@@ -383,9 +552,12 @@ class PG2(object):
             # Loss G2
             loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
 
-        if (id_batch + 1) % 2 == 1:
-            # backprop G2
-            self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
+        self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
+
+        # if (id_batch + 1) % 2 == 1 and self.cnt_d == 0:
+        #     print("G")
+        #     #backprop G2
+        #     self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
 
         with tf.GradientTape() as d_tape:
 
@@ -407,9 +579,15 @@ class PG2(object):
             loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
                                                                     D_neg_image_raw_0)
 
-        if (id_batch + 1) % 2 == 0:
-            # backprop D
-            self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+        self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+
+        # if self.cnt_d == 0:
+        #     if (id_batch + 1) % 2 == 0:
+        #         # backprop D
+        #         self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+        # else:
+        #     self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+
 
         # Metrics
         # - SSIM
@@ -546,7 +724,7 @@ class PG2(object):
 if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
-    config.print_info()
+    #config.print_info()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 

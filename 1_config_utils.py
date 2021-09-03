@@ -5,8 +5,10 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.Dataset = "Syntetich"
-        self.type = "negative_syntetich"   # radius_<num> or new
+        self.Dataset = "Syntetich_complete"
+        self.type = "negative_no_flip_camp_5"   # radius_<num> or new
+        # self.Dataset = "Syntetich"
+        # self.type = "negative_syntetich"  # radius_<num> or new
 
         # - Path
         self.data_path = './data/' + self.Dataset # dove si trova il dataset
@@ -14,6 +16,7 @@ class Config:
         self.weigths_path = './weights' # dove salvare i pesi
         self.logs_path = './logs' # dove salvare i logs
         self.training_weights_path = './Training/' # cartella dove sono tutti i vari training effettuati
+
 
         # - Dataset
         self.img_H = 96 #'input image height'
@@ -52,7 +55,7 @@ class Config:
         # -G1
         self.trainig_G1 = True
         # -- Model
-        self.input_shape_g1 = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
+        self.input_shape_G1 = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
 
         # -- Training / test parameters
         self.epochs_G1 = 200
@@ -64,12 +67,12 @@ class Config:
         # -GAN
         self.trainig_GAN = False
         # -- Model
-        self.input_shape_g2 = [96, 128,2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
-        self.input_shape_d = [96, 128, 1]
+        self.input_shape_G2 = [96, 128,2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
+        self.input_shape_D = [96, 128, 1]
 
         # -- Training / test parameters
         self.epochs_GAN = 500
-        self.lr_update_epoch_GAN = 5
+        self.lr_update_epoch_GAN = 1
         self.lr_initial_G2 = 1e-5
         self.lr_initial_D = 2e-5
         self.drop_rate_GAN = self.drop_rate_G1
@@ -77,8 +80,8 @@ class Config:
         self.save_grid_ssim_epoch_valid = 1  # GAN
         self.save_grid_ssim_epoch_train = 1  # GAN
 
-        self.batch_size_train = 16  # grandezza del batch_size
-        self.batch_size_valid = 16  # grandezza del batch_size
+        self.batch_size_train = 1  # grandezza del batch_size
+        self.batch_size_valid = 1  # grandezza del batch_size
 
         #google colab
         self.run_google_colab = False
@@ -117,4 +120,45 @@ class Config:
             print("lr drop rate: ", self.drop_rate_GAN)
             print("Num batch train: ", self.batch_size_train)
             print("Num batch valid: ", self.batch_size_train)
+
+    def save_info(self):
+
+        dic_G1 = {
+
+            "name_dataset": self.Dataset,
+            "type_dataset": self.type,
+            "Allenamento G1": True,
+            "lr iniziale": self.lr_initial_G1,
+            "lr update rate epoche": self.lr_update_epoch_G1,
+            "lr drop rate": self.drop_rate_G1,
+            "Num batch train": self.batch_size_train,
+            "Num batch valid": self.batch_size_train
+        }
+
+        dic_GAN = {
+
+            "name_dataset": self.Dataset,
+            "type_dataset": self.type,
+            "Allenamento GAN":True,
+            "lr iniziale G2": self.lr_initial_G2,
+            "lr iniziale D": self.lr_initial_D,
+            "lr update rate": self.lr_update_epoch_GAN,
+            "lr drop rate": self.drop_rate_GAN,
+            "Num batch train": self.batch_size_train,
+            "Num batch valid": self.batch_size_train
+
+        }
+
+        dic = None
+        if self.trainig_G1:
+            dic = dic_G1
+        elif self.trainig_GAN:
+            dic = dic_GAN
+
+        log_trainig = os.path.join(self.weigths_path, 'dic.pkl')
+        f = open(log_trainig, "wb")
+        pickle.dump(dic, f)
+        f.close()
+
+
 

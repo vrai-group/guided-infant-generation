@@ -34,20 +34,20 @@ def _sparse2dense(indices, values, shape):
 # Al termine, ciò che otteniamo è che il punto p viene ingrandito considerando un raggio di 4.
 # Un esempio è mostrato in figura SparseKeypoint.png
 """
-def _getSparseKeypoint(r, c, k, height, width, radius=4, var=4, mode='Solid'):
+def _getSparseKeypoint(y, x, k, height, width, radius=4, var=4, mode='Solid'):
     indices = []
     values = []
     for i in range(-radius, radius + 1):
         for j in range(-radius, radius + 1):
             distance = np.sqrt(float(i ** 2 + j ** 2))
-            if r + i >= 0 and r + i < height and c + j >= 0 and c + j < width:
+            if y + i >= 0 and y + i < height and x + j >= 0 and x + j < width:
                 if 'Solid' == mode and distance <= radius:
-                    indices.append([r + i, c + j, k])
+                    indices.append([y + i, x + j, k])
                     values.append(1)
                     # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
                     # cv2.imwrite('SparseKeypoint.png', dense * 255)
                 elif 'Gaussian' == mode and distance <= radius:
-                    indices.append([r + i, c + j, k])
+                    indices.append([x + j, y + i, k])
                     if 4 == var:
                         values.append(Gaussian_0_4.pdf(distance) * Ratio_0_4)
                     else:
@@ -71,11 +71,11 @@ def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid')
     indices = []
     values = []
     for k in range(len(peaks)):
-        p = peaks[k] # coordinate peak ex: "300,200" type string
-        c = p[0] # column
-        r = p[1]  # row
-        if c != -1 and r != -1:  # non considero le occlusioni indicate con -1
-            ind, val = _getSparseKeypoint(r, c, k, height, width, radius, var, mode)
+        p = peaks[k] # coordinate peak ex: "300,200"
+        x = p[0]
+        y = p[1]
+        if x != -1 and y != -1:  # non considero le occlusioni indicate con -1
+            ind, val = _getSparseKeypoint(y, x, k, height, width, radius, var, mode)
             indices.extend(ind)
             values.extend(val)
     shape = [height, width, channel]
@@ -189,21 +189,119 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation= 10,
 
 """
 Augumentation con flip verticale
-@:return dic_data --> dic con datoi augumentati
+@:return dic_data --> dic con dati augumentati
 """
 def _aug_flip(dic_data):
 
     ### Flip vertical pz_0
     mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
-    dic_data["image_0"] = cv2.flip(dic_data["image_raw_0"], 1)
+    dic_data["image_raw_0"] = cv2.flip(dic_data["image_raw_0"], 1)
     dic_data["indices_r4_0"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["indices_r4_0"]]
     dic_data["pose_mask_r4_0"] = cv2.flip(dic_data["pose_mask_r4_0"], 1)
 
     ### Flip vertical pz_1
     mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
-    dic_data["image_1"] = cv2.flip(dic_data["image_raw_1"], 1)
+    dic_data["image_raw_1"] = cv2.flip(dic_data["image_raw_1"], 1)
     dic_data["indices_r4_1"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["indices_r4_1"]]
     dic_data["pose_mask_r4_1"] = cv2.flip(dic_data["pose_mask_r4_1"], 1)
+
+    return dic_data
+
+"""
+Augumentation con shift 
+(tx, ty) --> punto in cui devo spostare il punto (0,0) in alto a sx dell immagine in input
+@:return dic_data --> dic con dati augumentati
+"""
+def _aug_shift(dic_data, type, tx=0, ty=0):
+    if type == "or":
+        assert( ty == 0)
+    elif type == "ver":
+        assert( tx == 0)
+
+
+    h, w, c = dic_data["image_raw_0"].shape
+
+    M = np.float32([[1, 0, tx], [0, 1, ty]])
+    dic_data["image_raw_1"] = cv2.warpAffine(dic_data["image_raw_1"], M, (w, h), flags= cv2.INTER_NEAREST,
+                                             borderMode=cv2.BORDER_REPLICATE).reshape(h,w,c)
+
+    dic_data["pose_mask_r4_1"] = cv2.warpAffine(dic_data["pose_mask_r4_1"], M, (w, h), flags=cv2.INTER_NEAREST,
+                                                borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
+
+    keypoints_shifted = []
+    values_shifted = []
+    for coordinates in dic_data["indices_r4_1"]:
+        y, x, id = coordinates
+
+        if type == "or":
+            xs = x + tx
+            ys = y
+            if xs > 0 and xs < w:
+                keypoints_shifted.append([ys, xs, id])
+                values_shifted.append(1)
+
+        elif type == "ver":
+            xs = x
+            ys = y + ty
+            if ys > 0 and ys < h:
+                keypoints_shifted.append([ys, xs, id])
+                values_shifted.append(1)
+
+
+
+    dic_data["indices_r4_1"] = keypoints_shifted
+    dic_data["values_r4_1"] = values_shifted
+
+    return dic_data
+
+
+def random_brightness(dic_data):
+    dic_data["image_raw_1"] = tf.keras.preprocessing.image.random_brightness(dic_data["image_raw_1"], (1.5,2.0)).astype(np.uint16)
+
+    return dic_data
+
+def random_contrast(dic_data):
+    dic_data["image_raw_1"] = tf.image.random_contrast(dic_data["image_raw_1"], lower=0.2, upper=0.5, seed=2).numpy().astype(np.uint16)
+
+    return dic_data
+
+
+"""
+Augumentation con rotazione secondo angolo angle
+@:return dic_data --> dic con dati augumentati
+"""
+def _aug_rotation_angle(dic_data, angle_deegre):
+
+    h, w, c = dic_data["image_raw_0"].shape
+    ym, xm = h // 2, w // 2  # midpoint dell'immagine 96x128
+    angle_radias = math.radians(angle_deegre)  # angolo di rotazione
+
+    def rotate_keypoints(indices):
+        keypoints_rotated = []
+        for coordinates in indices:
+            x, y = coordinates
+            if y != -1 and x != -1:
+                xr = (x - xm) * math.cos(angle_radias) - (y - ym) * math.sin(angle_radias) + xm
+                yr = (x - xm) * math.sin(angle_radias) + (y - ym) * math.cos(angle_radias) + ym
+                keypoints_rotated.append([int(xr), int(yr)])
+            else:
+                keypoints_rotated.append([x, y])
+
+        return keypoints_rotated
+
+    M = cv2.getRotationMatrix2D((xm, ym), -angle_deegre, 1.0)
+    # Rotate image
+    dic_data["image_raw_1"] = cv2.warpAffine(dic_data["image_raw_1"], M, (w, h),
+                                             flags= cv2.INTER_NEAREST,
+                                             borderMode=cv2.BORDER_REPLICATE).reshape(h,w,c)
+
+    # Rotate mask
+    dic_data["pose_mask_r4_1"] = cv2.warpAffine(dic_data["pose_mask_r4_1"], M, (w, h)).reshape(h,w,c)
+
+    # Rotate keypoints coordinate
+    keypoints_rotated = rotate_keypoints(dic_data["original_peaks_1"])
+    dic_data["indices_r4_1"], dic_data["values_r4_1"], _ = _getSparsePose(keypoints_rotated, h, w, 14,  radius=radius_keypoints_pose, mode='Solid')
+
 
     return dic_data
 
@@ -219,23 +317,23 @@ def _format_example(dic):
         'pz_0': dataset_utils.bytes_feature(dic["pz_0"].encode('utf-8')),  # nome del pz
         'pz_1': dataset_utils.bytes_feature(dic["pz_1"].encode('utf-8')),
 
-        'image_name_0': dataset_utils.bytes_feature(dic["name_img_0_16_bit"].encode('utf-8')),  # nome dell immagine 0
-        'image_name_1': dataset_utils.bytes_feature(dic["name_img_1_16_bit"].encode('utf-8')),  # nome dell immagine 1
-        'image_raw_0': dataset_utils.bytes_feature(dic["image_0"].tostring()),  # immagine 0 in bytes
-        'image_raw_1': dataset_utils.bytes_feature(dic["image_1"].tostring()),  # immagine 1 in bytes
+        'image_name_0': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 0
+        'image_name_1': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 1
+        'image_raw_0': dataset_utils.bytes_feature(dic["image_raw_0"].tostring()),  # immagine 0 in bytes
+        'image_raw_1': dataset_utils.bytes_feature(dic["image_raw_1"].tostring()),  # immagine 1 in bytes
 
         'image_format': dataset_utils.bytes_feature('PNG'.encode('utf-8')),
         'image_height': dataset_utils.int64_feature(96),
         'image_width': dataset_utils.int64_feature(128),
 
-        'pose_peaks_0': dataset_utils.float_feature(dic["pose_peaks_0"].flatten().tolist()),
-        # immagine con shape [8, 16 14] in cui sono individuati i keypoint dell'immagine 0 NON a raggio 4
-        'pose_peaks_1': dataset_utils.float_feature(dic["pose_peaks_1"].flatten().tolist()),
-        # immagine con shape [8, 16, 14] in cui sono individuati i keypoint dell'immagine 1 NON a raggio 4
+        "original_peaks_0": dataset_utils.bytes_feature(np.array(dic["original_peaks_0"]).astype(np.int64).tostring()),
+        "original_peaks_1": dataset_utils.bytes_feature(np.array(dic["original_peaks_1"]).astype(np.int64).tostring()),
+        'shape_len_original_peaks_0': dataset_utils.int64_feature(np.array(dic["original_peaks_0"]).shape[0]),
+        'shape_len_original_peaks_1': dataset_utils.int64_feature(np.array(dic["original_peaks_1"]).shape[0]),
 
-        'pose_mask_r4_0': dataset_utils.int64_feature(dic["pose_mask_r4_0"].astype(np.uint16).flatten().tolist()),
+        'pose_mask_r4_0': dataset_utils.int64_feature(dic["pose_mask_r4_0"].astype(np.uint8).flatten().tolist()),
         # maschera binaria a radius 4 con shape [96, 128, 1]
-        'pose_mask_r4_1': dataset_utils.int64_feature(dic["pose_mask_r4_1"].astype(np.uint16).flatten().tolist()),
+        'pose_mask_r4_1': dataset_utils.int64_feature(dic["pose_mask_r4_1"].astype(np.uint8).flatten().tolist()),
         # maschera binaria a radius 4 con shape [96, 128, 1]
 
         'indices_r4_0': dataset_utils.bytes_feature(np.array(dic["indices_r4_0"]).astype(np.int64).tostring()),
@@ -246,7 +344,9 @@ def _format_example(dic):
         # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
         'values_r4_1': dataset_utils.bytes_feature(np.array(dic["values_r4_1"]).astype(np.int64).tostring()),
         'shape_len_indices_0': dataset_utils.int64_feature(np.array(dic["indices_r4_0"]).shape[0]),
-        'shape_len_indices_1': dataset_utils.int64_feature(np.array(dic["indices_r4_1"]).shape[0])
+        'shape_len_indices_1': dataset_utils.int64_feature(np.array(dic["indices_r4_1"]).shape[0]),
+
+        'radius_keypoints': dataset_utils.int64_feature(radius_keypoints_pose),
 
     }))
 
@@ -274,18 +374,7 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
     image_1 = cv2.imread(img_path_1, cv2.IMREAD_UNCHANGED) #[480,640]
     height, width  = image_0.shape[0], image_0.shape[1]
 
-    ### Pose 8x16
-    # Qui salviamo i peaks iniziali (quelli che abbiamo nei cvs annotations) sottoforma di maschere di dimensioni 16x8
-    w_unit = width / 16  # per il rescaling delle coordinate dei keypoint  per immagine a 8*16
-    h_unit = height / 8  # per il rescaling delle coordinate dei keypoint per immagine a 8*16
-    pose_peaks_0 = np.zeros([8, 16, keypoint_num])
-    pose_peaks_1 = np.zeros([8, 16, keypoint_num])
-
     ### Pose coodinate
-    # Qui salviamo le coordinate dei keypoint iniziali (quelli che abbiamo nei csv annotations) in un array che contiene tre informaioni:
-    # coordinata Row del peak, coordinata Column del peek, Visibility del peak
-    pose_peaks_0_rcv = np.zeros([keypoint_num, 3])
-    pose_peaks_1_rcv = np.zeros([keypoint_num, 3])
 
     ### Pose image 0 a radius 4
     peaks = annotations_0[1:] # annotation_0[1:] --> poichè tolgo il campo image
@@ -295,33 +384,19 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
 
     ### Resize a 96x128 pose 0
     image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
-    peaks_resized = []
+    peaks_resized_0 = []
     # resize dei peaks
     for k in range(len(peaks)):
         p = peaks[k]  # coordinate peak ex: "300,200" type string
-        c = int(p.split(',')[0])  # column
-        r = int(p.split(',')[1])  # row
-        if c != -1 and r != -1:
-            peaks_resized.append([int(c / 5), int(r / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
+        x = int(p.split(',')[0])  # column
+        y = int(p.split(',')[1])  # row
+        if x != -1 and y != -1:
+            peaks_resized_0.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
-            peaks_resized.append([c, r])
-    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized, height, width, keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
+            peaks_resized_0.append([x, y])
+    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized_0, height, width, keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
     pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
-    # Salvataggio delle 14 heatmap a 8x16 e dei vettori coordinata
-    for ii in range(len(peaks)):
-        p = peaks[ii]
-        if 0 != len(p):
-            c = int(p.split(',')[0])  # column
-            r = int(p.split(',')[1])  # row
-            # siccome la dimensione delle immagini di posa sono 8/16, mentre i peaks sono considerati
-            # sull immagine raw di dimensione 480x640, ho bisogno di scalare le coordinate dei songoli peak.
-            # una volta fatto, per quello specifico punto setto il valore visibility=1
-            pose_peaks_0[int(r / h_unit), int(c / w_unit), ii] = 1
-            # il vettore rcv mi permette di ricorda le coordinate (non riscalate) e il valore settato
-            pose_peaks_0_rcv[ii][0] = r
-            pose_peaks_0_rcv[ii][1] = c
-            pose_peaks_0_rcv[ii][2] = 1
 
     #### Pose 1 radius 4
     peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
@@ -331,29 +406,19 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
 
     ## Reshape a 96x128 pose 1
     image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
-    peaks_resized = []
+    peaks_resized_1 = []
     #resize dei peaks
     for k in range(len(peaks)):
         p = peaks[k] # coordinate peak ex: "300,200" type string
-        c = int(p.split(',')[0])  # column
-        r = int(p.split(',')[1])  # row
-        if c != -1 and r != -1:
-            peaks_resized.append([c / 5 , r / 5]) # 5 è lo scale factor --> 480/96 e 640/128
+        x = int(p.split(',')[0])  # column
+        y = int(p.split(',')[1])  # row
+        if y != -1 and x != -1:
+            peaks_resized_1.append([int(x / 5), int(y / 5)]) # 5 è lo scale factor --> 480/96 e 640/128
         else:
-            peaks_resized.append([c ,r])
-    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized, height, width, keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
+            peaks_resized_1.append([x ,y])
+    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized_1, height, width, keypoint_num, radius=radius_keypoints_pose, mode='Solid')  # shape
     pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1) #[96, 128, 1]
 
-    # Salvataggio delle 14 heatmap iniziali
-    for ii in range(len(peaks)):
-        p = peaks[ii]
-        if 0 != len(p):
-            c = int(p.split(',')[0])  # column
-            r = int(p.split(',')[1])  # row
-            pose_peaks_1[int(r / h_unit), int(c / w_unit), ii] = 1
-            pose_peaks_1_rcv[ii][0] = r
-            pose_peaks_1_rcv[ii][1] = c
-            pose_peaks_1_rcv[ii][2] = 1
 
     dic_data = {
 
@@ -362,13 +427,11 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
 
         'image_name_0': name_img_0_16_bit,  # nome dell immagine 0
         'image_name_1': name_img_1_16_bit,  # nome dell immagine 1
-        'image_raw_0': image_0.tostring(),  # immagine 0 in bytes
-        'image_raw_1': image_1.tostring(),  # immagine 1 in bytes
+        'image_raw_0': image_0,  # immagine 0 in bytes
+        'image_raw_1': image_1,  # immagine 1 in bytes
 
-        'pose_peaks_0': pose_peaks_0,
-        # immagine con shape [8, 16 14] in cui sono individuati i keypoint dell'immagine 0 NON a raggio 4
-        'pose_peaks_1': pose_peaks_1,
-        # immagine con shape [8, 16, 14] in cui sono individuati i keypoint dell'immagine 1 NON a raggio 4
+        'original_peaks_0': peaks_resized_0, #peaks ridimensionati a 96x128
+        'original_peaks_1': peaks_resized_1,
 
         'pose_mask_r4_0': pose_mask_r4_0,
         # maschera binaria a radius 4 con shape [96, 128, 1]
@@ -381,7 +444,7 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
         # coordinate a radius 4 dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
         'indices_r4_1': indices_r4_1,
         # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
-        'values_r4_1': nvalues_r4_1
+        'values_r4_1': values_r4_1
 
     }
 
@@ -404,7 +467,7 @@ def check_assenza_keypoints_3_5_10_11(peaks):
 Consente di selezionare la coppia di pair da formare
 """
 def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
-                radius_head_mask, dilatation, flip=False, mode="negative", switch=False):
+                radius_head_mask, dilatation,campionamento, flip=False, mode="negative", switch=False):
 
     tot_pairs = 0 # serve per contare il totale di pair nel tfrecord
 
@@ -488,50 +551,166 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                     cnt = 0 # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
 
                     # Creazione del pair
-                    for _, row_0 in df_annotation_0.iterrows():
+                    for indx, row_0 in df_annotation_0.iterrows():
 
-                        # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
-                        # In caso di assenza passo all'immagine successiva
-                        # Controllo se la row_0 è nelle immagini selezionate
-                        if check_assenza_keypoints_3_5_10_11(row_0[1:]):
-                            continue
+                            # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                            # In caso di assenza passo all'immagine successiva
+                            # Controllo se la row_0 è nelle immagini selezionate
+                            if check_assenza_keypoints_3_5_10_11(row_0[1:]):
+                                continue
 
-                        # lettura random delle row_1 nel secondo dataframe
-                        value = randint(0, len(df_annotation_1) - 1)
-                        row_1 = df_annotation_1.loc[value]
+                            
+                            # lettura random delle row_1 nel secondo dataframe
+                            value = randint(0, len(df_annotation_1) - 1)
+                            row_1 = df_annotation_1.loc[value]
+                           
+                            
+                            # Controllo se l'immagine row_1 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
+                            # In caso di assenza passo ne seleziona un altra random
+                            conteggio_while = 0
+                            while check_assenza_keypoints_3_5_10_11(row_1[1:]):
+                                if conteggio_while < 20:
+                                    # lettura random delle row_1 nel secondo dataframe
+                                    value = randint(0, len(df_annotation_1) - 1)
+                                    row_1 = df_annotation_1.loc[value]
+                                    conteggio_while += 1
+                                else:
+                                    r = input("Sono entrato più di 20 volte nel while")
 
-                        # Controllo se l'immagine row_1 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
-                        # In caso di assenza passo ne seleziona un altra random
-                        conteggio_while = 0
-                        while check_assenza_keypoints_3_5_10_11(row_1[1:]):
-                            if conteggio_while < 20:
-                                # lettura random delle row_1 nel secondo dataframe
-                                value = randint(0, len(df_annotation_1) - 1)
-                                row_1 = df_annotation_1.loc[value]
-                                conteggio_while += 1
-                            else:
-                                r = input("Sono entrato più di 20 volte nel while")
+                            #row_1 = df_annotation_1.loc[indx]
 
-                        # Creazione dell'example tfrecord
-                        dic_data = _format_data(pz_0, pz_1, row_0, row_1,radius_keypoints_pose, radius_keypoints_mask,
-                radius_head_mask, dilatation)
-                        example = _format_example(dic_data)
-                        tfrecord_writer.write(example.SerializeToString())
-                        cnt += 1  # incremento del conteggio degli examples
-                        tot_pairs += 1
-
-                        if flip:
-                            dic_data_flip = _aug_flip(dic_data.copy())
-                            example = _format_example(dic_data_flip)
+                            # Creazione dell'example tfrecord
+                            dic_data = _format_data(pz_0, pz_1, row_0, row_1,radius_keypoints_pose, radius_keypoints_mask,
+                    radius_head_mask, dilatation)
+                            example = _format_example(dic_data)
                             tfrecord_writer.write(example.SerializeToString())
                             cnt += 1  # incremento del conteggio degli examples
                             tot_pairs += 1
 
-                        sys.stdout.write(
-                            '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
-                                                                                            cnt=cnt,
-                                                                                            tot= df_annotation_0.shape[0]))
-                        sys.stdout.flush()
+                            if flip:
+                                dic_data_flip = _aug_flip(dic_data.copy())
+                                example = _format_example(dic_data_flip)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+
+                            """
+                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 45)
+                            example = _format_example(dic_data_rotate)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
+                                example = _format_example(dic_data_rotate)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 315)
+                            example = _format_example(dic_data_rotate)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
+                                example = _format_example(dic_data_rotate)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+    
+                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 90)
+                            example = _format_example(dic_data_rotate)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
+                                example = _format_example(dic_data_rotate)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), -90)
+                            example = _format_example(dic_data_rotate)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
+                                example = _format_example(dic_data_rotate)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=30)
+                            example = _format_example(dic_data_shifted)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
+                                example = _format_example(dic_data_shifted)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=-30)
+                            example = _format_example(dic_data_shifted)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
+                                example = _format_example(dic_data_shifted)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_shifted = _aug_shift(dic_data.copy(), type="ver", ty=10)
+                            example = _format_example(dic_data_shifted)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
+                                example = _format_example(dic_data_shifted)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_shifted = _aug_shift(dic_data.copy(), type="ver", ty=-10)
+                            example = _format_example(dic_data_shifted)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            if flip:
+                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
+                                example = _format_example(dic_data_shifted)
+                                tfrecord_writer.write(example.SerializeToString())
+                                cnt += 1  # incremento del conteggio degli examples
+                                tot_pairs += 1
+    
+                            dic_data_random_b = random_brightness(dic_data.copy())
+                            example = _format_example(dic_data_random_b)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+    
+                            dic_data_random_c = random_contrast(dic_data.copy())
+                            example = _format_example(dic_data_random_c)
+                            tfrecord_writer.write(example.SerializeToString())
+                            cnt += 1  # incremento del conteggio degli examples
+                            tot_pairs += 1
+                            """
+
+
+                            sys.stdout.write(
+                                '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
+                                                                                                cnt=cnt,
+                                                                                                tot= df_annotation_0.shape[0]))
+                            sys.stdout.flush()
 
                     sys.stdout.write('\n')
                     sys.stdout.flush()
@@ -558,9 +737,9 @@ if __name__ == '__main__':
     global dir_data
     global keypoint_num
 
-    dir_data = './data/Syntetich_complete'
-    dir_annotations = './data/Syntetich_complete/annotations'
-    dir_save_tfrecord = './data/Syntetich_complete/tfrecord/negative_1'
+    dir_data = './data/Syntetich'
+    dir_annotations = './data/Syntetich/annotations'
+    dir_save_tfrecord = './data/Syntetich/tfrecord/negative_no_flip'
     keypoint_num = 14
 
     name_tfrecord_train = 'BabyPose_train.tfrecord'
@@ -568,16 +747,17 @@ if __name__ == '__main__':
     name_tfrecord_test = 'BabyPose_test.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
-    lista_pz_train = [101, 103, 104, 105, 106, 107, 109, 112]
-    lista_pz_valid = [108, 110]
-    lista_pz_test = [102,111]
+    lista_pz_train = [101, 103, 105, 106, 107, 109, 110, 112]
+    lista_pz_valid = [102, 111]
+    lista_pz_test = [104, 108]
 
     # General information
     radius_keypoints_pose = 1
     radius_keypoints_mask = 2
     radius_head_mask = 40
     dilatation = 35
-    flip = False  # Aggiunta dell example con flip verticale
+    campionamento = 0
+    flip = False # Aggiunta dell example con flip verticale
     mode = "negative"
     switch = mode == "positive" #lo switch è consentito solamente in modalità positive, se è negative va in automatico
 
@@ -598,7 +778,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
         tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, flip=flip, mode=mode, switch=switch)
+                                  radius_head_mask, dilatation, campionamento, flip=flip, mode=mode, switch=switch)
         print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
@@ -609,7 +789,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
         tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
         tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, flip=flip, mode=mode, switch=switch)
+                                  radius_head_mask, dilatation,campionamento, flip=flip, mode=mode, switch=switch)
         print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
@@ -620,7 +800,7 @@ if __name__ == '__main__':
     if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
         tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
         tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, flip=flip, mode=mode)
+                                  radius_head_mask, dilatation, campionamento, flip=flip, mode=mode)
         print("TOT TEST: ", tot_test)
     elif r_te == "N" or r_te == "n":
         print("OK, non farò nulla sul test set")

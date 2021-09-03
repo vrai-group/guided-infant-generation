@@ -64,7 +64,7 @@ def view_tfrecord():
     import matplotlib.pyplot as plt
 
     # raw_dataset = tf.data.TFRecordDataset('../data/tfrecord/radius_10/BabyPose_train.tfrecord')
-    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich_complete/tfrecord/negative_1/BabyPose_train.tfrecord')
+    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich_complete/tfrecord/negative_no_flip_camp_5/train_augumentation.tfrecord')
     #raw_dataset = tf.data.TFRecordDataset(' C:/Users/canna/Desktop/New_BabyPose_valid.tfrecord')
 
     def _parse_image_function(example_proto):
@@ -84,8 +84,13 @@ def view_tfrecord():
         'image_height': tf.io.FixedLenFeature([], tf.int64, default_value=96),
         'image_width': tf.io.FixedLenFeature([], tf.int64, default_value=128),
 
-        'pose_peaks_0': tf.io.FixedLenFeature([8 * 16 * 14], tf.float32),
-        'pose_peaks_1': tf.io.FixedLenFeature([8 * 16 * 14], tf.float32),
+        # 'pose_peaks_0': tf.io.FixedLenFeature([8 * 16 * 14], tf.float32),
+        # 'pose_peaks_1': tf.io.FixedLenFeature([8 * 16 * 14], tf.float32),
+
+        "original_peaks_0": tf.io.FixedLenFeature((), dtype=tf.string),
+        "original_peaks_1": tf.io.FixedLenFeature((), dtype=tf.string),
+        'shape_len_original_peaks_0': tf.io.FixedLenFeature([], tf.int64),
+        'shape_len_original_peaks_1': tf.io.FixedLenFeature([], tf.int64),
 
         'pose_mask_r4_0': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
         'pose_mask_r4_1': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
@@ -108,52 +113,53 @@ def view_tfrecord():
 
             pz_0 = image_features['pz_0'].numpy().decode('utf-8')
             pz_1 = image_features['pz_1'].numpy().decode('utf-8')
-            if True:
-                image_name_0 = image_features['image_name_0'].numpy().decode('utf-8')
-                image_name_1 = image_features['image_name_1'].numpy().decode('utf-8')
-                print(pz_0, "  ", pz_1)
 
-                print(image_name_0, "  ", image_name_1)
-                print("  ")
-                image_raw_0 = tf.reshape(tf.io.decode_raw(image_features['image_raw_0'], tf.uint16), [96, 128, 1]).numpy()
-                image_raw_1 = tf.reshape(tf.io.decode_raw(image_features['image_raw_1'], tf.uint16), [96, 128, 1]).numpy()
-                # path= '../data/Babypose/'+str(pz_0)+'/'+image_name_0
-                # sedici_bit = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-                # sedici_bit = cv2.resize(sedici_bit, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)
-                # diff = sedici_bit - image_raw_0
-                # print(np.max(diff))
-                # print(np.max(image_raw_0))
-                # print(np.max(sedici_bit))
-                #Peaks
-                shape_len_indices_0 = image_features['shape_len_indices_0']
-                indices_r4_0 = tf.io.decode_raw(image_features['indices_r4_0'], np.int64)
-                indices_r4_0 = tf.reshape(indices_r4_0, [shape_len_indices_0, 3])
-                values_r4_0 = tf.io.decode_raw(image_features['values_r4_0'], np.int64)
-                pose_0 = tf.sparse.SparseTensor(indices=indices_r4_0, values=values_r4_0, dense_shape=[96, 128, 14])
-                pose_0 = tf.sparse.to_dense(pose_0, default_value=0, validate_indices=False)
-                pose_0 = tf.math.reduce_sum(pose_0, axis=-1).numpy().reshape(96,128,1)
-                #print(np.amax(values_r4_0.numpy())) # è una lista di 1
-                #print(np.amax(pose_0.numpy())) # mi restituisce 3 perche ad esempio nella prima immagine i Keypoint sulla testa si sovrappongono
-                shape_len_indices_1 = image_features['shape_len_indices_1']
-                indices_r4_1 = tf.io.decode_raw(image_features['indices_r4_1'], np.int64)
-                indices_r4_1 = tf.reshape(indices_r4_1, [shape_len_indices_1, 3])
-                values_r4_1 = tf.io.decode_raw(image_features['values_r4_1'], np.int64)
-                pose_1 = tf.sparse.SparseTensor(indices=indices_r4_1, values=values_r4_1, dense_shape=[96, 128, 14])
-                pose_1 = tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False)
-                #pose_1 = tf.reshape(pose_1[:, :, 7], (96, 128, 1)).numpy()
-                pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96,128,1)
-                #mask
-                pose_mask_r4_0 = image_features['pose_mask_r4_0'].numpy().reshape(96, 128, 1)
-                pose_mask_r4_1 = image_features['pose_mask_r4_1'].numpy().reshape(96, 128, 1)
-                fig = plt.figure(figsize=(10, 2))
-                columns = 6
-                rows = 1
-                #imgs = [image_raw_0, image_raw_1, pose_0, pose_1, pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
-                imgs = [image_raw_0 + pose_0*255, image_raw_1 +  pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
-                for i in range(1, columns * rows + 1):
-                    fig.add_subplot(rows, columns, i)
-                    plt.imshow(imgs[i - 1], cmap='gray')
-                plt.show()
+            image_name_0 = image_features['image_name_0'].numpy().decode('utf-8')
+            image_name_1 = image_features['image_name_1'].numpy().decode('utf-8')
+            print(pz_0, "  ", pz_1)
+            print(image_name_0, "  ", image_name_1)
+
+            image_raw_0 = tf.reshape(tf.io.decode_raw(image_features['image_raw_0'], tf.uint16), [96, 128, 1]).numpy()
+            image_raw_1 = tf.reshape(tf.io.decode_raw(image_features['image_raw_1'], tf.uint16), [96, 128, 1]).numpy()
+
+            #Original_peaks
+            shape_len_original_peaks_0 = image_features['shape_len_original_peaks_0']
+            original_peaks_0 = tf.reshape(tf.io.decode_raw(image_features['original_peaks_0'], tf.int64), [shape_len_original_peaks_0, 2])
+
+            shape_len_original_peaks_1 = image_features['shape_len_original_peaks_1']
+            original_peaks_1 = tf.reshape(tf.io.decode_raw(image_features['original_peaks_1'], tf.int64), [shape_len_original_peaks_1, 2])
+
+
+            #Peaks
+            shape_len_indices_0 = image_features['shape_len_indices_0']
+            indices_r4_0 = tf.io.decode_raw(image_features['indices_r4_0'], np.int64)
+            indices_r4_0 = tf.reshape(indices_r4_0, [shape_len_indices_0, 3])
+            values_r4_0 = tf.io.decode_raw(image_features['values_r4_0'], np.int64)
+            pose_0 = tf.sparse.SparseTensor(indices=indices_r4_0, values=values_r4_0, dense_shape=[96, 128, 14])
+            pose_0 = tf.sparse.to_dense(pose_0, default_value=0, validate_indices=False)
+            pose_0 = tf.math.reduce_sum(pose_0, axis=-1).numpy().reshape(96,128,1)
+
+            shape_len_indices_1 = image_features['shape_len_indices_1']
+            indices_r4_1 = tf.io.decode_raw(image_features['indices_r4_1'], np.int64)
+            indices_r4_1 = tf.reshape(indices_r4_1, [shape_len_indices_1, 3])
+            values_r4_1 = tf.io.decode_raw(image_features['values_r4_1'], np.int64)
+            pose_1 = tf.sparse.SparseTensor(indices=indices_r4_1, values=values_r4_1, dense_shape=[96, 128, 14])
+            pose_1 = tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False)
+            pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96,128,1)
+
+            #mask
+            pose_mask_r4_0 = image_features['pose_mask_r4_0'].numpy().reshape(96, 128, 1)
+            pose_mask_r4_1 = image_features['pose_mask_r4_1'].numpy().reshape(96, 128, 1)
+
+            fig = plt.figure(figsize=(10, 2))
+            columns = 6
+            rows = 1
+            #imgs = [image_raw_0, image_raw_1, pose_0, pose_1, pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
+            imgs = [image_raw_0 + pose_0*255, image_raw_1 + pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
+            for i in range(1, columns * rows + 1):
+                fig.add_subplot(rows, columns, i)
+                plt.imshow(imgs[i - 1])
+            plt.show()
 
 
     print(cnt)
