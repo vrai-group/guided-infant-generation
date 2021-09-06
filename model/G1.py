@@ -15,6 +15,9 @@ config = Config_file.Config()
 ####### LOSS
 # Fuinzione di loss input: y_true, y_pred
 def PoseMaskLoss1(output_G1, image_raw_1, mask_1):
+    image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
+    mask_1 = tf.cast(mask_1, dtype=tf.float32)
+
 
     # La PoseMakLoss1  è quella implementata sul paper
     primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
@@ -26,6 +29,9 @@ def PoseMaskLoss1(output_G1, image_raw_1, mask_1):
 ###### METRICA
 # Metrica SSIM
 def m_ssim(output_G1, image_raw_1, mean_0, mean_1):
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
+    mean_0 = tf.cast(mean_0, dtype=tf.float32)
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
@@ -36,6 +42,10 @@ def m_ssim(output_G1, image_raw_1, mean_0, mean_1):
     return mean
 
 def mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1):
+    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
+    mask_1 = tf.reshape(mask_1, [-1, 96, 128, 1])
+    output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
+    mean_0 = tf.cast(mean_0, dtype=tf.float32)
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)

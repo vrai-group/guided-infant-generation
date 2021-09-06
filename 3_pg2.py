@@ -30,7 +30,7 @@ class PG2(object):
         self.model_G1 = G1.build_model()
         self.opt_G1 = G1.optimizer()
         #model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_012-loss_0.000578-ssim_0.699761-mask_ssim_0.961482-val_loss_0.001102-val_ssim_0.678297_val_mask_ssim_0.939384.hdf5'))
-        #model_g1.summary()
+        self.model_G1.summary()
 
         # Logs da salvare nella cartella logs per ogni epoca
         history = {'loss_train_G1': np.empty((self.config.epochs_G1)),
@@ -77,10 +77,9 @@ class PG2(object):
             dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
             dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
 
-            num_batches_train = int(
-                dataset_train_aug_len / self.config.batch_size_train)  # numero di batches nel dataset di train
-            num_batches_valid = int(
-                dataset_valid_aug_len / self.config.batch_size_valid)  # numero di batches nel dataset di valid
+            # numero di batches nel dataset
+            num_batches_train = dataset_train_aug_len // self.config.batch_size_train
+            num_batches_valid = dataset_valid_aug_len // self.config.batch_size_valid
 
             train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
             valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
@@ -132,7 +131,7 @@ class PG2(object):
 
             # Valid
             for id_batch in range(num_batches_valid):
-                loss_value_valid_G1[id_batch], ssim_valid[id_batch], mask_ssim_valid[id_batch] \
+                loss_values_valid_G1[id_batch], ssim_valid[id_batch], mask_ssim_valid[id_batch] \
                     = self._valid_step_G1(valid_it, epoch, id_batch)
 
                 sys.stdout.write('\r')
@@ -189,6 +188,14 @@ class PG2(object):
                 print("-Aggiornamento Learning rate G1: ", self.opt_G1.lr.numpy())
                 print("")
 
+            if self.config.run_google_colab and (
+                    epoch % self.config.download_weight == self.config.download_weight - 1):
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar logs/ -idq')
+                #os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./results_ssim -idq')
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar weights/ -idq')
+                #os.system('rm -r weights/*.hdf5')
+                print("-RAR creato\n")
+
 
     def _train_step_G1(self, train_it, epoch, id_batch):
 
@@ -211,6 +218,7 @@ class PG2(object):
             # Loss G1
             loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
 
+
         self.opt_G1.minimize(loss_value_G1, var_list=self.model_G1.trainable_weights, tape=g1_tape)
 
         # Metrics
@@ -232,8 +240,9 @@ class PG2(object):
         mean_1 = tf.reshape(batch[6], (-1, 1, 1, 1))
 
         # G1
-        input_G1 = X
+        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
         output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+        output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
         # Loss G1
         loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
