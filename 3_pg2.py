@@ -51,7 +51,14 @@ class PG2(object):
 
         # Se esistenti, precarico i logs
         if os.path.exists(os.path.join(config.logs_path, 'history_G1.npy')):
-            history_G1 = np.load('file.npy', allow_pickle='TRUE')
+            old_history_G1 = np.load('history_G1.npy', allow_pickle='TRUE')
+            epoch = old_history_G1['epoch']
+            for key, value in old_history_G1:
+                if key == 'epoch':
+                    history_G1[key] = old_history_G1[key]
+                else:
+                    history_G1[key][:epoch] = old_history_G1[key][:epoch]
+
 
         for epoch in range(self.config.epochs_G1):
 
@@ -157,7 +164,7 @@ class PG2(object):
             if epoch % self.config.lr_update_epoch_G1 == self.config.lr_update_epoch_G1 - 1:
                 self.opt_G1.lr = self.opt_G1.lr * self.config.drop_rate_G1
                 print("-Aggiornamento Learning rate G1: ", self.opt_G1.lr.numpy())
-                print("")
+                print("\n")
 
             # --Save logs
             history_G1['epoch'] = epoch + 1
@@ -173,10 +180,17 @@ class PG2(object):
             if self.config.run_google_colab and (
                     epoch % self.config.download_weight == self.config.download_weight - 1):
                 os.system('rar a /gdrive/MyDrive/weights_and_logs.rar logs/ -idq')
-                #os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./results_ssim -idq')
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./results_ssim -idq')
                 os.system('rar a /gdrive/MyDrive/weights_and_logs.rar weights/ -idq')
-                #os.system('rm -r weights/*.hdf5')
                 print("-RAR creato\n")
+                #Pulizia enviroment
+                os.system('rm -r weights/*.hdf5')
+                os.system('rm -r results_ssim/G1/train results_ssim/G1/valid')
+                os.system('rm -r results_ssim/G1/train results_ssim/G1/valid')
+                print("-Pulizia enviroment eseguita\n")
+
+        print("#############\n\n")
+
 
 
     def _train_step_G1(self, train_it, epoch, id_batch):
