@@ -77,13 +77,13 @@ class Config:
         self.lr_initial_D = 2e-5
         self.drop_rate_GAN = self.drop_rate_G1
 
+        # - General (Sia per G1 che per GAN)
         self.save_grid_ssim_epoch_valid = 1  # GAN
         self.save_grid_ssim_epoch_train = 1  # GAN
 
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
 
-        #google colab
         self.run_google_colab = False
         self.download_weight = 2 # step di epoche in cui andremo ad aggiornare il rar dei pesi
 
@@ -159,6 +159,5 @@ class Config:
         f = open(log_trainig, "wb")
         pickle.dump(dic, f)
         f.close()
-
 
 
