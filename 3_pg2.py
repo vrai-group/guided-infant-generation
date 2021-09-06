@@ -291,6 +291,7 @@ class PG2(object):
                                          batch=id_batch,
                                          ssim=ssim_value,
                                          mask_ssim=mask_ssim_value))
+            mean_0 = tf.cast(mean_0, dtype=tf.float32)
             output_G1 = utils_wgan.unprocess_image(output_G1, mean_0, 32765.5)
             grid.save_image(output_G1,
                             name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
