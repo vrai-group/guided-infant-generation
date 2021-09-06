@@ -214,9 +214,9 @@ def apply_augumentation(unprocess_dataset_it, config, type):
     output_filename = os.path.join(config.data_tfrecord_path, name_tfrecord)
     tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(output_filename)
 
-    for id_batch in range(num_example):
+    for id_batch in range(num_example):#num example
         sys.stdout.write('\r')
-        sys.stdout.write('Example: {id} / {tot}'.format(id=id_batch,tot=num_example))
+        sys.stdout.write('Example: {id} / {tot}'.format(id=id_batch+1,tot=num_example))
 
         batch = next(unprocess_dataset_it)
         image_raw_0 = batch[0]  # [batch, 96, 128, 1]
