@@ -7,8 +7,6 @@ import tensorflow as tf
 
 from utils import dataset_utils
 
-#TODO prendere il radius dal rtfrecord
-
 def _getSparseKeypoint(y, x, k, height, width, radius=4, var=4, mode='Solid'):
     indices = []
     values = []
@@ -86,9 +84,6 @@ def _format_example(dic):
 
     return example
 
-
-
-
 ##################################
 #   Funzioni di Augumentation
 ##################################
@@ -146,7 +141,7 @@ def random_contrast(dic_data):
 
 def _aug_rotation_angle(dic_data, angle_deegre):
 
-    h, w, c = dic_data["image_raw_0"].shape
+    h, w, c = dic_data["image_raw_1"].shape
     ym, xm = h // 2, w // 2  # midpoint dell'immagine 96x128
     angle_radias = math.radians(angle_deegre)  # angolo di rotazione
 
@@ -200,7 +195,7 @@ def _aug_flip(dic_data):
 def apply_augumentation(unprocess_dataset_it, config, type):
 
     sys.stdout.write('\n')
-    sys.stdout.write("Applico augumentazione {type}".format(type=type))
+    sys.stdout.write("Applico augumentazione {type}..".format(type=type))
     sys.stdout.write('\n')
 
     num_example = None
@@ -272,10 +267,37 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         #TODO: adesso le trasformazioni tranne il flip vengono applicate sulla target (immagine e posa) capire se ha senso farlo sulla condizione
         # l idea potreebbe essere applicarla sempre sulla target e random sulla condizione
         # lasciando in questo modo G1 vedremmo solo per la condizione lo stesso input mentre la posa cambierebbe di volta in volta
-        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,2], minval=1, maxval=2, dtype=tf.int64).numpy()
+        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,2], minval=0, maxval=1, dtype=tf.int64).numpy()
 
         vec_dic_affine = [] # conterra i dic con le trasfromazioni affini
         vec_dic_affine.append(dic_data)
+
+        # Rotazione Random
+        # random_angles = tf.random.uniform(shape=[10, 2], minval=0, maxval=1, dtype=tf.int64).numpy()
+        # for angle in random_angles:
+        #     dic_data_rotate = _aug_rotation_angle(dic_data.copy(), angle)
+        #     example = _format_example(dic_data_rotate)
+        #     tfrecord_writer.write(example.SerializeToString())
+        #     cnt_dataset += 1
+        #     vec_dic_affine.append(dic_data_rotate)
+
+        # Shift Random
+        # Shift or
+        #random_shift_or = tf.random.uniform(shape=[10, 2], minval=-30, maxval=30, dtype=tf.int64).numpy()
+        # for shift in random_angles:
+        #     dic_data_shifted = _aug_rotation_angle(dic_data.copy(), shift)
+        #     example = _format_example(dic_data_shifted)
+        #     tfrecord_writer.write(example.SerializeToString())
+        #     cnt_dataset += 1
+        #     vec_dic_affine.append(dic_data_shifted)
+        # # Shift ver
+        # random_shift_ver = tf.random.uniform(shape=[10, 2], minval=-10, maxval=10, dtype=tf.int64).numpy()
+        # for shift in random_angles:
+        #     dic_data_shifted = _aug_rotation_angle(dic_data.copy(), shift)
+        #     example = _format_example(dic_data_shifted)
+        #     tfrecord_writer.write(example.SerializeToString())
+        #     cnt_dataset += 1
+        #     vec_dic_affine.append(dic_data_shifted)
 
         # Rotazione 45
         if random_bool_trasformation_on_initial_pair[0][0]: #trasformazione
