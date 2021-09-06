@@ -19,42 +19,39 @@ from Augumentation import apply_augumentation
 class PG2(object):
 
     def __init__(self, config):
-        # Trainer.__init__(self, config, data_loader=None)
         self.config = config
         self.babypose_obj = BabyPose()
-        self.cnt_d = 0
 
     def train_G1(self):
 
-        # Caricamento dataset
+        # -Caricamento dataset
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
-        # dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = dataset_train.batch(1)
         it_train = iter(dataset_train)
 
         dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
         dataset_valid = dataset_valid.batch(1)
         it_valid = iter(dataset_valid)
-        
-        # Costruzione modello
+
+        # -Costruzione modello
         self.model_G1 = G1.build_model()
         self.opt_G1 = G1.optimizer()
         #model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_012-loss_0.000578-ssim_0.699761-mask_ssim_0.961482-val_loss_0.001102-val_ssim_0.678297_val_mask_ssim_0.939384.hdf5'))
         #self.model_G1.summary()
 
-        # History del training salvare nella cartella logs per ogni epoca
-        history = {'loss_train_G1': np.empty((self.config.epochs_G1)),
-                'logs_mask_ssim': np.empty((self.config.epochs_G1)),
-                'logs_ssim': np.empty((self.config.epochs_G1))}
+        # -History del training
+        history_G1 = {'epoch': 0,
+                   'loss_train': np.empty((self.config.epochs_G1)),
+                   'ssim_train': np.empty((self.config.epochs_G1)),
+                   'mask_ssim_train': np.empty((self.config.epochs_G1)),
 
-        if os.path.exists(os.path.join(config.logs_path, 'logs_loss_train_G1.npy')):
-            # Se esistenti, precarico i logs
-            a = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
-            num = a.shape[0]
-            history['loss_train_G1'][:num] = np.load(os.path.join(config.logs_path, 'logs_loss_train_G1.npy'))
-            history['logs_mask_ssim'][:num] = np.load(os.path.join(config.logs_path, 'logs_mask_ssim.npy'))
-            history['logs_ssim'][:num] = np.load(os.path.join(config.logs_path, 'logs_ssim.npy'))
+                   'loss_valid': np.empty((self.config.epochs_G1)),
+                   'ssim_valid': np.empty((self.config.epochs_G1)),
+                   'mask_ssim_valid': np.empty((self.config.epochs_G1))}
 
+        # Se esistenti, precarico i logs
+        if os.path.exists(os.path.join(config.logs_path, 'history_G1.npy')):
+            history_G1 = np.load('file.npy', allow_pickle='TRUE')
 
         for epoch in range(self.config.epochs_G1):
 
@@ -67,11 +64,6 @@ class PG2(object):
             print("- lunghezza valid: ", dataset_valid_aug_len)
             print("\n")
 
-            # dataset_train_aug_len = 923 // 2
-            # dataset_valid_aug_len = 923 // 2
-            #
-            # name_tfrecord_aug_train = self.config.name_tfrecord_train
-            # name_tfrecord_aug_valid = self.config.name_tfrecord_valid
             ## Preprocess Dataset Augumentato
             dataset_train_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_train)
             dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
@@ -92,19 +84,19 @@ class PG2(object):
             valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
 
 
-            # Vettori che mi serviranno di salvare i valori per ogni epoca in modo tale da prointare a schermo le medie
-            logs_to_print = {'loss_values_train_G1': np.empty((num_batches_train)),
+            # Vettori che mi serviranno per salvare i valori per ogni epoca in modo tale da printare a schermo le medie
+            logs_to_print = {'loss_values_train': np.empty((num_batches_train)),
                              'ssim_train': np.empty((num_batches_train)),
                              'mask_ssim_train': np.empty((num_batches_train)),
 
-                             'loss_values_valid_G1': np.empty((num_batches_train)),
+                             'loss_values_valid': np.empty((num_batches_train)),
                              'ssim_valid': np.empty((num_batches_train)),
                              'mask_ssim_valid': np.empty((num_batches_train))
                              }
 
             # Train
             for id_batch in range(num_batches_train):
-                logs_to_print['loss_values_train_G1'][id_batch], logs_to_print['ssim_train'][id_batch],\
+                logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch],\
                 logs_to_print['mask_ssim_train'][id_batch] = self._train_step_G1(train_it, epoch, id_batch)
 
                 # Logs a schermo
@@ -112,9 +104,9 @@ class PG2(object):
                 sys.stdout.write('Epoch {epoch} step {id_batch} / {num_batches} --> loss_G1: {loss_G1:2f}, '
                                  'ssmi: {ssmi:2f}, mask_ssmi: {mask_ssmi:2f}'.format(
                     epoch=epoch + 1,
-                    id_batch=id_batch,
+                    id_batch=id_batch+1,
                     num_batches=num_batches_train,
-                    loss_G1=np.mean(logs_to_print['loss_values_train_G1'][:id_batch + 1]),
+                    loss_G1=np.mean(logs_to_print['loss_values_train'][:id_batch + 1]),
                     ssmi=np.mean(logs_to_print['ssim_train'][:id_batch + 1]),
                     mask_ssmi=np.mean(logs_to_print['mask_ssim_train'][:id_batch + 1])))
                 sys.stdout.flush()
@@ -126,17 +118,17 @@ class PG2(object):
 
             # Valid
             for id_batch in range(num_batches_valid):
-                logs_to_print['loss_values_valid_G1'][id_batch], \
+                logs_to_print['loss_values_valid'][id_batch], \
                 logs_to_print['ssim_valid'][id_batch], logs_to_print['mask_ssim_valid'][id_batch] \
                     = self._valid_step_G1(valid_it, epoch, id_batch)
 
                 sys.stdout.write('\r')
-                sys.stdout.write('{id_batch} / {total}'.format(id_batch=id_batch, total=num_batches_valid))
+                sys.stdout.write('{id_batch} / {total}'.format(id_batch=id_batch+1, total=num_batches_valid))
                 sys.stdout.flush()
 
             sys.stdout.write('\r\r')
             sys.stdout.write('val_loss_G1: {loss_G1:2f}, val_ssmi: {ssmi:2f}, val_mask_ssmi: {mask_ssmi:2f}'.format(
-                loss_G1=np.mean(logs_to_print['loss_values_loss_G1']),
+                loss_G1=np.mean(logs_to_print['loss_values_loss']),
                 ssmi=np.mean(logs_to_print['ssim_valid']),
                 mask_ssmi=np.mean(logs_to_print['mask_ssim_valid'])))
             sys.stdout.flush()
@@ -168,12 +160,14 @@ class PG2(object):
                 print("")
 
             # --Save logs
-            history['loss_train_G1'][epoch] = np.mean(logs_to_print['loss_values_train_G1'])
-            history['logs_ssim'][epoch] = np.mean(logs_to_print['ssim_train'])
-            history['logs_mask_ssim'][epoch] = np.mean(logs_to_print['mask_ssim_train'])
-            np.save(os.path.join(self.config.logs_path, 'logs_loss_train_G1.npy'), history['loss_train_G1'][:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_mask_ssim.npy'), history['logs_mask_ssim'][:epoch + 1])
-            np.save(os.path.join(self.config.logs_path, 'logs_ssim.npy'), history['logs_ssim'][:epoch + 1])
+            history_G1['epoch'] = epoch + 1
+            history_G1['loss_train'][epoch] = np.mean(logs_to_print['loss_train'])
+            history_G1['ssim_train'][epoch] = np.mean(logs_to_print['ssim_train'])
+            history_G1['mask_ssim_train'][epoch] = np.mean(logs_to_print['mask_ssim_train'])
+            history_G1['loss_valid'][epoch] = np.mean(logs_to_print['loss_valid'])
+            history_G1['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
+            history_G1['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
+            np.save('history_G1.npy', history_G1)
 
             # --Save Gooogle colab
             if self.config.run_google_colab and (
@@ -263,7 +257,6 @@ class PG2(object):
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
         output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
-        output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
         # Loss G1
         loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
