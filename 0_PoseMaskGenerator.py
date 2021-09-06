@@ -186,125 +186,6 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation= 10,
 
     return dense
 
-
-"""
-Augumentation con flip verticale
-@:return dic_data --> dic con dati augumentati
-"""
-def _aug_flip(dic_data):
-
-    ### Flip vertical pz_0
-    mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
-    dic_data["image_raw_0"] = cv2.flip(dic_data["image_raw_0"], 1)
-    dic_data["indices_r4_0"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["indices_r4_0"]]
-    dic_data["pose_mask_r4_0"] = cv2.flip(dic_data["pose_mask_r4_0"], 1)
-
-    ### Flip vertical pz_1
-    mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
-    dic_data["image_raw_1"] = cv2.flip(dic_data["image_raw_1"], 1)
-    dic_data["indices_r4_1"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["indices_r4_1"]]
-    dic_data["pose_mask_r4_1"] = cv2.flip(dic_data["pose_mask_r4_1"], 1)
-
-    return dic_data
-
-"""
-Augumentation con shift 
-(tx, ty) --> punto in cui devo spostare il punto (0,0) in alto a sx dell immagine in input
-@:return dic_data --> dic con dati augumentati
-"""
-def _aug_shift(dic_data, type, tx=0, ty=0):
-    if type == "or":
-        assert( ty == 0)
-    elif type == "ver":
-        assert( tx == 0)
-
-
-    h, w, c = dic_data["image_raw_0"].shape
-
-    M = np.float32([[1, 0, tx], [0, 1, ty]])
-    dic_data["image_raw_1"] = cv2.warpAffine(dic_data["image_raw_1"], M, (w, h), flags= cv2.INTER_NEAREST,
-                                             borderMode=cv2.BORDER_REPLICATE).reshape(h,w,c)
-
-    dic_data["pose_mask_r4_1"] = cv2.warpAffine(dic_data["pose_mask_r4_1"], M, (w, h), flags=cv2.INTER_NEAREST,
-                                                borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
-
-    keypoints_shifted = []
-    values_shifted = []
-    for coordinates in dic_data["indices_r4_1"]:
-        y, x, id = coordinates
-
-        if type == "or":
-            xs = x + tx
-            ys = y
-            if xs > 0 and xs < w:
-                keypoints_shifted.append([ys, xs, id])
-                values_shifted.append(1)
-
-        elif type == "ver":
-            xs = x
-            ys = y + ty
-            if ys > 0 and ys < h:
-                keypoints_shifted.append([ys, xs, id])
-                values_shifted.append(1)
-
-
-
-    dic_data["indices_r4_1"] = keypoints_shifted
-    dic_data["values_r4_1"] = values_shifted
-
-    return dic_data
-
-
-def random_brightness(dic_data):
-    dic_data["image_raw_1"] = tf.keras.preprocessing.image.random_brightness(dic_data["image_raw_1"], (1.5,2.0)).astype(np.uint16)
-
-    return dic_data
-
-def random_contrast(dic_data):
-    dic_data["image_raw_1"] = tf.image.random_contrast(dic_data["image_raw_1"], lower=0.2, upper=0.5, seed=2).numpy().astype(np.uint16)
-
-    return dic_data
-
-
-"""
-Augumentation con rotazione secondo angolo angle
-@:return dic_data --> dic con dati augumentati
-"""
-def _aug_rotation_angle(dic_data, angle_deegre):
-
-    h, w, c = dic_data["image_raw_0"].shape
-    ym, xm = h // 2, w // 2  # midpoint dell'immagine 96x128
-    angle_radias = math.radians(angle_deegre)  # angolo di rotazione
-
-    def rotate_keypoints(indices):
-        keypoints_rotated = []
-        for coordinates in indices:
-            x, y = coordinates
-            if y != -1 and x != -1:
-                xr = (x - xm) * math.cos(angle_radias) - (y - ym) * math.sin(angle_radias) + xm
-                yr = (x - xm) * math.sin(angle_radias) + (y - ym) * math.cos(angle_radias) + ym
-                keypoints_rotated.append([int(xr), int(yr)])
-            else:
-                keypoints_rotated.append([x, y])
-
-        return keypoints_rotated
-
-    M = cv2.getRotationMatrix2D((xm, ym), -angle_deegre, 1.0)
-    # Rotate image
-    dic_data["image_raw_1"] = cv2.warpAffine(dic_data["image_raw_1"], M, (w, h),
-                                             flags= cv2.INTER_NEAREST,
-                                             borderMode=cv2.BORDER_REPLICATE).reshape(h,w,c)
-
-    # Rotate mask
-    dic_data["pose_mask_r4_1"] = cv2.warpAffine(dic_data["pose_mask_r4_1"], M, (w, h)).reshape(h,w,c)
-
-    # Rotate keypoints coordinate
-    keypoints_rotated = rotate_keypoints(dic_data["original_peaks_1"])
-    dic_data["indices_r4_1"], dic_data["values_r4_1"], _ = _getSparsePose(keypoints_rotated, h, w, 14,  radius=radius_keypoints_pose, mode='Solid')
-
-
-    return dic_data
-
 """
 Crezione dell example da aggiungere al TF Record
 @:return example
@@ -318,7 +199,7 @@ def _format_example(dic):
         'pz_1': dataset_utils.bytes_feature(dic["pz_1"].encode('utf-8')),
 
         'image_name_0': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 0
-        'image_name_1': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 1
+        'image_name_1': dataset_utils.bytes_feature(dic["image_name_1"].encode('utf-8')),  # nome dell immagine 1
         'image_raw_0': dataset_utils.bytes_feature(dic["image_raw_0"].tostring()),  # immagine 0 in bytes
         'image_raw_1': dataset_utils.bytes_feature(dic["image_raw_1"].tostring()),  # immagine 1 in bytes
 
@@ -451,19 +332,6 @@ def _format_data( id_pz_0, id_pz_1, annotations_0, annotations_1,
     return dic_data
 
 """
-Controllo se l'immagine contiene i Keypoint 3,5,10,11 rispettivamente di spalla dx e sx e anca dx e sx
-@:return True --> almeno uno dei keypoint è mancanta
-@:return False --> i keypoints ci sono tutti
-"""
-def check_assenza_keypoints_3_5_10_11(peaks):
-
-    if int(peaks[3].split(',')[0]) == -1 or int(peaks[5].split(',')[0]) == -1 or int(peaks[10].split(',')[0]) == -1 or int(peaks[11].split(',')[0]) == -1:
-        return True
-    else:
-        return False
-
-
-"""
 Consente di selezionare la coppia di pair da formare
 """
 def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
@@ -551,33 +419,24 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                     cnt = 0 # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
 
                     # Creazione del pair
+                    used = []
                     for indx, row_0 in df_annotation_0.iterrows():
 
-                            # Controllo se l'immagine row_0 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
-                            # In caso di assenza passo all'immagine successiva
-                            # Controllo se la row_0 è nelle immagini selezionate
-                            if check_assenza_keypoints_3_5_10_11(row_0[1:]):
-                                continue
-
-                            
-                            # lettura random delle row_1 nel secondo dataframe
-                            value = randint(0, len(df_annotation_1) - 1)
-                            row_1 = df_annotation_1.loc[value]
-                           
-                            
-                            # Controllo se l'immagine row_1 contiene i keypoints relativi alla spalla dx e sx e anca dx e sx
-                            # In caso di assenza passo ne seleziona un altra random
-                            conteggio_while = 0
-                            while check_assenza_keypoints_3_5_10_11(row_1[1:]):
-                                if conteggio_while < 20:
-                                    # lettura random delle row_1 nel secondo dataframe
-                                    value = randint(0, len(df_annotation_1) - 1)
-                                    row_1 = df_annotation_1.loc[value]
-                                    conteggio_while += 1
-                                else:
-                                    r = input("Sono entrato più di 20 volte nel while")
-
-                            #row_1 = df_annotation_1.loc[indx]
+                            row_1=None
+                            if indx < len(df_annotation_1) - 1:
+                                row_1 = df_annotation_1.loc[indx]
+                            else:
+                                # lettura random delle row_1 nel secondo dataframe
+                                conteggio_while = 0
+                                value = randint(0, len(df_annotation_1) - 1)
+                                while value in used:
+                                    if conteggio_while < 30:
+                                        value = randint(0, len(df_annotation_1) - 1)
+                                        conteggio_while += 1
+                                    else:
+                                        break
+                                row_1 = df_annotation_1.loc[value]
+                                used.append(value)
 
                             # Creazione dell'example tfrecord
                             dic_data = _format_data(pz_0, pz_1, row_0, row_1,radius_keypoints_pose, radius_keypoints_mask,
@@ -593,118 +452,6 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                                 tfrecord_writer.write(example.SerializeToString())
                                 cnt += 1  # incremento del conteggio degli examples
                                 tot_pairs += 1
-
-                            """
-                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 45)
-                            example = _format_example(dic_data_rotate)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
-                                example = _format_example(dic_data_rotate)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 315)
-                            example = _format_example(dic_data_rotate)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
-                                example = _format_example(dic_data_rotate)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-    
-                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), 90)
-                            example = _format_example(dic_data_rotate)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
-                                example = _format_example(dic_data_rotate)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), -90)
-                            example = _format_example(dic_data_rotate)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_rotate = _aug_flip(dic_data_rotate.copy())
-                                example = _format_example(dic_data_rotate)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=30)
-                            example = _format_example(dic_data_shifted)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
-                                example = _format_example(dic_data_shifted)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_shifted = _aug_shift(dic_data.copy(), type="or", tx=-30)
-                            example = _format_example(dic_data_shifted)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
-                                example = _format_example(dic_data_shifted)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_shifted = _aug_shift(dic_data.copy(), type="ver", ty=10)
-                            example = _format_example(dic_data_shifted)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
-                                example = _format_example(dic_data_shifted)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_shifted = _aug_shift(dic_data.copy(), type="ver", ty=-10)
-                            example = _format_example(dic_data_shifted)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            if flip:
-                                dic_data_shifted = _aug_flip(dic_data_shifted.copy())
-                                example = _format_example(dic_data_shifted)
-                                tfrecord_writer.write(example.SerializeToString())
-                                cnt += 1  # incremento del conteggio degli examples
-                                tot_pairs += 1
-    
-                            dic_data_random_b = random_brightness(dic_data.copy())
-                            example = _format_example(dic_data_random_b)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-    
-                            dic_data_random_c = random_contrast(dic_data.copy())
-                            example = _format_example(dic_data_random_c)
-                            tfrecord_writer.write(example.SerializeToString())
-                            cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
-                            """
-
 
                             sys.stdout.write(
                                 '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
