@@ -1,1 +1,0 @@
-Qui sono contenuti i Training effettuati
