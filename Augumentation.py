@@ -4,6 +4,7 @@ import sys
 import math
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from utils import dataset_utils
 
@@ -127,15 +128,44 @@ def _aug_shift(dic_data, type, tx=0, ty=0):
 
     return dic_data
 
+# luminoità tra max//3 e -max//3
 def random_brightness(dic_data):
-    dic_data["image_raw_1"] = tf.keras.preprocessing.image.random_brightness(dic_data["image_raw_1"],
-                                                                             (0.5, 2.0)).astype(np.uint16)
+    image = dic_data["image_raw_1"]
+    max = np.int64(image.max())
+    max_d = max // 3
+    min_d = -max_d
+    brightness = tf.random.uniform(shape=[1], minval=min_d, maxval=max_d, dtype=tf.dtypes.int64).numpy()
+
+    new_image = image + brightness
+    new_image = np.clip(new_image, 0, 32765)
+    new_image = new_image.astype(np.uint16)
+    dic_data["image_raw_1"] = new_image
+
+    # dic_data["image_raw_1"] = tf.image.random_brightness(dic_data["image_raw_1"].astype(np.float16), max_delta=1.5).numpy().astype(np.uint16)
+
+    # datagen = ImageDataGenerator(brightness_range=[0.4,1.5], fill_mode='nearest')
+    # dic_data = datagen.flow(dic_data, batch_size=9, shuffle=False)
 
     return dic_data
 
+# contrasto tra max// e -max//2
 def random_contrast(dic_data):
-    dic_data["image_raw_1"] = tf.image.random_contrast(dic_data["image_raw_1"], lower=0.2, upper=0.5,
-                                                       seed=2).numpy().astype(np.uint16)
+    image = dic_data["image_raw_1"]
+    max = np.int64(image.max())
+    max_d = max // 2
+    min_d = -max_d
+    contrast = tf.random.uniform(shape=[1], minval=min_d, maxval=max_d, dtype=tf.dtypes.int64).numpy()
+
+    f = (max+4) * (contrast + max ) / (max * ((max+4) - contrast))
+    alpha = f
+    gamma = (max_d) * (1 - f)
+
+    new_image = (alpha * image) + gamma
+    new_image = new_image.astype(np.uint16)
+    dic_data["image_raw_1"] = new_image
+
+    # dic_data["image_raw_1"] = tf.image.random_contrast(dic_data["image_raw_1"], lower=0.5, upper=1.5,
+    #                                                     ).numpy().astype(np.uint16)
 
     return dic_data
 
@@ -267,7 +297,7 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         #TODO: adesso le trasformazioni tranne il flip vengono applicate sulla target (immagine e posa) capire se ha senso farlo sulla condizione
         # l idea potreebbe essere applicarla sempre sulla target e random sulla condizione
         # lasciando in questo modo G1 vedremmo solo per la condizione lo stesso input mentre la posa cambierebbe di volta in volta
-        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,2], minval=0, maxval=1, dtype=tf.int64).numpy()
+        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,2], minval=1, maxval=2, dtype=tf.int64).numpy()
 
         vec_dic_affine = [] # conterra i dic con le trasfromazioni affini
         vec_dic_affine.append(dic_data)
@@ -377,6 +407,20 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             cnt_dataset += 1
             vec_dic_structural.append(dic_aug)
 
+        # Random B
+        # list = []
+        # for dic in vec_dic_affine:
+        #     list.append(dic['image_raw_1'])
+        # list = np.array(list)
+        # it = random_brightness(list)
+        # b = it.next()
+        # for i, d in enumerate(vec_dic_affine):
+        #     dic = d.copy()
+        #     dic['image_raw_1'] = b[i].astype(np.uint16)
+        #     example = _format_example(dic)
+        #     tfrecord_writer.write(example.SerializeToString())
+        #     cnt_dataset += 1
+        #     vec_dic_structural.append(dic)
 
         # Random C
         for dic in vec_dic_affine:
@@ -385,6 +429,22 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
             vec_dic_structural.append(dic_aug)
+
+        # # Random C
+        # list = []
+        # for dic in vec_dic_affine:
+        #     list.append(dic['image_raw_1'])
+        # list = np.array(list)
+        # it = random_contrast(list)
+        # b = it.next()
+        # for i,d in enumerate(vec_dic_affine):
+        #     dic = d.copy()
+        #     dic['image_raw_1'] = b[i].astype(np.uint16)
+        #     example = _format_example(dic)
+        #     tfrecord_writer.write(example.SerializeToString())
+        #     cnt_dataset += 1
+        #     vec_dic_structural.append(dic)
+
 
         # Flip
         vec_tot_trasformation = vec_dic_affine + vec_dic_structural
