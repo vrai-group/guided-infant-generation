@@ -27,11 +27,10 @@ class PG2(object):
         # -Caricamento dataset
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.batch(1)
-        it_train = iter(dataset_train)
 
         dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
         dataset_valid = dataset_valid.batch(1)
-        it_valid = iter(dataset_valid)
+
 
         # -Costruzione modello
         self.model_G1 = G1.build_model()
@@ -61,6 +60,8 @@ class PG2(object):
 
 
         for epoch in range(self.config.epochs_G1):
+            it_train = iter(dataset_train)
+            it_valid = iter(dataset_valid)
 
             ## Augumentazione Dataset
             name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(it_train, config, "train")
@@ -73,7 +74,7 @@ class PG2(object):
 
             ## Preprocess Dataset Augumentato
             dataset_train_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_train)
-            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
+            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len//2, reshuffle_each_iteration=True)
             dataset_train_aug = self.babypose_obj.get_preprocess_G1_dataset(dataset_train_aug)
             dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
             dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
@@ -135,7 +136,7 @@ class PG2(object):
 
             sys.stdout.write('\r\r')
             sys.stdout.write('val_loss_G1: {loss_G1:2f}, val_ssmi: {ssmi:2f}, val_mask_ssmi: {mask_ssmi:2f}'.format(
-                loss_G1=np.mean(logs_to_print['loss_values_loss']),
+                loss_G1=np.mean(logs_to_print['loss_values_valid']),
                 ssmi=np.mean(logs_to_print['ssim_valid']),
                 mask_ssmi=np.mean(logs_to_print['mask_ssim_valid'])))
             sys.stdout.flush()
@@ -151,10 +152,10 @@ class PG2(object):
                          'val_ssim_{val_m_ssim:2f}-' \
                          'val_mask_ssim_{val_mask_ssim:2f}.hdf5'.format(
                     epoch=epoch + 1,
-                    loss=np.mean(logs_to_print['loss_values_train_G1']),
+                    loss=np.mean(logs_to_print['loss_values_train']),
                     m_ssim=np.mean(logs_to_print['ssim_train']),
                     mask_ssim=np.mean(logs_to_print['mask_ssim_train']),
-                    val_loss=np.mean(logs_to_print['loss_values_valid_G1']),
+                    val_loss=np.mean(logs_to_print['loss_values_valid']),
                     val_m_ssim=np.mean(logs_to_print['ssim_valid']),
                     val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
             filepath = os.path.join(self.config.weigths_path, name_model)
@@ -168,10 +169,10 @@ class PG2(object):
 
             # --Save logs
             history_G1['epoch'] = epoch + 1
-            history_G1['loss_train'][epoch] = np.mean(logs_to_print['loss_train'])
+            history_G1['loss_train'][epoch] = np.mean(logs_to_print['loss_values_train'])
             history_G1['ssim_train'][epoch] = np.mean(logs_to_print['ssim_train'])
             history_G1['mask_ssim_train'][epoch] = np.mean(logs_to_print['mask_ssim_train'])
-            history_G1['loss_valid'][epoch] = np.mean(logs_to_print['loss_valid'])
+            history_G1['loss_valid'][epoch] = np.mean(logs_to_print['loss_values_valid'])
             history_G1['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
             history_G1['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
             np.save('history_G1.npy', history_G1)
@@ -212,7 +213,7 @@ class PG2(object):
 
             # G1
             input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-            output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+            output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
 
             # Loss G1
             loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
@@ -270,7 +271,7 @@ class PG2(object):
 
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-        output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+        output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
 
         # Loss G1
         loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
@@ -785,7 +786,7 @@ class PG2(object):
             file.write(txt_file)
             file.close()
 
-        return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
+        return loss_value_G2.numpy (), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy()
 
