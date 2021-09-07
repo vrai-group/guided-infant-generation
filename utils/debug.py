@@ -63,7 +63,7 @@ def view_tfrecord():
     import IPython.display as display
     import matplotlib.pyplot as plt
 
-    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich/tfrecord/negative_no_flip/BabyPose_train.tfrecord')
+    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich/tfrecord/negative_no_flip/train_augumentation.tfrecord')
 
     image_feature_description = {
         'pz_0': tf.io.FixedLenFeature([], tf.string),  # nome del pz
@@ -104,7 +104,7 @@ def view_tfrecord():
         cnt += 1
         print(cnt)
 
-        if cnt >= 27:
+        if cnt >= 10:
 
             pz_0 = image_features['pz_0'].numpy().decode('utf-8')
             pz_1 = image_features['pz_1'].numpy().decode('utf-8')
@@ -147,7 +147,8 @@ def view_tfrecord():
             fig = plt.figure(figsize=(10, 2))
             columns = 6
             rows = 1
-            imgs = [image_raw_0 + pose_0*255, image_raw_1 + pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
+            imgs = [image_raw_0 + pose_0*255, image_raw_1, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
+            #imgs = [image_raw_1]
             for i in range(1, columns * rows + 1):
                 fig.add_subplot(rows, columns, i)
                 plt.imshow(imgs[i - 1])
