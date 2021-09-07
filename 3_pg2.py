@@ -97,9 +97,9 @@ class PG2(object):
                              'ssim_train': np.empty((num_batches_train)),
                              'mask_ssim_train': np.empty((num_batches_train)),
 
-                             'loss_values_valid': np.empty((num_batches_train)),
-                             'ssim_valid': np.empty((num_batches_train)),
-                             'mask_ssim_valid': np.empty((num_batches_train))
+                             'loss_values_valid': np.empty((num_batches_valid)),
+                             'ssim_valid': np.empty((num_batches_valid)),
+                             'mask_ssim_valid': np.empty((num_batches_valid))
                              }
 
             # Train
