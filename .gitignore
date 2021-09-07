@@ -1,5 +1,6 @@
 # Directory #
 data/pyOniExtractor
+results_ssim/
 logs/*.npy
 Market_transfer/
 
