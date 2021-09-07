@@ -13,3 +13,5 @@ Market_transfer/
 *.tfrecord
 *.csv
 *.pyc
+*.pkl
+*.rtf
