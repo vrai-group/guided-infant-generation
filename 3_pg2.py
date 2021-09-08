@@ -188,6 +188,7 @@ class PG2(object):
                 os.system('rm -r weights/*.hdf5')
                 os.system('rm -r results_ssim/G1/train results_ssim/G1/valid')
                 os.system('rm -r results_ssim/G1/train results_ssim/G1/valid')
+                os.system('mkdir results_ssim/G1/train results_ssim/G1/valid')
                 print("-Pulizia enviroment eseguita\n")
 
         print("#############\n\n")
