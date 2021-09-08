@@ -39,7 +39,7 @@ class PG2(object):
         #self.model_G1.summary()
 
         # -History del training
-        history_G1 = {'epoch': 0,
+        history_G1 = {'epoch': 1,
                    'loss_train': np.empty((self.config.epochs_G1)),
                    'ssim_train': np.empty((self.config.epochs_G1)),
                    'mask_ssim_train': np.empty((self.config.epochs_G1)),
@@ -59,7 +59,7 @@ class PG2(object):
                     history_G1[key][:epoch] = old_history_G1[key][:epoch]
 
 
-        for epoch in range(self.config.epochs_G1):
+        for epoch in range(history_G1['epoch']-1,self.config.epochs_G1):
             it_train = iter(dataset_train)
             it_valid = iter(dataset_valid)
 
@@ -175,12 +175,12 @@ class PG2(object):
             history_G1['loss_valid'][epoch] = np.mean(logs_to_print['loss_values_valid'])
             history_G1['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
             history_G1['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
-            np.save('history_G1.npy', history_G1)
+            np.save(os.path.join(self.config.logs_path,'history_G1.npy'), history_G1)
 
             # --Save Gooogle colab
             if self.config.run_google_colab and (
                     epoch % self.config.download_weight == self.config.download_weight - 1):
-                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar logs/ -idq')
+                os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./logs -idq')
                 os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./results_ssim -idq')
                 os.system('rar a /gdrive/MyDrive/weights_and_logs.rar weights/ -idq')
                 print("-RAR creato\n")
