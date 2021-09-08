@@ -30,7 +30,8 @@ def PoseMaskLoss1(output_G1, image_raw_1, mask_1):
 def m_ssim(output_G1, image_raw_1, mean_0, mean_1):
     image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
     output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
-    mean_0 = tf.cast(mean_0, dtype=tf.float32)
+    output_G1 = tf.cast(output_G1, dtype=tf.float16)
+    #mean_0 = tf.cast(mean_0, dtype=tf.float32)
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
@@ -44,7 +45,8 @@ def mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1):
     image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
     mask_1 = tf.reshape(mask_1, [-1, 96, 128, 1])
     output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
-    mean_0 = tf.cast(mean_0, dtype=tf.float32)
+    output_G1 = tf.cast(output_G1, dtype=tf.float16)
+    #mean_0 = tf.cast(mean_0, dtype=tf.float32)
 
     image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
     output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
