@@ -39,7 +39,7 @@ class PG2(object):
         #self.model_G1.summary()
 
         # -History del training
-        history_G1 = {'epoch': 1,
+        history_G1 = {'epoch': 0,
                    'loss_train': np.empty((self.config.epochs_G1)),
                    'ssim_train': np.empty((self.config.epochs_G1)),
                    'mask_ssim_train': np.empty((self.config.epochs_G1)),
@@ -50,16 +50,18 @@ class PG2(object):
 
         # Se esistenti, precarico i logs
         if os.path.exists(os.path.join(config.logs_path, 'history_G1.npy')):
-            old_history_G1 = np.load('history_G1.npy', allow_pickle='TRUE')
-            epoch = old_history_G1['epoch']
-            for key, value in old_history_G1:
+            old_history_G1 = np.load(os.path.join(self.config.logs_path,'history_G1.npy'), allow_pickle='TRUE')
+            epoch = old_history_G1.item().get('epoch')
+            for key, value in old_history_G1.item().items():
                 if key == 'epoch':
-                    history_G1[key] = old_history_G1[key]
+                    history_G1[key] = value
                 else:
-                    history_G1[key][:epoch] = old_history_G1[key][:epoch]
+                    history_G1[key][:epoch] = value[:epoch]
+                    
+        
 
 
-        for epoch in range(history_G1['epoch']-1,self.config.epochs_G1):
+        for epoch in range(history_G1['epoch'],self.config.epochs_G1):
             it_train = iter(dataset_train)
             it_valid = iter(dataset_valid)
 
