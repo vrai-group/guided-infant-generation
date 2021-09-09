@@ -51,7 +51,7 @@ def _format_example(dic):
         'pz_1': dataset_utils.bytes_feature(dic["pz_1"].encode('utf-8')),
 
         'image_name_0': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 0
-        'image_name_1': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 1
+        'image_name_1': dataset_utils.bytes_feature(dic["image_name_1"].encode('utf-8')),  # nome dell immagine 1
         'image_raw_0': dataset_utils.bytes_feature(dic["image_raw_0"].tostring()),  # immagine 0 in bytes
         'image_raw_1': dataset_utils.bytes_feature(dic["image_raw_1"].tostring()),  # immagine 1 in bytes
 
