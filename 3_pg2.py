@@ -51,6 +51,7 @@ class PG2(object):
         # Se esistenti, precarico i logs
         if os.path.exists(os.path.join(config.logs_path, 'history_G1.npy')):
             old_history_G1 = np.load(os.path.join(self.config.logs_path,'history_G1.npy'), allow_pickle='TRUE')
+            #epoch = old_history_G1[()]['epoch'] --> anche in questo modi riesco ad ottenere il value dell'epoca
             epoch = old_history_G1.item().get('epoch')
             for key, value in old_history_G1.item().items():
                 if key == 'epoch':
