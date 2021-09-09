@@ -35,7 +35,7 @@ class PG2(object):
         # -Costruzione modello
         self.model_G1 = G1.build_model()
         self.opt_G1 = G1.optimizer()
-        #model_g1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_012-loss_0.000578-ssim_0.699761-mask_ssim_0.961482-val_loss_0.001102-val_ssim_0.678297_val_mask_ssim_0.939384.hdf5'))
+        self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_002-loss_0.007832-ssim_0.651670-mask_ssim_0.923238-val_loss_0.003820-val_ssim_0.686539-val_mask_ssim_0.936308.hdf5'))
         #self.model_G1.summary()
 
         # -History del training
