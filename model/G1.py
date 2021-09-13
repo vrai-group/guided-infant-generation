@@ -14,12 +14,16 @@ config = Config_file.Config()
 
 ####### LOSS
 # Fuinzione di loss input: y_true, y_pred
-def PoseMaskLoss1(output_G1, image_raw_1, mask_1):
+def PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0):
     image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
+    image_raw_0 = tf.cast(image_raw_0, dtype=tf.float32)
     mask_1 = tf.cast(mask_1, dtype=tf.float32)
+    mask_0 = tf.cast(mask_0, dtype=tf.float32)
+    mask_0_inv = 1 - mask_0
 
     # La PoseMakLoss1  è quella implementata sul paper
-    primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
+    #primo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1))  # L1 loss
+    primo_membro = 0.005 * tf.reduce_mean(tf.abs(output_G1 - image_raw_0) * mask_0_inv)  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(output_G1 - image_raw_1) * mask_1)
     PoseMaskLoss1 = primo_membro + secondo_membro
 

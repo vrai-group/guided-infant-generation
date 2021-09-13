@@ -35,7 +35,7 @@ class PG2(object):
         # -Costruzione modello
         self.model_G1 = G1.build_model()
         self.opt_G1 = G1.optimizer()
-        self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_002-loss_0.007832-ssim_0.651670-mask_ssim_0.923238-val_loss_0.003820-val_ssim_0.686539-val_mask_ssim_0.936308.hdf5'))
+        #self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_002-loss_0.007832-ssim_0.651670-mask_ssim_0.923238-val_loss_0.003820-val_ssim_0.686539-val_mask_ssim_0.936308.hdf5'))
         #self.model_G1.summary()
 
         # -History del training
@@ -59,8 +59,6 @@ class PG2(object):
                 else:
                     history_G1[key][:epoch] = value[:epoch]
                     
-        
-
 
         for epoch in range(history_G1['epoch'],self.config.epochs_G1):
             it_train = iter(dataset_train)
@@ -220,7 +218,7 @@ class PG2(object):
             output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
 
             # Loss G1
-            loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, mask_1)
+            loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
 
 
         self.opt_G1.minimize(loss_value_G1, var_list=self.model_G1.trainable_weights, tape=g1_tape)
