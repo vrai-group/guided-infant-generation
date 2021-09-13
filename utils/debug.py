@@ -147,7 +147,7 @@ def view_tfrecord():
             fig = plt.figure(figsize=(10, 2))
             columns = 6
             rows = 1
-            imgs = [image_raw_0 + pose_0*255, image_raw_1, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
+            imgs = [image_raw_0 + pose_0*255, image_raw_1 + pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
             #imgs = [image_raw_1]
             for i in range(1, columns * rows + 1):
                 fig.add_subplot(rows, columns, i)

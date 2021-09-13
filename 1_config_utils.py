@@ -5,8 +5,8 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.Dataset = "Syntetich_complete"
-        self.type = "negative_no_flip_camp_5"   # radius_<num> or new
+        self.Dataset = "Syntetich"
+        self.type = "negative_no_flip"   # radius_<num> or new
         # self.Dataset = "Syntetich"
         # self.type = "negative_syntetich"  # radius_<num> or new
 
@@ -59,7 +59,7 @@ class Config:
 
         # -- Training / test parameters
         self.epochs_G1 = 100
-        self.lr_update_epoch_G1 = 1
+        self.lr_update_epoch_G1 = 10
         self.lr_initial_G1 = 2e-5
         self.drop_rate_G1 = 0.5
 
@@ -78,14 +78,14 @@ class Config:
         self.drop_rate_GAN = self.drop_rate_G1
 
         # - General (Sia per G1 che per GAN)
-        self.save_grid_ssim_epoch_valid = 1  # GAN
-        self.save_grid_ssim_epoch_train = 1  # GAN
+        self.save_grid_ssim_epoch_valid = 1
+        self.save_grid_ssim_epoch_train = 1  
 
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
 
         self.run_google_colab = False
-        self.download_weight = 2 # step di epoche in cui andremo ad aggiornare il rar dei pesi
+        self.download_weight = 1 # step di epoche in cui andremo ad aggiornare il rar dei pesi
 
         self.data_format = 'channels_last'
 
