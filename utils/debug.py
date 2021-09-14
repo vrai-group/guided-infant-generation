@@ -102,9 +102,8 @@ def view_tfrecord():
     cnt=0
     for image_features in parsed_image_dataset:
         cnt += 1
-        print(cnt)
 
-        if cnt >= 10:
+        if cnt >= 0:
 
             pz_0 = image_features['pz_0'].numpy().decode('utf-8')
             pz_1 = image_features['pz_1'].numpy().decode('utf-8')
@@ -145,14 +144,14 @@ def view_tfrecord():
             pose_mask_r4_1 = image_features['pose_mask_r4_1'].numpy().reshape(96, 128, 1)
 
             fig = plt.figure(figsize=(10, 2))
-            columns = 6
+            columns = 4
             rows = 1
-            imgs = [image_raw_0 + pose_0*255, image_raw_1 + pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
-            #imgs = [image_raw_1]
+            #imgs = [image_raw_0 + pose_0*255, image_raw_1 + pose_1*255, image_raw_0 + pose_mask_r4_0*255, image_raw_1 + pose_mask_r4_1*255,  pose_mask_r4_0 * 255, pose_mask_r4_1 * 255]
+            imgs = [image_raw_0, image_raw_1, pose_0, pose_1, pose_mask_r4_0, pose_mask_r4_0]
             for i in range(1, columns * rows + 1):
                 fig.add_subplot(rows, columns, i)
                 plt.imshow(imgs[i - 1])
-            plt.show()
+            #plt.show()
 
 
     print(cnt)
