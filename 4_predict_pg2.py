@@ -12,73 +12,39 @@ from utils import utils_wgan
 from model import G1, G2, Discriminator
 from datasets.BabyPose import BabyPose
 from utils import grid
+from Augumentation import apply_augumentation
 
-
-class ObtainFeaturesMap():
-
-    def __init__(self, model, layer_name, img, output_dim=(100, 100)):
-
-        self.model = model
-        self.layer_name = layer_name  # i nomi dei layer devono essere disposti nella lista nella giusta sequenza altrimenti viene sbagliato il naming
-        self.img = img
-        self.output_dim = output_dim
-
-        assert self.img.ndim == 4
-
-        layers = [model.get_layer(l_name).output for l_name in layer_name if "conv" in l_name]
-        iterate = tf.keras.backend.function([self.model.input],
-                             layers)  # creo un modello con tante uscite quanti sono i layer convoluzionali
-        feature_maps_tot = iterate(self.img)  # restituisce una lista come output
-
-        self.draw_featuremaps(feature_maps_tot)
-
-    def draw_featuremaps(self, feature_maps_tot):
-
-        for num_layer, out_layer in enumerate(feature_maps_tot):
-            feature_maps = np.rollaxis(out_layer[0], 2, 0)
-            name = self.layer_name[num_layer]
-
-            n = int(np.floor(np.sqrt(feature_maps.shape[0])))
-            MARGIN = 5
-            width = n * self.output_dim[0] + (n - 1) * MARGIN
-            height = n * self.output_dim[1] + (n - 1) * MARGIN
-            stitched_maps = np.zeros((width, height), dtype='uint8')
-
-            for i in range(n):
-                for j in range(n):
-                    map = feature_maps[i * n + j, :, :]
-                    map = cv2.resize(map, (self.output_dim[0], self.output_dim[1])) *255
-                    width_margin = (self.output_dim[0] + MARGIN) * i
-                    height_margin = (self.output_dim[1] + MARGIN) * j
-                    stitched_maps[width_margin: width_margin + self.output_dim[0],
-                    height_margin: height_margin + self.output_dim[1]] = map
-            print("salvo")
-            cv2.imwrite('{0:}.png'.format(name), stitched_maps)
 
 def predict_G1(config):
     babypose_obj = BabyPose()
 
     # Preprocess Dataset train
     dataset_train = babypose_obj.get_unprocess_dataset(config.name_tfrecord_train)
-    dataset_train = babypose_obj.get_preprocess_predizione_G1(dataset_train)
     dataset_train = dataset_train.batch(1)
-    dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)  # LASCIO DECIDERE A TENSORFLKOW il numero di memoria corretto per effettuare il prefetch
+    dataset_train = iter(dataset_train)
 
     # Preprocess Dataset test
     dataset_valid = babypose_obj.get_unprocess_dataset(config.name_tfrecord_valid)
-    dataset_valid = babypose_obj.get_preprocess_predizione_G1(dataset_valid)
     dataset_valid = dataset_valid.batch(1)
     dataset_valid = iter(dataset_valid)
 
     dataset_test = babypose_obj.get_unprocess_dataset(config.name_tfrecord_test)
-    dataset_test = babypose_obj.get_preprocess_predizione_G1(dataset_test)
     dataset_test = dataset_test.batch(1)
     dataset_test = iter(dataset_test)
 
+    #name_tfrecord_aug, dataset_aug_len = apply_augumentation(dataset_test, config, "test")
+    #dataset_aug = babypose_obj.get_unprocess_dataset(name_tfrecord_aug)
+    dataset_aug_len = 50000
+    dataset_aug = babypose_obj.get_unprocess_dataset("BabyPose_train.tfrecord")
+    dataset_aug = babypose_obj.get_preprocess_G1_dataset(dataset_aug)
+    #dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
+    dataset_aug = dataset_aug.batch(1)
+    dataset_aug = iter(dataset_aug)
+
+
 
     model_G1 = G1.build_model()
-    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_200-loss_0.000185-mse_inf-ssim_0.094355-mask_ssim_0.811881-val_loss_0.000289-val_mse_inf-val_ssim_0.027771_val_mask_ssim_0.799022.hdf5'))
-    #model_G1.load_weights(os.path.join(config.weigths_path,'weights00000650.hdf5'))
+    #model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_012-loss_0.000486-ssim_0.927942-mask_ssim_0.980482-val_loss_0.000819-val_ssim_0.911594-val_mask_ssim_0.972761.hdf5'))
     model_G1.summary()
     cnt = 0
 
@@ -153,32 +119,32 @@ def predict_G1(config):
     #                     #plt.savefig("pred_train/pred_{id}.png".format(id=cnt2,pz_0=pz_0,pz_1=pz_1))
 
     # Per effettuare le predizioni solamente su dataset di valid/test
-    for e in dataset_train:
+    for i in range(dataset_aug_len):
         cnt += 1
-        X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1 = e
+        batch = next(dataset_aug)
+        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+        image_raw_1 = batch[1]  # [batch, 96,128, 1]
+        pose_1 = batch[2]  # [batch, 96,128, 14]
+        mask_1 = batch[3]  # [batch, 96,128, 1]
+        mask_0 = batch[4]  # [batch, 96,128, 1]
+        pz_0 = batch[5]  # [batch, 1]
+        pz_1 = batch[6]  # [batch, 1]
+        name_0 = batch[7]  # [batch, 1]
+        name_1 = batch[8]  # [batch, 1]
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
+
         pz_0 = pz_0.numpy()[0].decode("utf-8")
         pz_1 = pz_1.numpy()[0].decode("utf-8")
         print(pz_0, '-', pz_1)
 
-        if cnt >= 5000:
-            #if pz_0 == "pz104" and pz_1 == "pz107":
+        if cnt >= 0:
 
-                if config.input_image_raw_channel == 3:
-                    image_raw_0 = X[:, :, :, :3]
-                    pose_1 = X[:, :, :, 3:]
-                    image_raw_1 = Y[:, :, :, :3]
-                    mask_1 = Y[:, :, :, 3]
-
-                elif config.input_image_raw_channel == 1:
-                    image_raw_0 = X[:, :, :, 0]
-                    pose_1 = X[:, :, :, 1:]
-                    image_raw_1 = Y[:, :, :, 0]
-                    mask_1 = Y[:, :, :, 1]
-
-                predizione = model_G1.predict(X, verbose=1)
+                input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
+                predizione = model_G1.predict(input_G1, verbose=1)
 
                 # Unprocess
-                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5)
+                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5).numpy()
                 image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
 
                 image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
@@ -198,10 +164,6 @@ def predict_G1(config):
                 predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
                                               clip_value_max=32765)
                 predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
-
-                # result = tf.image.ssim(predizione.reshape(96, 128, 1), image_raw_1.reshape(96, 128, 1),
-                #                        max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
-                # print(result)
 
                 fig = plt.figure(figsize=(10, 2))
                 columns = 5
@@ -259,6 +221,7 @@ def predict_G1_view_more_epochs(config):
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     model_G1 = G1.build_model()
+
 
     for p in pair:
         p0 = p.split('-')[0]
@@ -570,5 +533,5 @@ if __name__ == "__main__":
     config = Config_file.Config()
     config.print_info()
     #predict_G1_view_more_epochs(config)
-    #predict_G1(config)
-    predict_conditional_GAN(config)
+    predict_G1(config)
+    #predict_conditional_GAN(config)
