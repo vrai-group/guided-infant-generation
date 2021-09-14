@@ -181,6 +181,7 @@ def _aug_rotation_angle(dic_data, angle_deegre, indx_img):
 
         return keypoints_rotated
 
+    #If the angle is positive, the image gets rotated in the counter-clockwise direction.
     M = cv2.getRotationMatrix2D((xm, ym), -angle_deegre, 1.0)
     # Rotate image
     dic_data["image_raw_"+str(indx_img)] = cv2.warpAffine(dic_data["image_raw_"+str(indx_img)], M, (w, h),
@@ -226,6 +227,8 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         num_example = config.dataset_train_len
     elif type == "valid":
         num_example = config.dataset_valid_len
+    elif type == "test":
+        num_example = config.dataset_test_len
 
     name_tfrecord = type+'_augumentation.tfrecord'
     cnt_dataset = 0
@@ -283,28 +286,18 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         tfrecord_writer.write(example.SerializeToString())
         cnt_dataset += 1
 
-        # Vettore booleano che mi consente di scegliere randomicamente quale trasformazione applicare sul pair iniziale
-        # Il vettore ha dimensione [8,3]:
-        #     - 8 trasformazioni affini
-        #     - 2 boolenani cosi distribuiti [trasformazione,  img_0 ]
-        random_bool_trasformation_on_initial_pair = tf.random.uniform(shape=[10,2], minval=1, maxval=2, dtype=tf.int64).numpy()
-
-        vec_dic_affine = [] # conterra i dic con le trasfromazioni affini
-        vec_dic_affine.append(dic_data)
-
         ##############################
         # Dinamic affine trasformation
         ##############################
 
-        ########### Image_raw_1
+        vec_dic_affine = []  # conterra i dic con le trasfromazioni affini
+
+        ### Aug image_raw_1
 
         # Rotazione Random
         random_angles_1 = tf.random.uniform(shape=[4], minval=-91, maxval=91, dtype=tf.int64).numpy()
         for angle in random_angles_1:
             dic_data_rotate = _aug_rotation_angle(dic_data.copy(), angle, indx_img=1) #rotazione image raw_1
-            example = _format_example(dic_data_rotate)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
             vec_dic_affine.append(dic_data_rotate)
 
         # Shift Random
@@ -312,145 +305,90 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         random_shift_or_1 = tf.random.uniform(shape=[2], minval=-31, maxval=31, dtype=tf.int64).numpy()
         for shift in random_shift_or_1:
             dic_data_shifted = _aug_shift(dic_data.copy(), indx_img=1, type="or", tx=shift)
-            example = _format_example(dic_data_shifted)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
             vec_dic_affine.append(dic_data_shifted)
         # Shift ver
         random_shift_ver_1 = tf.random.uniform(shape=[2], minval=-11, maxval=11, dtype=tf.int64).numpy()
         for shift in random_shift_ver_1:
             dic_data_shifted = _aug_shift(dic_data.copy(), indx_img=1, type="ver", ty=shift)
-            example = _format_example(dic_data_shifted)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
             vec_dic_affine.append(dic_data_shifted)
 
-        ######### Image_raw_0
-        #Piccole trasformaizoni 
-
+        ### Aug image_raw_0
+        #Piccole trasformaizoni
         list = vec_dic_affine.copy()
-        for i, dic in enumerate(list[1:]):  # escludo l'immagine originale
+        for i, dic in enumerate(list):  # escludo l'immagine originale
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=4, dtype=tf.int64).numpy()
-            if trasformation == 0: #Nessuna trasformazione
+            if trasformation == 0:  # Nessuna trasformazione
                 continue
-            if trasformation == 1: #Rotation
+            if trasformation == 1:  # Rotation
                 angle = tf.random.uniform(shape=[1], minval=-46, maxval=46, dtype=tf.int64).numpy()[0]
                 dic_new = _aug_rotation_angle(dic.copy(), angle, indx_img=0)  # rotazione image raw_1
-                vec_dic_affine[i + 1] = dic_new
-            if trasformation == 2: #Shift Or
+                vec_dic_affine[i] = dic_new
+            if trasformation == 2:  # Shift Or
                 shift = tf.random.uniform(shape=[1], minval=-21, maxval=21, dtype=tf.int64).numpy()[0]
                 dic_new = _aug_shift(dic.copy(), indx_img=0, type="or", tx=shift)  # rotazione image raw_1
-                vec_dic_affine[i + 1] = dic_new
-            if trasformation == 3:  #Shift Ver
+                vec_dic_affine[i] = dic_new
+            if trasformation == 3:  # Shift Ver
                 shift = tf.random.uniform(shape=[1], minval=-11, maxval=11, dtype=tf.int64).numpy()[0]
                 dic_new = _aug_shift(dic.copy(), indx_img=0, type="ver", ty=shift)  # rotazione image raw_1
-                vec_dic_affine[i + 1] = dic_new
+                vec_dic_affine[i] = dic_new
 
+        ### Salvo Affine trasformation
+        for dic in vec_dic_affine:
+            example = _format_example(dic)
+            tfrecord_writer.write(example.SerializeToString())
+            cnt_dataset += 1
 
-        ###############################
-        # Static affine trasformation
-        ###############################
-        # # Rotazione 45
-        # if random_bool_trasformation_on_initial_pair[0][0]: #trasformazione
-        #     dic_data_rotate_1 = _aug_rotation_angle(dic_data.copy(), 45)
-        #     example = _format_example(dic_data_rotate_1)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_rotate_1)
-        #
-        # # Rotazione -45
-        # if random_bool_trasformation_on_initial_pair[1][0]:
-        #     dic_data_rotate_2 = _aug_rotation_angle(dic_data.copy(), -45)
-        #     example = _format_example(dic_data_rotate_2)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_rotate_2)
-        #
-        # # Rotazione 90
-        # if random_bool_trasformation_on_initial_pair[2][0]:
-        #     dic_data_rotate_3 = _aug_rotation_angle(dic_data.copy(), 90)
-        #     example = _format_example(dic_data_rotate_3)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_rotate_3)
-        #
-        #
-        # # Rotazione -90
-        # if random_bool_trasformation_on_initial_pair[3][0]:
-        #     dic_data_rotate_4 = _aug_rotation_angle(dic_data.copy(), -90)
-        #     example = _format_example(dic_data_rotate_4)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_rotate_4)
-        #
-        # # Shift orizzontale 30
-        # if random_bool_trasformation_on_initial_pair[4][0]:
-        #     dic_data_shifted_5 = _aug_shift(dic_data.copy(), type="or", tx=30)
-        #     example = _format_example(dic_data_shifted_5)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_shifted_5)
-        #
-        #
-        # # Shift orizzontale -30
-        # if random_bool_trasformation_on_initial_pair[5][0]:
-        #     dic_data_shifted_6 = _aug_shift(dic_data.copy(), type="or", tx=-30)
-        #     example = _format_example(dic_data_shifted_6)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_shifted_6)
-        #
-        #
-        # # Shift verticale 10
-        # if random_bool_trasformation_on_initial_pair[6][0]:
-        #     dic_data_shifted_7 = _aug_shift(dic_data.copy(), type="ver", ty=10)
-        #     example = _format_example(dic_data_shifted_7)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_shifted_7)
-        #
-        #
-        # # Shift verticale -10
-        # if random_bool_trasformation_on_initial_pair[7][0]:
-        #     dic_data_shifted_8 = _aug_shift(dic_data.copy(), type="ver", ty=-10)
-        #     example = _format_example(dic_data_shifted_8)
-        #     tfrecord_writer.write(example.SerializeToString())
-        #     cnt_dataset += 1
-        #     vec_dic_affine.append(dic_data_shifted_8)
 
         ###############################
         # Structural trasformation
         ###############################
+        vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C
 
         ############# Image raw 1
-        vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C
+
         # Random B
         for dic in vec_dic_affine:
             dic_aug = random_brightness(dic.copy(), indx_img=1)
-            example = _format_example(dic_aug)
-            tfrecord_writer.write(example.SerializeToString())
-            cnt_dataset += 1
             vec_dic_structural.append(dic_aug)
 
         # Random C
         for dic in vec_dic_affine:
             dic_aug = random_contrast(dic.copy(), indx_img=1)
-            example = _format_example(dic_aug)
+            vec_dic_structural.append(dic_aug)
+
+        ###### Image raw 0
+
+        for i,dic in enumerate(vec_dic_structural):
+            trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
+            if trasformation == 0:  # Nessuna trasformazione
+                continue
+            if trasformation == 1:  # brightness
+                dic_new = random_brightness(dic.copy(), indx_img=0)
+                vec_dic_structural[i] = dic_new
+            if trasformation == 2:  # Contrast
+                dic_new = random_contrast(dic.copy(), indx_img=0)
+                vec_dic_structural[i] = dic_new
+
+
+        ### Salvo Structural trasformation
+        for dic in vec_dic_structural:
+            example = _format_example(dic)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-            vec_dic_structural.append(dic_aug)
 
 
         ###############################
         # Flipping trasformation
         ###############################
         # Flip
-        vec_tot_trasformation = vec_dic_affine + vec_dic_structural
+        vec_tot_trasformation = vec_dic_affine + vec_dic_structural + [dic_data]
         for dic in vec_tot_trasformation:
             dic_aug = _aug_flip(dic.copy())
             example = _format_example(dic_aug)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
+
+
 
 
     return name_tfrecord, cnt_dataset
