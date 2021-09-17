@@ -9,7 +9,6 @@ import math
 sys.path.insert(1, '../utils')
 from utils import utils_wgan
 from skimage.transform import resize
-from scipy.linalg import sqrtm
 
 Config_file = __import__('1_config_utils')
 config = Config_file.Config()
@@ -68,7 +67,7 @@ def mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1):
     return mean
 
 #piu il valore è basso più le geenrate sono uguali alle reali
-def fid_score(output_G1, image_raw_1, mean_0, mean_1):
+def univariate_fid_score(output_G1, image_raw_1, mean_0, mean_1):
 
     def scale_images(images, new_shape):
         images_list = list()
@@ -90,8 +89,9 @@ def fid_score(output_G1, image_raw_1, mean_0, mean_1):
 
     def calculate_fid(real_embeddings, generated_embeddings):
         # calculate mean and covariance statistics
-        mu1, sigma1 = real_embeddings.mean(axis=0), np.cov(real_embeddings, rowvar=False).reshape(1,-1)
-        mu2, sigma2 = generated_embeddings.mean(axis=0), np.cov(generated_embeddings, rowvar=False).reshape(1,-1)
+        # nel caso della univariata la covarianza corrisponde con la varianza
+        mu1, sigma1 = real_embeddings.mean(axis=1), np.cov(real_embeddings, rowvar=False)
+        mu2, sigma2 = generated_embeddings.mean(axis=1), np.cov(generated_embeddings, rowvar=False)
 
         # calculate sum squared difference between means
         ssdiff = np.sum((mu1 - mu2) ** 2.0)
@@ -102,7 +102,7 @@ def fid_score(output_G1, image_raw_1, mean_0, mean_1):
             covmean = covmean.real
 
         # calculate score
-        fid = ssdiff + np.trace(sigma1 + sigma2 - 2.0 * covmean)
+        fid = ssdiff + (sigma1 + sigma2 - 2.0 * covmean)
 
         return fid
 
@@ -110,17 +110,19 @@ def fid_score(output_G1, image_raw_1, mean_0, mean_1):
     output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
     output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
-    image_raw_1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
-                                           clip_value_max=32765), dtype=tf.float32)
-    output_G1 = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0,
-                                         clip_value_max=32765), dtype=tf.float32)
+    image_raw_1 = tf.cast(tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
+                                           clip_value_max=32765), dtype=tf.uint8), dtype=tf.float32)
+    output_G1 = tf.cast(tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0,
+                                         clip_value_max=32765), dtype=tf.uint8),dtype=tf.float32)
 
+    # Converto in immagini a 3 channel
     image_raw_1_3channel = tf.concat([image_raw_1, image_raw_1, image_raw_1], axis=-1)
     output_G1_3channel = tf.concat([output_G1, output_G1, output_G1], axis=-1)
+    image_raw_1_3channel = scale_images(image_raw_1_3channel, (299, 299, 3))
+    output_G1_3channel = scale_images(output_G1_3channel, (299, 299, 3))
     image_raw_1_3channel_p = preprocess_input(image_raw_1_3channel)
     output_G1_3channel_p = preprocess_input(output_G1_3channel)
-    image_raw_1_3channel_p = scale_images(image_raw_1_3channel_p, (299, 299, 3))
-    output_G1_3channel_p = scale_images(output_G1_3channel_p, (299, 299, 3))
+
 
     # compute embeddings for real images
     real_image_embeddings = compute_embeddings(image_raw_1_3channel_p)

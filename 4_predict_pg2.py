@@ -72,12 +72,12 @@ def predict_G1(config):
 
 
         if cnt >= 0:
-
+                print(cnt)
                 input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
                 predizione = model_G1.predict(input_G1, verbose=1)
                 mean_loss[cnt-1] = G1.PoseMaskLoss1(predizione, image_raw_1, image_raw_0, mask_1, mask_0)
                 mean_ssim[cnt-1] = G1.m_ssim(predizione, image_raw_1, mean_0, mean_1)
-                mean_fid[cnt - 1] = G1.fid_score(predizione, image_raw_1, mean_0, mean_1)
+                mean_fid[cnt - 1] = G1.univariate_fid_score(predizione, image_raw_1, mean_0, mean_1)
 
                 #Unprocess
                 # image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5).numpy()
