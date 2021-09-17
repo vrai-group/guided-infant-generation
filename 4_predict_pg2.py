@@ -15,6 +15,7 @@ from utils import grid
 from Augumentation import apply_augumentation
 
 
+
 def predict_G1(config):
     babypose_obj = BabyPose()
 
@@ -32,91 +33,22 @@ def predict_G1(config):
     dataset_test = dataset_test.batch(1)
     dataset_test = iter(dataset_test)
 
-    #name_tfrecord_aug, dataset_aug_len = apply_augumentation(dataset_test, config, "test")
-    #dataset_aug = babypose_obj.get_unprocess_dataset(name_tfrecord_aug)
-    dataset_aug_len = 50000
-    dataset_aug = babypose_obj.get_unprocess_dataset("BabyPose_train.tfrecord")
+    # name_tfrecord_aug, dataset_aug_len = apply_augumentation(dataset_test, config, "test")
+    # dataset_aug = babypose_obj.get_unprocess_dataset(name_tfrecord_aug)
+    dataset_aug_len = 1750
+    dataset_aug = babypose_obj.get_unprocess_dataset("test_aug_dataset.tfrecord")
     dataset_aug = babypose_obj.get_preprocess_G1_dataset(dataset_aug)
-    #dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
+    dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
     dataset_aug = dataset_aug.batch(1)
     dataset_aug = iter(dataset_aug)
 
-
-
     model_G1 = G1.build_model()
-    #model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_012-loss_0.000486-ssim_0.927942-mask_ssim_0.980482-val_loss_0.000819-val_ssim_0.911594-val_mask_ssim_0.972761.hdf5'))
+    model_G1.load_weights(os.path.join(config.weigths_path, 'Model_G1_epoch_002-loss_0.000704-ssim_0.913195-mask_ssim_0.975810-val_loss_0.000793-val_ssim_0.912054-val_mask_ssim_0.974530.hdf5'))
     model_G1.summary()
     cnt = 0
-
-    #Per effettuare incroci tra le img di condizione di test e le pose di train
-    cnt2 = 0
-    p = []  # per raccogliere le pose del train
-    raw1 = []  # per raccogliere le target del train
-    # for e in dataset_valid:
-    #     cnt += 1
-    #     X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1 = e
-    #     pz_0 = pz_0.numpy()[0].decode("utf-8")
-    #     pz_1 = pz_1.numpy()[0].decode("utf-8")
-    #     print(pz_0, '-', pz_1)
-    #
-    #     if cnt >= 0:
-    #         if pz_0 == "pz3" and pz_1 == "pz34": #salviamo la posa del pz_1
-    #
-    #             pose_1 = X[:,:,:,1:]
-    #             p.append(pose_1)
-    #             raw1.append(Y[:,:,:,0])
-    #
-    #         if len(p) >= 5:
-    #             print("Terminata raccolta pose")
-    #             for e2 in dataset_valid:
-    #
-    #                 X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1 = e2
-    #                 pz_0 = pz_0.numpy()[0].decode("utf-8")
-    #
-    #                 print(pz_0)
-    #
-    #                 if pz_0 == "pz111":
-    #                     image_raw_0 = X[:, :, :, 0]
-    #                     image_raw_0  = tf.reshape(image_raw_0, (1, 96, 128, 1))
-    #
-    #                     pose_1 = p[cnt2]
-    #                     image_raw_1 = raw1[cnt2]
-    #                     cnt2 += 1
-    #                     X = tf.concat([image_raw_0, pose_1], axis=-1)
-    #                     predizione = model_G1.predict(X, verbose=1)
-    #
-    #                     # #Unprocess
-    #                     image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5)
-    #                     image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint8)[0].numpy()
-    #
-    #                     image_raw_1 = utils_wgan.unprocess_image(image_raw_1, 400, 32765.5)
-    #                     image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint8)[0].numpy()
-    #
-    #                     pose_1 = pose_1.numpy()[0]
-    #                     pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
-    #                     pose_1 = pose_1 / 2
-    #                     pose_1 = tf.reshape(pose_1, [96,128,14])*255
-    #                     pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
-    #                     pose_1 = tf.cast(pose_1, dtype=tf.float32)
-    #
-    #                     predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765)
-    #                     predizione = tf.cast(predizione, dtype=tf.uint8)[0].numpy()
-    #
-    #                     fig = plt.figure(figsize=(10, 2))
-    #                     columns = 4
-    #                     rows = 1
-    #                     # imgs = [predizione, image_raw_0,  image_raw_1, mask_1]
-    #                     # labels = ["Prediction", "Condition image",  "image_raw_1", "mask_1"]
-    #                     imgs = [predizione, image_raw_0, image_raw_1, pose_1]
-    #                     labels = ["Predizione", "Immagine di condizione", "Target", "Posa desiderata"]
-    #                     for i in range(1, columns * rows + 1):
-    #                         sub = fig.add_subplot(rows, columns, i)
-    #                         sub.set_title(labels[i - 1])
-    #                         plt.imshow(imgs[i - 1])
-    #                     plt.show()
-    #                     #cnt += 1
-    #                     #cv2.imwrite("a_"+str(cnt)+".png", predizione)
-    #                     #plt.savefig("pred_train/pred_{id}.png".format(id=cnt2,pz_0=pz_0,pz_1=pz_1))
+    mean_loss = np.empty((dataset_aug_len))
+    mean_ssim = np.empty((dataset_aug_len))
+    mean_fid = np.empty((dataset_aug_len))
 
     # Per effettuare le predizioni solamente su dataset di valid/test
     for i in range(dataset_aug_len):
@@ -134,48 +66,57 @@ def predict_G1(config):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
-        pz_0 = pz_0.numpy()[0].decode("utf-8")
-        pz_1 = pz_1.numpy()[0].decode("utf-8")
-        print(pz_0, '-', pz_1)
+        # pz_0 = pz_0.numpy()[0].decode("utf-8")
+        # pz_1 = pz_1.numpy()[0].decode("utf-8")
+        # print(pz_0, '-', pz_1)
+
 
         if cnt >= 0:
 
                 input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
                 predizione = model_G1.predict(input_G1, verbose=1)
+                mean_loss[cnt-1] = G1.PoseMaskLoss1(predizione, image_raw_1, image_raw_0, mask_1, mask_0)
+                mean_ssim[cnt-1] = G1.m_ssim(predizione, image_raw_1, mean_0, mean_1)
+                mean_fid[cnt - 1] = G1.fid_score(predizione, image_raw_1, mean_0, mean_1)
 
-                # Unprocess
-                image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5).numpy()
-                image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
+                #Unprocess
+                # image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5).numpy()
+                # image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
+                #
+                # image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
+                #                                clip_value_max=32765)
+                # image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
+                #
+                # pose_1 = pose_1.numpy()[0]
+                # pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
+                # pose_1 = pose_1 / 2
+                # pose_1 = tf.reshape(pose_1, [96, 128, 14]) * 255
+                # pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+                # pose_1 = tf.cast(pose_1, dtype=tf.float32)
+                #
+                # mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96, 128, 1)
+                # mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
+                #
+                # predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
+                #                               clip_value_max=32765)
+                # predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
+                #
+                # fig = plt.figure(figsize=(10, 2))
+                # columns = 5
+                # rows = 1
+                # imgs = [predizione, image_raw_0, pose_1, image_raw_1, mask_1]
+                # labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Target", "Maschera posa desiderata"]
+                # for i in range(1, columns * rows + 1):
+                #     sub = fig.add_subplot(rows, columns, i)
+                #     sub.set_title(labels[i - 1])
+                #     plt.imshow(imgs[i - 1])
+                # plt.show()
+                #plt.savefig("pred_train/pred_test_epoch_10_{id}.png".format(id=cnt,pz_0=pz_0,pz_1=pz_1))
 
-                image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
-                                               clip_value_max=32765)
-                image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
-
-                pose_1 = pose_1.numpy()[0]
-                pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
-                pose_1 = pose_1 / 2
-                pose_1 = tf.reshape(pose_1, [96, 128, 14]) * 255
-                pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
-                pose_1 = tf.cast(pose_1, dtype=tf.float32)
-
-                mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96, 128, 1)
-                mask_0 = tf.cast(mask_0, dtype=tf.int16)[0].numpy().reshape(96, 128, 1) * 255
-
-                predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
-                                              clip_value_max=32765)
-                predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
-
-                fig = plt.figure(figsize=(10, 2))
-                columns = 5
-                rows = 1
-                imgs = [predizione, image_raw_0, pose_1, image_raw_1, mask_1]
-                labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Target", "Maschera posa desiderata"]
-                for i in range(1, columns * rows + 1):
-                    sub = fig.add_subplot(rows, columns, i)
-                    sub.set_title(labels[i - 1])
-                    plt.imshow(imgs[i - 1])
-                plt.show()
-                # plt.savefig("pred_train/pred_test_epoch_10_{id}.png".format(id=cnt,pz_0=pz_0,pz_1=pz_1))
+    print("SSIM: ",np.mean(mean_ssim))
+    print("FID: ", np.mean(mean_fid))
+    print("LOSS: ",np.mean(mean_loss))
+    print(dataset_aug_len)
 
 
 """
