@@ -343,31 +343,69 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         # Structural trasformation
         ###############################
         vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C
+        vec_dic_a = []  # conterra i dic con le trasfromazioni random B e random C
 
         ############# Image raw 1
+        # Rotazione Random
+        random_angles_1 = tf.random.uniform(shape=[4], minval=-91, maxval=91, dtype=tf.int64).numpy()
+        for angle in random_angles_1:
+            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), angle, indx_img=1)  # rotazione image raw_1
+            vec_dic_a.append(dic_data_rotate)
+
+        # Shift Random
+        # Shift or
+        random_shift_or_1 = tf.random.uniform(shape=[2], minval=-31, maxval=31, dtype=tf.int64).numpy()
+        for shift in random_shift_or_1:
+            dic_data_shifted = _aug_shift(dic_data.copy(), indx_img=1, type="or", tx=shift)
+            vec_dic_a.append(dic_data_shifted)
+        # Shift ver
+        random_shift_ver_1 = tf.random.uniform(shape=[2], minval=-11, maxval=11, dtype=tf.int64).numpy()
+        for shift in random_shift_ver_1:
+            dic_data_shifted = _aug_shift(dic_data.copy(), indx_img=1, type="ver", ty=shift)
+            vec_dic_a.append(dic_data_shifted)
+
+        ### Aug image_raw_0
+        # Piccole trasformaizoni
+        list = vec_dic_a.copy()
+        for i, dic in enumerate(list):  # escludo l'immagine originale
+            trasformation = tf.random.uniform(shape=[1], minval=0, maxval=4, dtype=tf.int64).numpy()
+            if trasformation == 0:  # Nessuna trasformazione
+                continue
+            if trasformation == 1:  # Rotation
+                angle = tf.random.uniform(shape=[1], minval=-46, maxval=46, dtype=tf.int64).numpy()[0]
+                dic_new = _aug_rotation_angle(dic.copy(), angle, indx_img=0)  # rotazione image raw_1
+                vec_dic_a[i] = dic_new
+            if trasformation == 2:  # Shift Or
+                shift = tf.random.uniform(shape=[1], minval=-21, maxval=21, dtype=tf.int64).numpy()[0]
+                dic_new = _aug_shift(dic.copy(), indx_img=0, type="or", tx=shift)  # rotazione image raw_1
+                vec_dic_a[i] = dic_new
+            if trasformation == 3:  # Shift Ver
+                shift = tf.random.uniform(shape=[1], minval=-11, maxval=11, dtype=tf.int64).numpy()[0]
+                dic_new = _aug_shift(dic.copy(), indx_img=0, type="ver", ty=shift)  # rotazione image raw_1
+                vec_dic_a[i] = dic_new
 
         # Random B
-        for dic in vec_dic_affine:
+        for dic in vec_dic_a:
             dic_aug = random_brightness(dic.copy(), indx_img=1)
             vec_dic_structural.append(dic_aug)
 
         # Random C
-        for dic in vec_dic_affine:
+        for dic in vec_dic_a:
             dic_aug = random_contrast(dic.copy(), indx_img=1)
             vec_dic_structural.append(dic_aug)
 
         ###### Image raw 0
 
-        for i,dic in enumerate(vec_dic_structural):
-            trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
-            if trasformation == 0:  # Nessuna trasformazione
-                continue
-            if trasformation == 1:  # brightness
-                dic_new = random_brightness(dic.copy(), indx_img=0)
-                vec_dic_structural[i] = dic_new
-            if trasformation == 2:  # Contrast
-                dic_new = random_contrast(dic.copy(), indx_img=0)
-                vec_dic_structural[i] = dic_new
+        # for i,dic in enumerate(vec_dic_structural):
+        #     trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
+        #     if trasformation == 0:  # Nessuna trasformazione
+        #         continue
+        #     if trasformation == 1:  # brightness
+        #         dic_new = random_brightness(dic.copy(), indx_img=0)
+        #         vec_dic_structural[i] = dic_new
+        #     if trasformation == 2:  # Contrast
+        #         dic_new = random_contrast(dic.copy(), indx_img=0)
+        #         vec_dic_structural[i] = dic_new
 
 
         ### Salvo Structural trasformation
