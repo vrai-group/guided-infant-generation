@@ -8,7 +8,6 @@ from tensorflow.keras.applications.inception_v3 import preprocess_input
 import math
 sys.path.insert(1, '../utils')
 from utils import utils_wgan
-from skimage.transform import resize
 
 Config_file = __import__('1_config_utils')
 config = Config_file.Config()
@@ -65,74 +64,6 @@ def mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1):
     mean = tf.cast(mean, dtype=tf.float32)
 
     return mean
-
-#piu il valore è basso più le geenrate sono uguali alle reali
-def univariate_fid_score(output_G1, image_raw_1, mean_0, mean_1):
-
-    def scale_images(images, new_shape):
-        images_list = list()
-        for image in images:
-            # resize with nearest neighbor interpolation
-            new_image = resize(image, new_shape, 0)
-            # store
-            images_list.append(new_image)
-        return np.asarray(images_list)
-
-    def compute_embeddings(images):
-        inception_model = tf.keras.applications.InceptionV3(include_top=False,
-                                                            weights="imagenet",
-                                                            pooling='avg',
-                                                            input_shape=(299,299,3))
-        embeddings = inception_model.predict(images)
-
-        return embeddings
-
-    def calculate_fid(real_embeddings, generated_embeddings):
-        # calculate mean and covariance statistics
-        # nel caso della univariata la covarianza corrisponde con la varianza
-        mu1, sigma1 = real_embeddings.mean(axis=1), np.cov(real_embeddings, rowvar=False)
-        mu2, sigma2 = generated_embeddings.mean(axis=1), np.cov(generated_embeddings, rowvar=False)
-
-        # calculate sum squared difference between means
-        ssdiff = np.sum((mu1 - mu2) ** 2.0)
-        # calculate sqrt of product between cov
-        covmean = np.sqrt(sigma1.dot(sigma2))
-        # check and correct imaginary numbers from sqrt
-        if np.iscomplexobj(covmean):
-            covmean = covmean.real
-
-        # calculate score
-        fid = ssdiff + (sigma1 + sigma2 - 2.0 * covmean)
-
-        return fid
-
-    image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
-    output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
-    output_G1 = tf.cast(output_G1, dtype=tf.float16)
-
-    image_raw_1 = tf.cast(tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
-                                           clip_value_max=32765), dtype=tf.uint8), dtype=tf.float32)
-    output_G1 = tf.cast(tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0,
-                                         clip_value_max=32765), dtype=tf.uint8),dtype=tf.float32)
-
-    # Converto in immagini a 3 channel
-    image_raw_1_3channel = tf.concat([image_raw_1, image_raw_1, image_raw_1], axis=-1)
-    output_G1_3channel = tf.concat([output_G1, output_G1, output_G1], axis=-1)
-    image_raw_1_3channel = scale_images(image_raw_1_3channel, (299, 299, 3))
-    output_G1_3channel = scale_images(output_G1_3channel, (299, 299, 3))
-    image_raw_1_3channel_p = preprocess_input(image_raw_1_3channel)
-    output_G1_3channel_p = preprocess_input(output_G1_3channel)
-
-
-    # compute embeddings for real images
-    real_image_embeddings = compute_embeddings(image_raw_1_3channel_p)
-
-    # compute embeddings for generated images
-    generated_image_embeddings = compute_embeddings(output_G1_3channel_p)
-
-    fid = calculate_fid(real_image_embeddings, generated_image_embeddings)
-
-    return fid
 
 #### Learning rate
 def step_decay(epoch):
