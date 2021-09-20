@@ -249,8 +249,7 @@ if __name__ == "__main__":
         os.mkdir(name_dir)
 
     # Dataset
-    dataset_aug_len = 32
-    # dataset_aug_len = 1750
+    dataset_aug_len = 1750
     dataset_aug = babypose_obj.get_unprocess_dataset(name_dataset)
     dataset_aug = babypose_obj.get_preprocess_G1_dataset(dataset_aug)
     # Togliere shugfffle se no non va bene il cnt della save figure
