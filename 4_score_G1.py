@@ -1,5 +1,7 @@
 import os
 import sys
+
+import cv2
 import numpy as np
 from scipy.linalg import sqrtm
 import tensorflow as tf
@@ -47,25 +49,19 @@ def calculate_is_score(model_to_is, embeddings_fake):
 def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, predizione, pz_0, pz_1,
              id_0, id_1):
     # Unprocess
-    image_raw_0 = utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5).numpy()
-    image_raw_0 = tf.cast(image_raw_0, dtype=tf.uint16)[0].numpy()
+    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+    image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
 
-    image_raw_1 = tf.clip_by_value(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0,
-                                   clip_value_max=32765)
-    image_raw_1 = tf.cast(image_raw_1, dtype=tf.uint16)[0].numpy()
-
-    pose_1 = pose_1.numpy()[0]
-    pose_1 = tf.math.add(pose_1, 1, name=None)  # rescale tra [-1, 1]
-    pose_1 = pose_1 / 2
+    pose_1 = pose_1[0]
+    pose_1 = tf.math.add(pose_1, 1, name=None) / 2 # rescale tra [0, 1]
     pose_1 = tf.reshape(pose_1, [96, 128, 14]) * 255
     pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
-    pose_1 = tf.cast(pose_1, dtype=tf.float32)
+    pose_1 = tf.cast(pose_1, dtype=tf.uint16).numpy()
 
-    mask_1 = tf.cast(mask_1, dtype=tf.int16)[0].numpy().reshape(96, 128, 1)
+    mask_1 = tf.cast(mask_1, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
-    predizione = tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
-                                  clip_value_max=32765)
-    predizione = tf.cast(predizione, dtype=tf.uint16)[0].numpy()
+    predizione = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
+                                  clip_value_max=32765), dtype=tf.uint16)[0].numpy()
 
     # Save Figure
     fig = plt.figure(figsize=(10, 2))
@@ -76,7 +72,7 @@ def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, 
     for j in range(1, columns * rows + 1):
         sub = fig.add_subplot(rows, columns, j)
         sub.set_title(labels[j - 1])
-        plt.imshow(imgs[j - 1])
+        plt.imshow(imgs[j - 1],cmap='gray')
     name_img = os.path.join(name_dir_to_save_img,
                             "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
                                 id=i,
@@ -84,16 +80,16 @@ def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, 
                                 pz_1=pz_1,
                                 id_0=id_0,
                                 id_1=id_1))
+    plt.show()
     plt.savefig(name_img)
     plt.close(fig)
 
 
-def compute_embeddings_G1(cnt_embeddings, inception_model, bath_size,
+def compute_embeddings_G1(cnt_embeddings, inception_model, batch_size,
                           input_inception_real, input_inception_mask_real,
                           input_inception_fake, input_inception_mask_fake,
                           vettore_embeddings_real, vettore_embeddings_mask_real,
                           vettore_embeddings_fake, vettore_embeddings_mask_fake):
-
     start = cnt_embeddings * batch_size
     end = start + batch_size
     vettore_embeddings_real[start:end] = inception_model.predict(input_inception_real)  # [batch,2048]
@@ -132,7 +128,7 @@ def pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_
     input_inception_mask_fake = np.empty((batch_size, 299, 299, 3))
     vettore_embeddings_mask_real = np.empty((dataset_aug_len, 2048))
     vettore_embeddings_mask_fake = np.empty((dataset_aug_len, 2048))
-    cnt_embeddings=0
+    cnt_embeddings = 0
 
     ########## SSIM SCORE
     ssim_scores = np.empty(dataset_aug_len)
@@ -180,7 +176,8 @@ def pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_
         input_inception_fake[i % batch_size] = inception_preprocess_image(tf.cast(predizione, dtype=tf.float16), mean_0)
 
         input_inception_mask_real[i % batch_size] = inception_preprocess_image(mask_image_raw_1, mean_1)
-        input_inception_mask_fake[i % batch_size] = inception_preprocess_image(tf.cast(mask_predizione, dtype=tf.float16), mean_0)
+        input_inception_mask_fake[i % batch_size] = inception_preprocess_image(
+            tf.cast(mask_predizione, dtype=tf.float16), mean_0)
 
         if (i + 1) % batch_size == 0:
             compute_embeddings_G1(cnt_embeddings, inception_model, batch_size,
@@ -202,10 +199,10 @@ def pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_
     del model_G1
     del batch
 
-    np.save(os.path.join(name_dir_to_save_embeddings, "real_2048_embedding.npy"), vettore_embeddings_real[0])
-    np.save(os.path.join(name_dir_to_save_embeddings, "fake_2048_embedding.npy"), vettore_embeddings_fake[0])
-    np.save(os.path.join(name_dir_to_save_embeddings, "mask_real_2048_embedding.npy"), vettore_embeddings_mask_real[0])
-    np.save(os.path.join(name_dir_to_save_embeddings, "mask_fake_2048_embedding.npy"), vettore_embeddings_mask_fake[0])
+    np.save(os.path.join(name_dir_to_save_embeddings, "real_2048_embedding.npy"), vettore_embeddings_real)
+    np.save(os.path.join(name_dir_to_save_embeddings, "fake_2048_embedding.npy"), vettore_embeddings_fake)
+    np.save(os.path.join(name_dir_to_save_embeddings, "mask_real_2048_embedding.npy"), vettore_embeddings_mask_real)
+    np.save(os.path.join(name_dir_to_save_embeddings, "mask_fake_2048_embedding.npy"), vettore_embeddings_mask_fake)
 
     fid_score = calculate_fid_score(vettore_embeddings_real, vettore_embeddings_fake)
     mask_fid_score = calculate_fid_score(vettore_embeddings_mask_real, vettore_embeddings_mask_fake)
@@ -226,16 +223,17 @@ def pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_
     is_score_real = calculate_is_score(model_to_is, vettore_embeddings_real)
 
     mask_is_score = calculate_is_score(model_to_is, vettore_embeddings_mask_fake)
-    mask_is_score_real = calculate_is_score(model_to_is, vettore_embeddings_mask_fake)
+    mask_is_score_real = calculate_is_score(model_to_is, vettore_embeddings_mask_real)
 
     file = open(os.path.join(name_dir, "scores.txt"), "w")
-    text = "SSIM: {ssim_value} " \
-           "\nMASK_SSIM:{mask_ssim_value} " \
-           "\nLOSS: {loss_value} " \
+    text = "\nLOSS: {loss_value} " \
+           "\nSSIM: {ssim_value} " \
            "\nFID: {fid_value} " \
-           "\nMASK_FID: {mask_fid_value} " \
            "\nIS: {is_value} " \
-           "\nIS_real: {mask_is_value_real}" \
+           "\nIS_real: {is_value_real}" \
+           "\n\n" \
+           "\nMASK_SSIM:{mask_ssim_value} " \
+           "\nMASK_FID: {mask_fid_value} " \
            "\nMASK_IS: {mask_is_value} " \
            "\nMASK_IS_real: {mask_is_value_real}".format(
         ssim_value=np.mean(ssim_scores),
@@ -253,36 +251,34 @@ def pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_
 
 
 if __name__ == "__main__":
-
-    name_dir = 'test_score'  # directory dove salvare i risultati degli score
-    name_dataset = "test_aug_dataset.tfrecord"
-    name_weights_file = 'Model_G1_epoch_002-loss_0.000283-ssim_0.858954-mask_ssim_0.974763-val_loss_0.000704-val_ssim_0.712977-val_mask_ssim_0.967273.hdf5'
-    bool_save_img = True
-    batch_size = 10
-
     # Config file
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
-    config.print_info()
     babypose_obj = BabyPose()
+
+
+    name_dir = 'test_score'  # directory dove salvare i risultati degli score
+    name_dataset = config.name_tfrecord_valid
+    name_weights_file = 'Model_G1_epoch_002-loss_0.000704-ssim_0.913195-mask_ssim_0.975810-val_loss_0.000793-val_ssim_0.912054-val_mask_ssim_0.974530.hdf5'
+    bool_save_img = True
+    batch_size = 10
+    dataset_len = config.dataset_valid_len
 
     # Directory
     if not os.path.exists(name_dir):
         os.mkdir(name_dir)
 
     # Dataset
-    dataset_aug_len = 1750
-    #dataset_aug_len = 40
-    dataset_aug = babypose_obj.get_unprocess_dataset(name_dataset)
-    dataset_aug = babypose_obj.get_preprocess_G1_dataset(dataset_aug)
+    dataset = babypose_obj.get_unprocess_dataset(name_dataset)
+    dataset = babypose_obj.get_preprocess_G1_dataset(dataset)
     # Togliere shugfffle se no non va bene il cnt della save figure
     # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
-    dataset_aug = dataset_aug.batch(1)
-    dataset_aug = iter(dataset_aug)
+    dataset = dataset.batch(1)
+    dataset = iter(dataset)
 
     # Model
     model_G1 = G1.build_model()
     model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file))
 
     # Pipiline score
-    pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_save_img=bool_save_img)
+    pipeline(model_G1, dataset, dataset_len, name_dir, batch_size, bool_save_img=bool_save_img)
