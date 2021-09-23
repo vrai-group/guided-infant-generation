@@ -1,5 +1,6 @@
 # Directory #
 data/pyOniExtractor
+Training/*
 data/**/*.txt
 results_ssim/
 logs/*.npy
