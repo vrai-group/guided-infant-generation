@@ -790,6 +790,7 @@ if __name__ == "__main__":
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
     config.print_info()
+    config.save_info()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
