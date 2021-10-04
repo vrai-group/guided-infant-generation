@@ -319,7 +319,7 @@ class PG2(object):
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model()
         self.model_G1.load_weights(os.path.join(self.config.weigths_path,
-                                                'Model_G1_epoch_010-loss_0.001224-ssim_0.595070-mask_ssim_0.941551-val_loss_0.001531-val_ssim_0.592082_val_mask_ssim_0.929145.hdf5'))
+                                                'Model_G1_epoch_004-loss_0.000278-ssim_0.937918-mask_ssim_0.982571-val_loss_0.000763-val_ssim_0.918152-val_mask_ssim_0.976810.hdf5'))
 
         # Buildo la GAN
         # G2

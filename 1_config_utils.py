@@ -5,10 +5,8 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.Dataset = "Syntetich"
-        self.type = "negative_no_flip"   # radius_<num> or new
-        # self.Dataset = "Syntetich"
-        # self.type = "negative_syntetich"  # radius_<num> or new
+        self.Dataset = "Syntetich_complete"
+        self.type = "negative_no_flip_camp_5_keypoints_2_mask_1"   # radius_<num> or new
 
         # - Path
         self.data_path = './data/' + self.Dataset # dove si trova il dataset
@@ -59,7 +57,7 @@ class Config:
 
         # -- Training / test parameters
         self.epochs_G1 = 100
-        self.lr_update_epoch_G1 = 10
+        self.lr_update_epoch_G1 = 1
         self.lr_initial_G1 = 2e-5
         self.drop_rate_G1 = 0.5
 
@@ -67,13 +65,13 @@ class Config:
         # -GAN
         self.trainig_GAN = False
         # -- Model
-        self.input_shape_G2 = [96, 128,2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
+        self.input_shape_G2 = [96, 128, 2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
         self.input_shape_D = [96, 128, 1]
 
         # -- Training / test parameters
-        self.epochs_GAN = 500
+        self.epochs_GAN = 100
         self.lr_update_epoch_GAN = 1
-        self.lr_initial_G2 = 1e-5
+        self.lr_initial_G2 = 2e-5
         self.lr_initial_D = 2e-5
         self.drop_rate_GAN = self.drop_rate_G1
 

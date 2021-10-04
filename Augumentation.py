@@ -8,7 +8,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from utils import dataset_utils
 
-def _getSparseKeypoint(y, x, k, height, width, radius=4, var=4, mode='Solid'):
+def _getSparseKeypoint(y, x, k, height, width, radius=4, mode='Solid'):
     indices = []
     values = []
     for i in range(-radius, radius + 1):
@@ -20,15 +20,10 @@ def _getSparseKeypoint(y, x, k, height, width, radius=4, var=4, mode='Solid'):
                     values.append(1)
                     # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
                     # cv2.imwrite('SparseKeypoint.png', dense * 255)
-                elif 'Gaussian' == mode and distance <= radius:
-                    indices.append([x + j, y + i, k])
-                    if 4 == var:
-                        values.append(Gaussian_0_4.pdf(distance) * Ratio_0_4)
-                    else:
-                        assert 'Only define Ratio_0_4  Gaussian_0_4 ...'
+
     return indices, values
 
-def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid'):
+def _getSparsePose(peaks, height, width, radius, mode='Solid'):
     indices = []
     values = []
     for k in range(len(peaks)):
@@ -36,11 +31,10 @@ def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid')
         x = p[0]
         y = p[1]
         if x != -1 and y != -1:  # non considero le occlusioni indicate con -1
-            ind, val = _getSparseKeypoint(y, x, k, height, width, radius, var, mode)
+            ind, val = _getSparseKeypoint(y, x, k, height, width, radius, mode)
             indices.extend(ind)
             values.extend(val)
-    shape = [height, width, channel]
-    return indices, values, shape
+    return indices, values
 
 def _format_example(dic):
 
@@ -64,8 +58,6 @@ def _format_example(dic):
         'shape_len_original_peaks_0': dataset_utils.int64_feature(np.array(dic["original_peaks_0"]).shape[0]),
         'shape_len_original_peaks_1': dataset_utils.int64_feature(np.array(dic["original_peaks_1"]).shape[0]),
 
-
-
         'pose_mask_r4_0': dataset_utils.int64_feature(dic["pose_mask_r4_0"].astype(np.uint16).flatten().tolist()),
         # maschera binaria a radius 4 con shape [96, 128, 1]
         'pose_mask_r4_1': dataset_utils.int64_feature(dic["pose_mask_r4_1"].astype(np.uint16).flatten().tolist()),
@@ -79,7 +71,9 @@ def _format_example(dic):
         # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
         'values_r4_1': dataset_utils.bytes_feature(np.array(dic["values_r4_1"]).astype(np.int64).tostring()),
         'shape_len_indices_0': dataset_utils.int64_feature(np.array(dic["indices_r4_0"]).shape[0]),
-        'shape_len_indices_1': dataset_utils.int64_feature(np.array(dic["indices_r4_1"]).shape[0])
+        'shape_len_indices_1': dataset_utils.int64_feature(np.array(dic["indices_r4_1"]).shape[0]),
+
+        'radius_keypoints': dataset_utils.int64_feature(dic['radius_keypoints']),
 
     }))
 
@@ -193,7 +187,7 @@ def _aug_rotation_angle(dic_data, angle_deegre, indx_img):
 
     # Rotate keypoints coordinate
     keypoints_rotated = rotate_keypoints(dic_data["original_peaks_"+str(indx_img)])
-    dic_data["indices_r4_"+str(indx_img)], dic_data["values_r4_"+str(indx_img)], _ = _getSparsePose(keypoints_rotated, h, w, 14,  radius=1, mode='Solid')
+    dic_data["indices_r4_"+str(indx_img)], dic_data["values_r4_"+str(indx_img)] = _getSparsePose(keypoints_rotated, h, w, radius=dic_data['radius_keypoints'], mode='Solid')
 
 
     return dic_data
@@ -254,6 +248,7 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         values_1 = batch[13]  # [batch, ]
         original_peaks_0 = batch[14]
         original_peaks_1 = batch[15]
+        radius_keypoints = batch[16]
 
         dic_data = {
 
@@ -279,7 +274,9 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             # coordinate a radius 4 dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
             'indices_r4_1': indices_1.numpy()[0],
             # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
-            'values_r4_1': values_1.numpy()[0]
+            'values_r4_1': values_1.numpy()[0],
+
+            'radius_keypoints': radius_keypoints.numpy()[0]
 
         }
         example = _format_example(dic_data)
@@ -397,16 +394,16 @@ def apply_augumentation(unprocess_dataset_it, config, type):
 
         ###### Image raw 0 (structural)
 
-        # for i,dic in enumerate(vec_dic_structural):
-        #     trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
-        #     if trasformation == 0:  # Nessuna trasformazione
-        #         continue
-        #     if trasformation == 1:  # brightness
-        #         dic_new = random_brightness(dic.copy(), indx_img=0)
-        #         vec_dic_structural[i] = dic_new
-        #     if trasformation == 2:  # Contrast
-        #         dic_new = random_contrast(dic.copy(), indx_img=0)
-        #         vec_dic_structural[i] = dic_new
+        for i,dic in enumerate(vec_dic_structural):
+            trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
+            if trasformation == 0:  # Nessuna trasformazione
+                continue
+            if trasformation == 1:  # brightness
+                dic_new = random_brightness(dic.copy(), indx_img=0)
+                vec_dic_structural[i] = dic_new
+            if trasformation == 2:  # Contrast
+                dic_new = random_contrast(dic.copy(), indx_img=0)
+                vec_dic_structural[i] = dic_new
 
 
         ### Salvo Structural trasformation

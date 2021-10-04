@@ -45,6 +45,8 @@ class BabyPose():
             'values_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
             'shape_len_indices_0': tf.io.FixedLenFeature([], tf.int64),
             'shape_len_indices_1': tf.io.FixedLenFeature([], tf.int64),
+
+            'radius_keypoints': tf.io.FixedLenFeature([], tf.int64),
         }
 
     # ritorna un TF.data
@@ -93,7 +95,10 @@ class BabyPose():
             mask_0 = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
             mask_1 = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
 
-            return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1
+            # RADIUS KEY
+            radius_keypoints = example['radius_keypoints']
+
+            return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
 
         file_pattern = os.path.join(self.config.data_tfrecord_path,
                                     name_tfrecord)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
@@ -105,7 +110,7 @@ class BabyPose():
     # ritorna un TF.data preprocessato in G1
     def get_preprocess_G1_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
-                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1):
+                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 
             mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
             mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
@@ -126,7 +131,7 @@ class BabyPose():
     # predizione di G1
     def get_preprocess_predizione_G1(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
-                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1):
+                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
             mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
             mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
             image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
@@ -151,7 +156,7 @@ class BabyPose():
     # ritorna un TF.data preprocessato in G1 ma con gli output che possono essere utilizzati durante il training della GAN
     def get_preprocess_GAN_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
-                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1):
+                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
             mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
             mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
             image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
