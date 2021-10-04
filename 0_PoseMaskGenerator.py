@@ -38,7 +38,7 @@ def _sparse2dense(indices, values, shape):
 """
 
 
-def _getSparseKeypoint(y, x, k, height, width, radius=4, var=4, mode='Solid'):
+def _getSparseKeypoint(y, x, k, height, width, radius, mode='Solid'):
     indices = []
     values = []
     for i in range(-radius, radius + 1):
@@ -50,12 +50,7 @@ def _getSparseKeypoint(y, x, k, height, width, radius=4, var=4, mode='Solid'):
                     values.append(1)
                     # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
                     # cv2.imwrite('SparseKeypoint.png', dense * 255)
-                elif 'Gaussian' == mode and distance <= radius:
-                    indices.append([x + j, y + i, k])
-                    if 4 == var:
-                        values.append(Gaussian_0_4.pdf(distance) * Ratio_0_4)
-                    else:
-                        assert 'Only define Ratio_0_4  Gaussian_0_4 ...'
+
     return indices, values
 
 
@@ -73,7 +68,7 @@ shape -->  lista [height, width, num keypoints]
 """
 
 
-def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid'):
+def _getSparsePose(peaks, height, width, radius, mode='Solid'):
     indices = []
     values = []
     for k in range(len(peaks)):
@@ -81,11 +76,10 @@ def _getSparsePose(peaks, height, width, channel, radius=4, var=4, mode='Solid')
         x = p[0]
         y = p[1]
         if x != -1 and y != -1:  # non considero le occlusioni indicate con -1
-            ind, val = _getSparseKeypoint(y, x, k, height, width, radius, var, mode)
+            ind, val = _getSparseKeypoint(y, x, k, height, width, radius, mode)
             indices.extend(ind)
             values.extend(val)
-    shape = [height, width, channel]
-    return indices, values, shape
+    return indices, values
 
 
 """
@@ -289,8 +283,8 @@ def _format_data(id_pz_0, id_pz_1, annotations_0, annotations_1,
             peaks_resized_0.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
             peaks_resized_0.append([x, y])
-    indices_r4_0, values_r4_0, _ = _getSparsePose(peaks_resized_0, height, width, keypoint_num,
-                                                  radius=radius_keypoints_pose, mode='Solid')  # shape
+    indices_r4_0, values_r4_0 = _getSparsePose(peaks_resized_0, height, width,
+                                               radius_keypoints_pose, mode='Solid')  # shape
     pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,
                                                                                                           1)  # [96, 128, 1]
 
@@ -312,8 +306,8 @@ def _format_data(id_pz_0, id_pz_1, annotations_0, annotations_1,
             peaks_resized_1.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
             peaks_resized_1.append([x, y])
-    indices_r4_1, values_r4_1, _ = _getSparsePose(peaks_resized_1, height, width, keypoint_num,
-                                                  radius=radius_keypoints_pose, mode='Solid')  # shape
+    indices_r4_1, values_r4_1 = _getSparsePose(peaks_resized_1, height, width, radius_keypoints_pose,
+                                               mode='Solid')  # shape
     pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,
                                                                                                           1)  # [96, 128, 1]
 
@@ -349,7 +343,6 @@ def _format_data(id_pz_0, id_pz_1, annotations_0, annotations_1,
 
 
 def _aug_flip(dic_data):
-
     ### Flip vertical pz_0
     mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
     dic_data["image_raw_0"] = cv2.flip(dic_data["image_raw_0"], 1)
@@ -364,6 +357,7 @@ def _aug_flip(dic_data):
 
     return dic_data
 
+
 """
 Consente di selezionare la coppia di pair da formare
 """
@@ -375,7 +369,7 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
 
     # Accoppiamento tra immagini appartenenti allo stesso pz
     if mode == "positive":
-        #TODO da scrivere
+        # TODO da scrivere
         None
 
     # Accoppiamento tra immagini appartenenti a pz differenti
