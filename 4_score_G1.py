@@ -256,29 +256,31 @@ if __name__ == "__main__":
     config = Config_file.Config()
     babypose_obj = BabyPose()
 
+    for w in os.listdir('./weights'):
+        num = w.split('-')[0].split('_')[3]
+        name_dir = 'test_score_epoca'+num  # directory dove salvare i risultati degli score
+        name_dataset = config.name_tfrecord_test
+        #name_weights_file = 'Model_G1_epoch_002-loss_0.000704-ssim_0.913195-mask_ssim_0.975810-val_loss_0.000793-val_ssim_0.912054-val_mask_ssim_0.974530.hdf5'
+        name_weights_file = w
+        bool_save_img = True
+        batch_size = 10
+        dataset_len = config.dataset_test_len
 
-    name_dir = 'test_score'  # directory dove salvare i risultati degli score
-    name_dataset = config.name_tfrecord_valid
-    name_weights_file = 'Model_G1_epoch_002-loss_0.000704-ssim_0.913195-mask_ssim_0.975810-val_loss_0.000793-val_ssim_0.912054-val_mask_ssim_0.974530.hdf5'
-    bool_save_img = True
-    batch_size = 10
-    dataset_len = config.dataset_valid_len
+        # Directory
+        if not os.path.exists(name_dir):
+            os.mkdir(name_dir)
 
-    # Directory
-    if not os.path.exists(name_dir):
-        os.mkdir(name_dir)
+        # Dataset
+        dataset = babypose_obj.get_unprocess_dataset(name_dataset)
+        dataset = babypose_obj.get_preprocess_G1_dataset(dataset)
+        # Togliere shugfffle se no non va bene il cnt della save figure
+        # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
+        dataset = dataset.batch(1)
+        dataset = iter(dataset)
 
-    # Dataset
-    dataset = babypose_obj.get_unprocess_dataset(name_dataset)
-    dataset = babypose_obj.get_preprocess_G1_dataset(dataset)
-    # Togliere shugfffle se no non va bene il cnt della save figure
-    # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
-    dataset = dataset.batch(1)
-    dataset = iter(dataset)
+        # Model
+        model_G1 = G1.build_model()
+        model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file))
 
-    # Model
-    model_G1 = G1.build_model()
-    model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file))
-
-    # Pipiline score
-    pipeline(model_G1, dataset, dataset_len, name_dir, batch_size, bool_save_img=bool_save_img)
+        # Pipiline score
+        pipeline(model_G1, dataset, dataset_len, name_dir, batch_size, bool_save_img=bool_save_img)
