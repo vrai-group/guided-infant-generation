@@ -339,8 +339,9 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         ###############################
         # Structural trasformation
         ###############################
-        vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C
-        vec_dic_new_affine = []  # conterra i dic con le trasfromazioni random B e random C
+        vec_dic_new_affine = []  # conterra i dic con le trasfromazioni random affini
+        vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C sulle nuove affini
+
 
         ############# Image raw 1 (New Affine)
         # Rotazione Random
@@ -384,16 +385,15 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         ############# Image raw 1 (structural)
         # Random B
         for dic in vec_dic_new_affine:
-            dic_aug = random_brightness(dic.copy(), indx_img=0)
+            dic_aug = random_brightness(dic.copy(), indx_img=1)
             vec_dic_structural.append(dic_aug)
 
         # Random C
         for dic in vec_dic_new_affine:
-            dic_aug = random_contrast(dic.copy(), indx_img=0)
+            dic_aug = random_contrast(dic.copy(), indx_img=1)
             vec_dic_structural.append(dic_aug)
 
         ###### Image raw 0 (structural)
-
         for i,dic in enumerate(vec_dic_structural):
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
             if trasformation == 0:  # Nessuna trasformazione
