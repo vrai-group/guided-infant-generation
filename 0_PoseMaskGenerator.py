@@ -108,7 +108,7 @@ Maschera con shape [height, width, 1]
 """
 
 
-def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation=10, var=4, mode='Solid'):
+def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation=10):
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
                [1, 2], [2, 3],  # braccio dx
                [3, 4], [4, 5],  # collo
@@ -134,22 +134,18 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation=10, 
         if r0 != -1 and r1 != -1 and c0 != -1 and c1 != -1:  # non considero le occlusioni che sono indicate con valore -1
 
             if limb[0] == 0:  # Per la testa utilizzo un Radius maggiore
-                ind, val = _getSparseKeypoint(r0, c0, 0, height, width, radius_head, var,
-                                              mode)  # ingrandisco il punto p0 considerando un raggio di 20
+                ind, val = _getSparseKeypoint(r0, c0, 0, height, width, radius_head)  # ingrandisco il punto p0 considerando un raggio di 20
             else:
-                ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius, var,
-                                              mode)  # # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius)  # # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
 
             if limb[1] == 0:
                 # Per la testa utilizzo un Radius maggiore
-                ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius_head, var,
-                                              mode)  # ingrandisco il punto p1 considerando un raggio di 20
+                ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius_head)  # ingrandisco il punto p1 considerando un raggio di 20
             else:
-                ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius, var,
-                                              mode)  # # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = _getSparseKeypoint(r1, c1, 0, height, width, radius)  # # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
@@ -169,8 +165,7 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation=10, 
                 for i in range(1, sampleN):  # per ognuno dei punti di cui ho bisogno
                     r = int(r0 + (r1 - r0) * i / sampleN)  # calcolo della coordinata y
                     c = int(c0 + (c1 - c0) * i / sampleN)  # calcolo della coordinata x
-                    ind, val = _getSparseKeypoint(r, c, 0, height, width, radius, var,
-                                                  mode)  ## ingrandisco il nuovo punto considerando un raggio di 4
+                    ind, val = _getSparseKeypoint(r, c, 0, height, width, radius)  ## ingrandisco il nuovo punto considerando un raggio di 4
                     indices.extend(ind)
                     values.extend(val)
 
@@ -184,7 +179,7 @@ def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation=10, 
     shape = [height, width, 1]
     ## Fill body
     dense = np.squeeze(_sparse2dense(indices, values, shape))
-    dense = dilation(dense, square(35))
+    dense = dilation(dense, square(dilatation))
     dense = erosion(dense, square(5))
     dense = np.reshape(dense, [dense.shape[0], dense.shape[1], 1])
     # cv2.imwrite('DenseMask.png', dense * 255)
@@ -267,9 +262,7 @@ def _format_data(id_pz_0, id_pz_1, annotations_0, annotations_1,
 
     ### Pose image 0 a radius 4
     peaks = annotations_0[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,
-                                  dilatation=dilatation,
-                                  mode='Solid')  # [480,640,1]
+    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation)  # [480,640,1]
 
     ### Resize a 96x128 pose 0
     image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
@@ -291,8 +284,7 @@ def _format_data(id_pz_0, id_pz_1, annotations_0, annotations_1,
     #### Pose 1 radius 4
     peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
     pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,
-                                  dilatation=dilatation,
-                                  mode='Solid')
+                                  dilatation=dilatation)
 
     ## Reshape a 96x128 pose 1
     image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
@@ -454,9 +446,9 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
 if __name__ == '__main__':
 
     #### CONFIG ##########
-    dir_data = './data/Syntetich'
-    dir_annotations = './data/Syntetich/annotations'
-    dir_save_tfrecord = './data/Syntetich/tfrecord/negative_no_flip'
+    dir_data = './data/Syntetich_complete'
+    dir_annotations = './data/Syntetich_complete/annotations'
+    dir_save_tfrecord = './data/Syntetich_complete/tfrecord/negative_no_flip_camp5_key_1_mask_1'
     keypoint_num = 14
 
     name_tfrecord_train = 'BabyPose_train.tfrecord'
@@ -470,10 +462,10 @@ if __name__ == '__main__':
 
     # General information
     radius_keypoints_pose = 1
-    radius_keypoints_mask = 2
-    radius_head_mask = 40
-    dilatation = 35
-    campionamento = 0
+    radius_keypoints_mask = 1
+    radius_head_mask = 30
+    dilatation = 25
+    campionamento = 5
     flip = False  # Aggiunta dell example con flip verticale
     mode = "negative"
     switch = mode == "positive"  # lo switch è consentito solamente in modalità positive, se è negative va in automatico
