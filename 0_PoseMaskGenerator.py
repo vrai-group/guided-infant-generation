@@ -401,7 +401,7 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                         #     row_1 = df_annotation_1.loc[value]
                         #     used.append(value)
 
-                        if indx % campionamento:
+                        if indx % campionamento == 0:
                             row_1 = df_annotation_1.loc[indx]
                         else:
                             continue
