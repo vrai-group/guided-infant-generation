@@ -4,7 +4,7 @@ Training/*
 data/**/*.txt
 results_ssim/
 logs/*.npy
-Market_transfer/
+_Market_transfer/
 
 
 # estensioni #
