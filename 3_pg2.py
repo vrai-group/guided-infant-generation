@@ -35,7 +35,7 @@ class PG2(object):
         self.model_G1 = G1.build_model()
         self.opt_G1 = G1.optimizer()
         # self.model_G1.load_weights(os.path.join(self.config.weigths_path, 'Model_G1_epoch_002-loss_0.007832-ssim_0.651670-mask_ssim_0.923238-val_loss_0.003820-val_ssim_0.686539-val_mask_ssim_0.936308.hdf5'))
-        # self.model_G1.summary()
+        self.model_G1.summary()
 
         # -History del training
         history_G1 = {'epoch': 0,
@@ -319,7 +319,7 @@ class PG2(object):
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model()
         self.model_G1.load_weights(os.path.join(self.config.weigths_path,
-                                                'Model_G1_epoch_004-loss_0.000278-ssim_0.937918-mask_ssim_0.982571-val_loss_0.000763-val_ssim_0.918152-val_mask_ssim_0.976810.hdf5'))
+                                                'Model_G1_epoch_006-loss_0.000260-ssim_0.941600-mask_ssim_0.983803-val_loss_0.000771-val_ssim_0.917329-val_mask_ssim_0.977151.hdf5'))
 
         # Buildo la GAN
         # G2
@@ -461,7 +461,8 @@ class PG2(object):
             # Valid
             for id_batch in range(num_batches_valid):
                 logs_to_print['loss_values_valid_G2'][id_batch], logs_to_print['loss_values_valid_D'][id_batch], \
-                logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][id_batch], \
+                logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][
+                    id_batch], \
                 logs_to_print['r_r_valid'][id_batch], logs_to_print['img_0_valid'][id_batch], \
                 logs_to_print['img_1_valid'][id_batch], \
                 logs_to_print['ssim_valid'][id_batch], logs_to_print['mask_ssim_valid'][id_batch] = self._valid_step(
@@ -520,7 +521,7 @@ class PG2(object):
             filepath = os.path.join(self.config.weigths_path, name_model)
             self.model_G2.save_weights(filepath)
 
-            #D
+            # D
             name_model = "Model_D_epoch_{epoch:03d}-" \
                          "loss_{loss:2f}-" \
                          "loss_values_D_fake_{loss_D_fake:2f}-" \
@@ -622,10 +623,8 @@ class PG2(object):
             # Loss G2
             loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
 
-        self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
-
         if (id_batch + 1) % 2 == 1:
-            #backprop G2
+            # backprop G2
             self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
 
         with tf.GradientTape() as d_tape:
@@ -648,11 +647,9 @@ class PG2(object):
             loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
                                                                     D_neg_image_raw_0)
 
-
         if (id_batch + 1) % 2 == 0:
-            #backprop D
+            # backprop D
             self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
-
 
         # Metrics
         # - SSIM

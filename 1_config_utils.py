@@ -61,9 +61,8 @@ class Config:
         self.lr_initial_G1 = 2e-5
         self.drop_rate_G1 = 0.5
 
-
         # -GAN
-        self.trainig_GAN = False
+        self.trainig_GAN = True
         # -- Model
         self.input_shape_G2 = [96, 128, 2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
         self.input_shape_D = [96, 128, 1]
