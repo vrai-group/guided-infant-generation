@@ -51,7 +51,7 @@ class Config:
         self.keypoint_num = 14  # numero di keypoints
 
         # -G1
-        self.trainig_G1 = True
+        self.trainig_G1 = False
         # -- Model
         self.input_shape_G1 = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
 
