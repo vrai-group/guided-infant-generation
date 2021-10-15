@@ -93,22 +93,23 @@ def build_model():
             # Questo layer si preoccupa di dimezzare le dimensioni W e H
             x = Conv2D(config.conv_hidden_num * (idx + 2), 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(x)
 
+    ##### Bridge
     # output [num_batch, 98.304] --> 98.304:  12x16x512
     x = Reshape([-1, int(np.prod([config.min_fea_map_H, config.min_fea_map_W, channel_num]))])(x)
     # output [num_batch, 64]
     z = x = Dense(config.z_num, activation=None)(x)
 
-    ##### Decoder
     # output [num batch, 24576]
     x = Dense(int(np.prod([config.min_fea_map_H, config.min_fea_map_W, config.conv_hidden_num ])), activation=None)(z)
     # output [num batch, 12,16,128]
     x = Reshape([config.min_fea_map_H, config.min_fea_map_W, config.conv_hidden_num])(x)
 
+    ##### Decoder
     for idx in range(config.repeat_num):
 
         x = Concatenate(axis=-1)([x, encoder_layer_list[config.repeat_num - 1 - idx]])  # Long Skip connestion
         res = x
-        # channel_num = hidden_num * (config.repeat_num-idx)
+        #channel_num = config.conv_hidden_num * (config.repeat_num-idx)
         channel_num = x.get_shape()[-1]
         x = Conv2D(channel_num, 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(x)
         x = Conv2D(channel_num, 3, 1, padding='same', activation=config.activation_fn, data_format=config.data_format)(x)
