@@ -108,7 +108,7 @@ class BabyPose():
         return dataset
 
     # ritorna un TF.data preprocessato in G1
-    def get_preprocess_G1_dataset(self, unprocess_dataset):
+    def get_preprocess_G1_Bibranch_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
                            indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 
@@ -128,47 +128,4 @@ class BabyPose():
 
         return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
 
-    # predizione di G1
-    def get_preprocess_predizione_G1(self, unprocess_dataset):
-        def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
-                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
-            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
-            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
 
-            pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
-            pose_1 = pose_1 * 2
-            pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
-
-            pose_0 = tf.cast(tf.sparse.to_dense(pose_0, default_value=0, validate_indices=False), dtype=tf.float16)
-
-            mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
-            mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
-
-            X = tf.concat([image_raw_0, pose_1], axis=-1)
-            Y = tf.concat([image_raw_1, mask_1], axis=-1)
-
-            return X, Y, pz_0, pz_1, name_0, name_1, mask_0, pose_0, mean_0, mean_1
-
-        return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
-
-    # ritorna un TF.data preprocessato in G1 ma con gli output che possono essere utilizzati durante il training della GAN
-    def get_preprocess_GAN_dataset(self, unprocess_dataset):
-        def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
-                           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
-            mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-            image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
-            image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
-
-            pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
-            pose_1 = pose_1 * 2
-            pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
-
-            mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
-            mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
-
-            return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, pz_0, pz_1, name_0, name_1, mean_0, mean_1
-
-        return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
