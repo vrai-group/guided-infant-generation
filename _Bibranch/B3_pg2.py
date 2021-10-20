@@ -19,7 +19,7 @@ class PG2(object):
 
     def train_G1_Bibranch(self):
 
-        # -Caricamento dataset
+        # -Caricamento datascaet
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.batch(1)
 

@@ -3,6 +3,11 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
+import math
+import sys
+
+sys.path.insert(1, '../utils')
+from utils import utils_wgan
 
 Config_file = __import__('B1_config_utils')
 config = Config_file.Config()
@@ -96,7 +101,7 @@ def build_model():
 
     # Blocco 2
     Enc_2 = Conv2D(filters=256, kernel_size=2, strides=2)(concat_1)
-    Enc_2 = BatchNormalization()(Enc_2)
+    #Enc_2 = BatchNormalization()(Enc_2)
     Enc_2 = Activation('relu')(Enc_2)
 
     branch_1_Enc_2 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(Enc_2)
@@ -258,7 +263,7 @@ def build_model():
 
     branch_1_Dec_4 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(
         branch_1_Dec_4)
-    branch_1_Dec_4 = BatchNormalization()(branch_1_Dec_4)
+    #branch_1_Dec_4 = BatchNormalization()(branch_1_Dec_4)
     branch_1_Dec_4 = Activation('relu')(branch_1_Dec_4)
 
     branch_2_Dec_4 = Conv2D(filters=128, kernel_size=3, strides=1, padding="same")(long_connection_4)

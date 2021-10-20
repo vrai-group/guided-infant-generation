@@ -332,6 +332,8 @@ class PG2(object):
         # G2
         self.model_G2 = G2.build_model()  # architettura Generatore G2
         self.opt_G2 = G2.optimizer()  # ottimizzatore
+        self.model_G2.summary()
+
 
         # D
         self.model_D = Discriminator.build_model()

@@ -4,7 +4,6 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.applications.inception_v3 import preprocess_input
 import math
 sys.path.insert(1, '../utils')
 from utils import utils_wgan
