@@ -74,6 +74,8 @@ def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, 
     for j in range(1, columns * rows + 1):
         sub = fig.add_subplot(rows, columns, j)
         sub.set_title(labels[j - 1])
+        sub.get_xaxis().set_visible(False)
+        sub.get_yaxis().set_visible(False)
         plt.imshow(imgs[j - 1],cmap='gray')
     name_img = os.path.join(name_dir_to_save_img,
                             "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
@@ -266,11 +268,11 @@ if __name__ == "__main__":
     name_weights_file_G1 = 'Model_G1_epoch_006-loss_0.000260-ssim_0.941600-mask_ssim_0.983803-val_loss_0.000771-val_ssim_0.917329-val_mask_ssim_0.977151.hdf5'
     name_weights_file_G2 = 'Model_G2_epoch_023-loss_0.70-ssmi_0.93-mask_ssmi_1.00-r_r_5231-im_0_5455-im_1_5517-val_loss_0.74-val_ssim_0.78-val_mask_ssim_0.98-val_r_r_33-val_im_0_26-val_im_1_26.hdf5'
     num = name_weights_file_G1.split('-')[0].split('_')[3]
-    name_dir = 'test_score_epoca' + num  # directory dove salvare i risultati degli score
-    name_dataset = config.name_tfrecord_test
+    name_dir = 'valid_score_epoca' + num  # directory dove salvare i risultati degli score
+    name_dataset = config.name_tfrecord_valid
     bool_save_img = True
     batch_size = 10
-    dataset_len = config.dataset_test_len
+    dataset_len = config.dataset_valid_len
 
     # Directory
     if not os.path.exists(name_dir):
