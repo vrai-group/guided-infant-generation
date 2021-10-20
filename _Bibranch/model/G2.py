@@ -79,41 +79,40 @@ def build_model():
                    data_format=config.data_format)(conv1)
     conv1 = Conv2D(config.conv_hidden_num, 3, (1, 1), padding='same', activation=config.activation_fn,
                    data_format=config.data_format)(conv1)
-    pool1 = Conv2D(config.conv_hidden_num, 2, (2, 2), activation=config.activation_fn, data_format=config.data_format)(
-        conv1)  # pool
 
+    pool1 = Conv2D(config.conv_hidden_num * 2, 2, (2, 2), padding='same', activation=config.activation_fn,
+                   data_format=config.data_format)(conv1)
     conv2 = Conv2D(config.conv_hidden_num * 2, 3, (1, 1), padding='same', activation=config.activation_fn,
                    data_format=config.data_format)(pool1)
     conv2 = Conv2D(config.conv_hidden_num * 2, 3, (1, 1), padding='same', activation=config.activation_fn,
-                   data_format=config.data_format)(conv2)
-    pool2 = Conv2D(config.conv_hidden_num * 2, 2, (2, 2), activation=config.activation_fn,
+                   data_format=config.data_format)(conv2) #256
+
+
+    #Bridge
+    pool3 = Conv2D(config.conv_hidden_num * 3, 2, (2, 2), activation=config.activation_fn,
                    data_format=config.data_format)(conv2)  # pool
-
-    # noise
-    # noise = tf.random.uniform((tf.shape(pool2)[0], tf.shape(pool2)[1], tf.shape(pool2)[2], 64), minval=-1.0, maxval=1.0)
-    # pool2 = tf.concat([pool2, noise], -1)
-
     conv3 = Conv2D(config.conv_hidden_num * 3, 3, (1, 1), padding='same', activation=config.activation_fn,
-                   data_format=config.data_format)(pool2)
+                   data_format=config.data_format)(pool3)
     conv3 = Conv2D(config.conv_hidden_num * 3, 3, (1, 1), padding='same', activation=config.activation_fn,
-                   data_format=config.data_format)(conv3)
-
+                   data_format=config.data_format)(conv3)  # 384
     up4 = UpSampling2D(size=(2, 2), data_format=config.data_format, interpolation="nearest")(conv3)
     up4 = Conv2D(config.conv_hidden_num, 2, 1, padding="same", activation=config.activation_fn,
-                 data_format=config.data_format)(up4)
-    merge4 = Concatenate(axis=-1)([up4, conv2])  # Long Skip connestion
-    conv4 = Conv2D(config.conv_hidden_num * 2, 3, 1, padding='same', activation=config.activation_fn,
+                 data_format=config.data_format)(up4)  # 128
+
+    #####Decoder
+    merge4 = Concatenate(axis=-1)([up4, conv2])  # Long Skip connestion 128+256 =384
+    conv4 = Conv2D(384, 3, 1, padding='same', activation=config.activation_fn,
                    data_format=config.data_format)(merge4)
-    conv4 = Conv2D(config.conv_hidden_num * 2, 3, 1, padding='same', activation=config.activation_fn,
+    conv4 = Conv2D(384, 3, 1, padding='same', activation=config.activation_fn,
                    data_format=config.data_format)(conv4)
 
     up5 = UpSampling2D(size=(2, 2), data_format=config.data_format, interpolation="nearest")(conv4)
     up5 = Conv2D(config.conv_hidden_num, 2, 1, padding="same", activation=config.activation_fn,
                  data_format=config.data_format)(up5)
-    merge5 = Concatenate(axis=-1)([up5, conv1])  # Long Skip connestion
-    conv5 = Conv2D(config.conv_hidden_num, 3, 1, padding='same', activation=config.activation_fn,
+    merge5 = Concatenate(axis=-1)([up5, conv1])  # Long Skip connestion 128+128
+    conv5 = Conv2D(256, 3, 1, padding='same', activation=config.activation_fn,
                    data_format=config.data_format)(merge5)
-    conv5 = Conv2D(config.conv_hidden_num, 3, 1, padding='same', activation=config.activation_fn,
+    conv5 = Conv2D(256, 3, 1, padding='same', activation=config.activation_fn,
                    data_format=config.data_format)(conv5)
 
     outputs = Conv2D(config.input_image_raw_channel, 1, 1, padding='same', activation=None,
