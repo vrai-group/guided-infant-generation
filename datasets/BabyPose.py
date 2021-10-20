@@ -108,7 +108,7 @@ class BabyPose():
         return dataset
 
     # ritorna un TF.data preprocessato in G1
-    def get_preprocess_G1_Bibranch_dataset(self, unprocess_dataset):
+    def get_preprocess_G1_dataset(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
                            indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 
