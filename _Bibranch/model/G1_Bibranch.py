@@ -166,7 +166,7 @@ def build_model():
     # branch_2_Enc_4 = BatchNormalization()(branch_2_Enc_4)
     branch_2_Enc_4 = Activation('relu')(branch_2_Enc_4)
 
-    concat_4 = concatenate([branch_1_Enc_4, branch_2_Enc_4])
+    concat_4 = concatenate([branch_1_Enc_4, branch_2_Enc_4]) #512
 
     ## Bridge
     # output [num_batch, 98.304] --> 98.304:  12x16x512
@@ -180,7 +180,7 @@ def build_model():
 
     ##### Decoder
     # Blocco 1
-    long_connection_1 = Concatenate(axis=-1)([x, concat_4])
+    long_connection_1 = Concatenate(axis=-1)([x, concat_4]) #512+128=640
 
     branch_1_Dec_1 = Conv2D(filters=320, kernel_size=3, strides=1, padding='same')(long_connection_1)
     # branch_1_Dec_1 = BatchNormalization()(branch_1_Dec_1)
@@ -200,12 +200,12 @@ def build_model():
     # branch_2_Dec_1 = BatchNormalization()(branch_2_Dec_1)
     branch_2_Dec_1 = Activation('relu')(branch_2_Dec_1)
 
-    Dec_1 = concatenate([branch_1_Dec_1, branch_2_Dec_1])
+    Dec_1 = concatenate([branch_1_Dec_1, branch_2_Dec_1]) #640
     Dec_1 = UpSampling2D(size=(2, 2), interpolation="nearest")(Dec_1)
     Dec_1 = Conv2D(filters=384, kernel_size=1, strides=1, padding='same')(Dec_1)
 
     ###Blocco 2
-    long_connection_2 = Concatenate(axis=-1)([Dec_1, concat_3])
+    long_connection_2 = Concatenate(axis=-1)([Dec_1, concat_3]) #384+384=768
 
     branch_1_Dec_2 = Conv2D(filters=384, kernel_size=3, strides=1, padding='same')(long_connection_2)
     # branch_1_Dec_2 = BatchNormalization()(branch_1_Dec_2)
@@ -225,7 +225,7 @@ def build_model():
     # branch_2_Dec_2 = BatchNormalization()(branch_2_Dec_2)
     branch_2_Dec_2 = Activation('relu')(branch_2_Dec_2)
 
-    Dec_2 = concatenate([branch_1_Dec_2, branch_2_Dec_2])
+    Dec_2 = concatenate([branch_1_Dec_2, branch_2_Dec_2]) # 768
     Dec_2 = UpSampling2D(size=(2, 2), interpolation="nearest")(Dec_2)
     Dec_2 = Conv2D(filters=256, kernel_size=1, strides=1, padding='same')(Dec_2)
 
