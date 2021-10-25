@@ -49,8 +49,8 @@ def calculate_is_score(model_to_is, embeddings_fake):
 def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, output_G1, output_G2, predizione, pz_0, pz_1,
              id_0, id_1):
     # Unprocess
-    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-    image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+    image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5), dtype=tf.uint8)[0].numpy()
+    image_raw_1 = tf.cast(utils_wgan.unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint8)[0].numpy()
 
     pose_1 = pose_1[0]
     pose_1 = tf.math.add(pose_1, 1, name=None) / 2 # rescale tra [0, 1]
@@ -60,10 +60,10 @@ def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, 
 
     mask_1 = tf.cast(mask_1, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
-    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-    output_G2 = tf.cast(utils_wgan.unprocess_image(output_G2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), dtype=tf.uint8)[0].numpy()
+    output_G2 = tf.cast(utils_wgan.unprocess_image(output_G2, mean_0, 32765.5), dtype=tf.uint8)[0].numpy()
 
-    predizione = tf.cast(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+    predizione = tf.cast(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), dtype=tf.uint8)[0].numpy()
 
     # Save Figure
     fig = plt.figure(figsize=(10, 2))
@@ -265,14 +265,16 @@ if __name__ == "__main__":
     config = Config_file.Config()
     babypose_obj = BabyPose()
 
-    name_weights_file_G1 = 'Model_G1_epoch_006-loss_0.000260-ssim_0.941600-mask_ssim_0.983803-val_loss_0.000771-val_ssim_0.917329-val_mask_ssim_0.977151.hdf5'
-    name_weights_file_G2 = 'Model_G2_epoch_023-loss_0.70-ssmi_0.93-mask_ssmi_1.00-r_r_5231-im_0_5455-im_1_5517-val_loss_0.74-val_ssim_0.78-val_mask_ssim_0.98-val_r_r_33-val_im_0_26-val_im_1_26.hdf5'
+    name_weights_file_G1 = 'Model_G1_epoch_006-loss_0.000306-ssim_0.929091-mask_ssim_0.979184-val_loss_0.000800-val_ssim_0.909453-val_mask_ssim_0.972180.hdf5'
+    name_weights_file_G2 = 'Model_G2_epoch_076-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5347-im_0_5384-im_1_5354-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
     num = name_weights_file_G1.split('-')[0].split('_')[3]
     name_dir = 'valid_score_epoca' + num  # directory dove salvare i risultati degli score
     name_dataset = config.name_tfrecord_valid
     bool_save_img = True
     batch_size = 10
     dataset_len = config.dataset_valid_len
+
+    assert dataset_len % dataset_len == 0
 
     # Directory
     if not os.path.exists(name_dir):
