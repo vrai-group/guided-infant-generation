@@ -17,11 +17,13 @@ config = Config_file.Config()
 def Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0):
     image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
     image_raw_0 = tf.cast(image_raw_0, dtype=tf.float32)
+    refined_result = tf.cast(refined_result, dtype=tf.float32)
     mask_1 = tf.cast(mask_1, dtype=tf.float32)
     mask_0 = tf.cast(mask_0, dtype=tf.float32)
 
     # Loss per imbrogliare il discriminatore creando un immagine sempre più reale
     gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.ones_like(D_neg_refined_result)))
+    gen_cost = tf.cast(gen_cost, dtype=tf.float32)
 
     primo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1))  # L1 loss
     secondo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1) * mask_1)

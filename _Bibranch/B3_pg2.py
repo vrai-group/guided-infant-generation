@@ -305,12 +305,12 @@ class PG2(object):
         # -Caricamento dataset
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
-        dataset_train = self.babypose_obj.get_preprocess_G1_dataset(dataset_train)
+        dataset_train = self.babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset_train)
         dataset_train = dataset_train.batch(self.config.batch_size_train)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)
 
         dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
-        dataset_valid = self.babypose_obj.get_preprocess_G1_dataset(dataset_valid)
+        dataset_valid = self.babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset_valid)
         dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
 
@@ -320,7 +320,7 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.model_G1_Bibranch = G1_Bibranch.build_model()
-        self.model_G1_Bibranch.load_weights(os.path.join(self.config.weigths_path,''))
+        self.model_G1_Bibranch.load_weights(os.path.join(self.config.weigths_path,'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'))
         self.model_G1_Bibranch.summary()
 
         # Buildo la GAN
@@ -599,7 +599,7 @@ class PG2(object):
 
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 15]
-        output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
+        output_G1 = self.model_G1_Bibranch(input_G1)  # [batch, 96, 128, 1] dtype=float32
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
         with tf.GradientTape() as g2_tape:
@@ -621,7 +621,6 @@ class PG2(object):
             # Loss G2_Bibranch
             loss_value_G2_Bibranch = G2_Bibranch.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
 
-        #if (id_batch + 1) % 2 == 1
         if (id_batch + 1) % 3 == 0:
             print("G2_Bibranch")
             # backprop G2_Bibranch
@@ -648,7 +647,6 @@ class PG2(object):
                                                                     D_neg_image_raw_0)
 
         if not (id_batch + 1) % 3 == 0:
-            print("D")
             # backprop D
             self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
 

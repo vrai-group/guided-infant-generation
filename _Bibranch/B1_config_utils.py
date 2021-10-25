@@ -50,7 +50,7 @@ class Config:
         self.keypoint_num = 14  # numero di keypoints
 
         # -G1
-        self.trainig_G1_Bibranch = True
+        self.trainig_G1_Bibranch = False
         # -- Model
         self.input_shape_G1_Bibranch = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
 
@@ -67,7 +67,7 @@ class Config:
         self.input_shape_D = [96, 128, 1]
 
         # -- Training / test parameters
-        self.epochs_GAN = 100
+        self.epochs_GAN = 200
         self.lr_update_epoch_GAN = 1
         self.lr_initial_G2 = 2e-5
         self.lr_initial_D = 2e-5
