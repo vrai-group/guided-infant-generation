@@ -325,18 +325,20 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.model_G1 = G1.build_model()
-        self.model_G1.load_weights(os.path.join(self.config.weigths_path,'Model_G1_epoch_006-loss_0.000260-ssim_0.941600-mask_ssim_0.983803-val_loss_0.000771-val_ssim_0.917329-val_mask_ssim_0.977151.hdf5'))
+        self.model_G1.load_weights(os.path.join(self.config.weigths_path,'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'))
         self.model_G1.summary()
 
         # Buildo la GAN
         # G2
         self.model_G2 = G2.build_model()  # architettura Generatore G2
+        # self.model_G2.summary()
+        #self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
         self.opt_G2 = G2.optimizer()  # ottimizzatore
-        self.model_G2.summary()
-
 
         # D
         self.model_D = Discriminator.build_model()
+        # self.model_D.summary()
+        # self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_D_epoch_005-loss_0.483811-loss_values_D_fake_0.275987-loss_values_D_real_0.207833-val_loss_0.497179-val_loss_values_D_fake_0.176609-val_loss_values_D_real_0.320597.hdf5'))
         self.opt_D = Discriminator.optimizer()
 
         # -History del training
@@ -627,8 +629,11 @@ class PG2(object):
 
             # Loss G2
             loss_value_G2 = G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
-        # backprop G2
-        if (id_batch + 1) % 2 == 0:
+
+        #if (id_batch + 1) % 2 == 1
+        if (id_batch + 1) % 3 == 0:
+            print("G2")
+            # backprop G2
             self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
 
         with tf.GradientTape() as d_tape:
@@ -650,8 +655,10 @@ class PG2(object):
             # Loss D
             loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
                                                                     D_neg_image_raw_0)
-        # backprop D
-        if not (id_batch + 1) % 2 == 0:
+
+        if not (id_batch + 1) % 3 == 0:
+            print("D")
+            # backprop D
             self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
 
 

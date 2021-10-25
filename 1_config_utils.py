@@ -68,8 +68,8 @@ class Config:
         self.input_shape_D = [96, 128, 1]
 
         # -- Training / test parameters
-        self.epochs_GAN = 100
-        self.lr_update_epoch_GAN = 1
+        self.epochs_GAN = 200
+        self.lr_update_epoch_GAN = 1000
         self.lr_initial_G2 = 2e-5
         self.lr_initial_D = 2e-5
         self.drop_rate_GAN = self.drop_rate_G1

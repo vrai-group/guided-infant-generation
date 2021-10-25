@@ -30,7 +30,7 @@ def Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1,
     secondo_membro = tf.reduce_mean(tf.abs(refined_result - image_raw_1) * mask_1)
     PoseMaskLoss2 = primo_membro + secondo_membro
 
-    loss = gen_cost + PoseMaskLoss2*30
+    loss = gen_cost + PoseMaskLoss2*10
 
     return loss
 
