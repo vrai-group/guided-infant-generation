@@ -26,6 +26,8 @@ class PG2(object):
 
     def train_G1(self):
 
+        #Provaa
+
         # -Caricamento dataset
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.batch(1)
