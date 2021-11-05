@@ -1,6 +1,5 @@
-import os
+import os 
 import sys
-
 import cv2
 import numpy as np
 from scipy.linalg import sqrtm
@@ -12,7 +11,7 @@ from tensorflow.keras.layers import Input
 from utils import utils_wgan
 from utils import grid
 from utils.utils_wgan import inception_preprocess_image
-from model import G1, G2, Discriminator
+from model import G1_Bibranch as G1
 from datasets.BabyPose import BabyPose
 
 
@@ -46,7 +45,7 @@ def calculate_is_score(model_to_is, embeddings_fake):
     return np.exp(avg_kl_d)
 
 
-def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, output_G1, output_G2, predizione, pz_0, pz_1,
+def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, predizione, pz_0, pz_1,
              id_0, id_1):
     # Unprocess
     image_raw_0 = tf.cast(utils_wgan.unprocess_image(image_raw_0, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
@@ -60,22 +59,18 @@ def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, 
 
     mask_1 = tf.cast(mask_1, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
-    output_G1 = tf.cast(utils_wgan.unprocess_image(output_G1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-    output_G2 = tf.cast(utils_wgan.unprocess_image(output_G2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-
-    predizione = tf.cast(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+    predizione = tf.cast(tf.clip_by_value(utils_wgan.unprocess_image(predizione, mean_0, 32765.5), clip_value_min=0,
+                                  clip_value_max=32765), dtype=tf.uint16)[0].numpy()
 
     # Save Figure
     fig = plt.figure(figsize=(10, 2))
-    columns = 6
+    columns = 5
     rows = 1
-    imgs = [predizione, output_G2, output_G1, image_raw_0, pose_1, image_raw_1, mask_1]
-    labels = ["Predizione","G2","G1","Immagine di condizione", "Posa desiderata", "Target", "Maschera posa desiderata"]
+    imgs = [predizione, image_raw_0, pose_1, image_raw_1, mask_1]
+    labels = ["Predizione", "Immagine di condizione", "Posa desiderata", "Target", "Maschera posa desiderata"]
     for j in range(1, columns * rows + 1):
         sub = fig.add_subplot(rows, columns, j)
         sub.set_title(labels[j - 1])
-        sub.get_xaxis().set_visible(False)
-        sub.get_yaxis().set_visible(False)
         plt.imshow(imgs[j - 1],cmap='gray')
     name_img = os.path.join(name_dir_to_save_img,
                             "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
@@ -84,9 +79,8 @@ def save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, 
                                 pz_1=pz_1,
                                 id_0=id_0,
                                 id_1=id_1))
-    #plt.show()
+    plt.show()
     plt.savefig(name_img)
-    #cv2.imwrite(name_img, cv2.resize(predizione, (640,480)))
     plt.close(fig)
 
 
@@ -103,7 +97,7 @@ def compute_embeddings_G1(cnt_embeddings, inception_model, batch_size,
     vettore_embeddings_mask_fake[start:end] = inception_model.predict(input_inception_mask_fake)
 
 
-def pipeline(model_G1, model_G2, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_save_img):
+def pipeline(model_G1, dataset_aug, dataset_aug_len, name_dir, batch_size, bool_save_img):
     name_dir_to_save_img = None
     if bool_save_img:
         # Directory
@@ -169,15 +163,11 @@ def pipeline(model_G1, model_G2, dataset_aug, dataset_aug_len, name_dir, batch_s
 
         # Predizione
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-        output_G1 = model_G1.predict(input_G1)
-
-        input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)
-        output_G2 = model_G2.predict(input_G2)
-        predizione = output_G2 + output_G1
+        predizione = model_G1.predict(input_G1)
         mask_predizione = predizione * mask_1
 
         if bool_save_img:
-            save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, output_G1, output_G2, predizione,
+            save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, predizione,
                      pz_0, pz_1, id_0, id_1)
 
         ### Ottengo embeddings
@@ -261,21 +251,19 @@ def pipeline(model_G1, model_G2, dataset_aug, dataset_aug_len, name_dir, batch_s
 
 if __name__ == "__main__":
     # Config file
-    Config_file = __import__('1_config_utils')
+    Config_file = __import__('B1_config_utils')
     config = Config_file.Config()
     babypose_obj = BabyPose()
 
-    name_weights_file_G1 = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
-    for w in os.listdir('./weights/G2'):
-        name_weights_file_G2 = w
-        num = name_weights_file_G2.split('-')[0].split('_')[3]
-        name_dir = 'test_score_epoca' + num  # directory dove salvare i risultati degli score
+    for w in os.listdir('./weights'):
+        num = w.split('-')[0].split('_')[4]
+        name_dir = 'test_score_epoca'+num  # directory dove salvare i risultati degli score
         name_dataset = config.name_tfrecord_test
+        #name_weights_file = 'Model_G1_epoch_002-loss_0.000704-ssim_0.913195-mask_ssim_0.975810-val_loss_0.000793-val_ssim_0.912054-val_mask_ssim_0.974530.hdf5'
+        name_weights_file = w
         bool_save_img = True
         batch_size = 10
         dataset_len = config.dataset_test_len
-
-        assert dataset_len % dataset_len == 0
 
         # Directory
         if not os.path.exists(name_dir):
@@ -291,11 +279,7 @@ if __name__ == "__main__":
 
         # Model
         model_G1 = G1.build_model()
-        model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file_G1))
-
-        model_G2 = G2.build_model()
-        model_G2.summary()
-        model_G2.load_weights(os.path.join(config.weigths_path, "G2",name_weights_file_G2))
+        model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file))
 
         # Pipiline score
-        pipeline(model_G1, model_G2, dataset, dataset_len, name_dir, batch_size, bool_save_img=bool_save_img)
+        pipeline(model_G1, dataset, dataset_len, name_dir, batch_size, bool_save_img=bool_save_img)

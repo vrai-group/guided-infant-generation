@@ -1,27 +1,19 @@
-from time import time
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import offsetbox
-from sklearn import (manifold, datasets, decomposition, ensemble, discriminant_analysis, random_projection)
-
 import os
 import sys
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import manifold
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.applications.vgg16 import preprocess_input
 
-
-
 from utils.utils_wgan import unprocess_image
-from model import G1, G2, Discriminator
+from model import G1, G2
 from datasets.BabyPose import BabyPose
-from keras.applications.vgg16 import VGG16, preprocess_input, decode_predictions
+from keras.applications.vgg16 import VGG16, preprocess_input
 
-def extract_features(feature_extractor, model_G1, dataset, dataset_len):
+def extract_features(feature_extractor, model_G1, model_G2, dataset, dataset_len):
 
     tot_imgs_features_real = []  # qui salvo le features su tutto il dataset
     tot_imgs_features_generated = []
@@ -53,6 +45,10 @@ def extract_features(feature_extractor, model_G1, dataset, dataset_len):
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
         output_G1 = model_G1.predict(input_G1)
 
+        input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)
+        output_G2 = model_G2.predict(input_G2)
+        predizione = output_G2 + output_G1
+
         # Unprocess
         image_raw_1_unp = tf.cast(unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint8)
         image_raw_1_unp = tf.concat([image_raw_1_unp, image_raw_1_unp, image_raw_1_unp], axis=-1)
@@ -61,14 +57,14 @@ def extract_features(feature_extractor, model_G1, dataset, dataset_len):
         image_raw_1_unp = np.reshape(image_raw_1_unp, (1, 224, 224, 3))
 
 
-        output_G1_unp = tf.cast(unprocess_image(output_G1, mean_0, 32765.5), dtype=tf.uint8)
-        output_G1_unp = tf.concat([output_G1_unp, output_G1_unp, output_G1_unp], axis=-1)
-        output_G1_unp = cv2.resize(output_G1_unp.numpy()[0], (224, 224))
-        output_G1_unp = preprocess_input(output_G1_unp)
-        output_G1_unp = np.reshape(output_G1_unp, (1,224,224,3))
+        predizione_unp = tf.cast(unprocess_image(predizione, mean_0, 32765.5), dtype=tf.uint8)
+        predizione_unp = tf.concat([predizione_unp, predizione_unp, predizione_unp], axis=-1)
+        predizione_unp = cv2.resize(predizione_unp.numpy()[0], (224, 224))
+        predizione_unp = preprocess_input(predizione_unp)
+        predizione_unp = np.reshape(predizione_unp, (1,224,224,3))
 
         features_img1 = feature_extractor.predict(image_raw_1_unp)[0]
-        features_og1 = feature_extractor.predict(output_G1_unp)[0]
+        features_og1 = feature_extractor.predict(predizione_unp)[0]
 
         tot_imgs_features_real.append(features_img1)
         tot_imgs_features_generated.append(features_og1)
@@ -82,6 +78,7 @@ if __name__ == "__main__":
     babypose_obj = BabyPose()
 
     name_weights_file_G1 = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
+    name_weights_file_G2 = 'Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
     name_dataset = config.name_tfrecord_train
     dataset_len = config.dataset_train_len
 
@@ -97,6 +94,9 @@ if __name__ == "__main__":
     model_G1 = G1.build_model()
     model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file_G1))
 
+    model_G2 = G2.build_model()
+    model_G2.load_weights(os.path.join(config.weigths_path, name_weights_file_G2))
+
     vgg_model = VGG16(include_top=True, weights='imagenet', pooling='max', input_shape=(224, 224, 3), classes=1000)
     # --obtain latent space
     layer = vgg_model.get_layer(name="fc2")
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
 
     # Pipiline score
-    features_real, features_generated = extract_features(feature_extractor, model_G1, dataset, dataset_len)
+    features_real, features_generated = extract_features(feature_extractor, model_G1, model_G2, dataset, dataset_len)
 
     tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
     X_tsne_real = tsne.fit_transform(features_real)
@@ -113,24 +113,6 @@ if __name__ == "__main__":
     # Create a scatter plot
     plt.scatter(x=X_tsne_real[:, 0], y=X_tsne_real[:, 1], color='red')
     plt.scatter(x=X_tsne_generated[:, 0], y=X_tsne_generated[:, 1], color='blue')
-
-    # Change chart background color
-    #fig.update_layout(dict(plot_bgcolor='white'))
-
-    # Update axes lines
-    # fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgrey',
-    #                  zeroline=True, zerolinewidth=1, zerolinecolor='lightgrey',
-    #                  showline=True, linewidth=1, linecolor='black')
-    #
-    # fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgrey',
-    #                  zeroline=True, zerolinewidth=1, zerolinecolor='lightgrey',
-    #                  showline=True, linewidth=1, linecolor='black')
-    #
-    # # Set figure title
-    # fig.update_layout(title_text="t-SNE")
-    #
-    # # Update marker size
-    # fig.update_traces(marker=dict(size=3))
 
     #plt.show()
     plt.savefig("train_tsne.png")

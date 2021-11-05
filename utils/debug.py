@@ -63,7 +63,7 @@ def view_tfrecord():
     import IPython.display as display
     import matplotlib.pyplot as plt
 
-    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich_complete/tfrecord/negative_no_flip_camp5_key_1_mask_1/BabyPose_train.tfrecord')
+    raw_dataset = tf.data.TFRecordDataset('../data/Syntetich_complete/tfrecord/negative_no_flip_camp_5_keypoints_2_mask_1/BabyPose_train.tfrecord')
 
 
     image_feature_description = {
@@ -148,6 +148,12 @@ def view_tfrecord():
             #mask
             pose_mask_r4_0 = image_features['pose_mask_r4_0'].numpy().reshape(96, 128, 1)
             pose_mask_r4_1 = image_features['pose_mask_r4_1'].numpy().reshape(96, 128, 1)
+
+            mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float32)
+            image_raw_1 = (image_raw_1 -mean_1) / 32765.5
+            noise = (np.random.normal(0, 1, image_raw_1.shape) * 0.0010) * tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+            image_raw_1 = image_raw_1 + noise
+            image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
 
             fig = plt.figure(figsize=(10, 2))
             columns = 6

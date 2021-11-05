@@ -20,6 +20,10 @@ class PG2(object):
         self.babypose_obj = BabyPose()
         self.update_discriminator = 0
 
+        # TODO
+        #  inserire qui un controllo in cui in base a se viene selezionato nella config bibranch o mono setta le
+        #  variabili self.G1 self.G2 self.D
+
     def train_G1(self):
 
         # -Caricamento dataset

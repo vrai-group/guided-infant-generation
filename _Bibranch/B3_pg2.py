@@ -8,7 +8,7 @@ import tensorflow as tf
 
 from utils import augumentation, grid, utils_wgan
 from model import G1_Bibranch, G2_Bibranch, Discriminator
-from datasets.BabyPose import BabyPose
+from _Bibranch.datasets.BabyPose import BabyPose
 
 
 class PG2(object):
@@ -16,6 +16,8 @@ class PG2(object):
     def __init__(self, config):
         self.config = config
         self.babypose_obj = BabyPose()
+
+
 
     def train_G1_Bibranch(self):
 
@@ -206,7 +208,7 @@ class PG2(object):
             output_G1_Bibranch = self.model_G1_Bibranch(input_G1_Bibranch)  # [batch, 96, 128, 1] dtype=float32
 
             # Loss G1_Bibranch
-            loss_value_G1_Bibranch = G1_Bibranch.PoseMaskLoss1(output_G1_Bibranch, image_raw_1, image_raw_0, mask_1, mask_0)
+            loss_value_G1_Bibranch = G1_Bibranch.PoseMaskLoss1(output_G1_Bibranch, image_raw_1, mask_1)
 
         self.opt_G1_Bibranch.minimize(loss_value_G1_Bibranch, var_list=self.model_G1_Bibranch.trainable_weights, tape=g1_tape)
 
@@ -263,7 +265,7 @@ class PG2(object):
         output_G1_Bibranch = self.model_G1_Bibranch(input_G1_Bibranch)  # [batch, 96, 128, 1] dtype=float32
 
         # Loss G1_Bibranch
-        loss_value_G1_Bibranch = G1_Bibranch.PoseMaskLoss1(output_G1_Bibranch, image_raw_1, image_raw_0, mask_1, mask_0)
+        loss_value_G1_Bibranch = G1_Bibranch.PoseMaskLoss1(output_G1_Bibranch, image_raw_1, mask_1)
 
         # Metrics
         # - SSIM
@@ -602,6 +604,9 @@ class PG2(object):
         output_G1 = self.model_G1_Bibranch(input_G1)  # [batch, 96, 128, 1] dtype=float32
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
+        noise = (np.random.normal(0, 1, image_raw_1.shape) * 0.0010) * tf.math.reduce_sum((pose_1 + 1) /2, axis=-1).numpy().reshape(image_raw_1.shape)
+        output_G1 = tf.add(output_G1, noise)
+
         with tf.GradientTape() as g2_tape:
 
             # G2_Bibranch
@@ -619,7 +624,7 @@ class PG2(object):
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
             # Loss G2_Bibranch
-            loss_value_G2_Bibranch = G2_Bibranch.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
+            loss_value_G2_Bibranch = G2_Bibranch.Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1)
 
         if (id_batch + 1) % 3 == 0:
             print("G2_Bibranch")
@@ -731,7 +736,7 @@ class PG2(object):
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
         # Loss
-        loss_value_G2_Bibranch = G2_Bibranch.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
+        loss_value_G2_Bibranch = G2_Bibranch.Loss(D_neg_refined_result, refined_result, image_raw_1, mask_1)
         loss_value_D, loss_fake, loss_real = Discriminator.Loss(D_pos_image_raw_1, D_neg_refined_result,
                                                                 D_neg_image_raw_0)
 

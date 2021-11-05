@@ -12,8 +12,8 @@ from tensorflow.keras.layers import Input
 from utils import utils_wgan
 from utils import grid
 from utils.utils_wgan import inception_preprocess_image
-from model import G1, G2, Discriminator
-from datasets.BabyPose import BabyPose
+from model import G1_Bibranch, G2_Bibranch, Discriminator
+from _Bibranch.datasets.BabyPose import BabyPose
 
 
 def calculate_fid_score(embeddings_real, embeddings_fake):
@@ -177,7 +177,7 @@ def pipeline(model_G1, model_G2, dataset_aug, dataset_aug_len, name_dir, batch_s
         mask_predizione = predizione * mask_1
 
         if bool_save_img:
-            save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_0, mean_1, output_G1, output_G2, predizione,
+            save_img(i, name_dir_to_save_img, image_raw_0, image_raw_1, pose_1, mask_1, mean_1, mean_1, output_G1, output_G2, predizione,
                      pz_0, pz_1, id_0, id_1)
 
         ### Ottengo embeddings
@@ -200,10 +200,10 @@ def pipeline(model_G1, model_G2, dataset_aug, dataset_aug_len, name_dir, batch_s
             input_inception_mask_real.fill(0)
             input_inception_mask_fake.fill(0)
 
-        ssim_scores[i] = G1.m_ssim(predizione, image_raw_1, mean_0, mean_1)
-        mask_ssim_scores[i] = G1.mask_ssim(predizione, image_raw_1, mask_1, mean_0, mean_1)
+        ssim_scores[i] = G1_Bibranch.m_ssim(predizione, image_raw_1, mean_0, mean_1)
+        mask_ssim_scores[i] = G1_Bibranch.mask_ssim(predizione, image_raw_1, mask_1, mean_0, mean_1)
 
-        loss_scores[i] = G1.PoseMaskLoss1(predizione, image_raw_1, image_raw_0, mask_1, mask_0)
+        loss_scores[i] = G1_Bibranch.PoseMaskLoss1(predizione, image_raw_1, image_raw_0, mask_1, mask_0)
 
     del model_G1
     del batch
@@ -261,21 +261,21 @@ def pipeline(model_G1, model_G2, dataset_aug, dataset_aug_len, name_dir, batch_s
 
 if __name__ == "__main__":
     # Config file
-    Config_file = __import__('1_config_utils')
+    Config_file = __import__('B1_config_utils')
     config = Config_file.Config()
     babypose_obj = BabyPose()
 
-    name_weights_file_G1 = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
+    name_weights_file_G1 = 'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
     for w in os.listdir('./weights/G2'):
         name_weights_file_G2 = w
-        num = name_weights_file_G2.split('-')[0].split('_')[3]
+        num = name_weights_file_G2.split('-')[0].split('_')[4]
         name_dir = 'test_score_epoca' + num  # directory dove salvare i risultati degli score
-        name_dataset = config.name_tfrecord_test
+        name_dataset = config.name_tfrecord_valid
         bool_save_img = True
         batch_size = 10
-        dataset_len = config.dataset_test_len
+        dataset_len = config.dataset_valid_len
 
-        assert dataset_len % dataset_len == 0
+        assert dataset_len % batch_size == 0
 
         # Directory
         if not os.path.exists(name_dir):
@@ -283,17 +283,17 @@ if __name__ == "__main__":
 
         # Dataset
         dataset = babypose_obj.get_unprocess_dataset(name_dataset)
-        dataset = babypose_obj.get_preprocess_G1_dataset(dataset)
+        dataset = babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset)
         # Togliere shugfffle se no non va bene il cnt della save figure
         # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
         dataset = dataset.batch(1)
         dataset = iter(dataset)
 
         # Model
-        model_G1 = G1.build_model()
+        model_G1 = G1_Bibranch.build_model()
         model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file_G1))
 
-        model_G2 = G2.build_model()
+        model_G2 = G2_Bibranch.build_model()
         model_G2.summary()
         model_G2.load_weights(os.path.join(config.weigths_path, "G2",name_weights_file_G2))
 
