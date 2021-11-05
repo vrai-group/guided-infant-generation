@@ -9,7 +9,8 @@ import tensorflow as tf
 from utils import grid
 from utils import utils_wgan
 from utils.augumentation import apply_augumentation
-from model import G1, G2, Discriminator
+from model.mono import G1, G2, Discriminator
+from model.bi import G1_Bibranch, G2_Bibranch, Discriminator
 from datasets.BabyPose import BabyPose
 
 
@@ -18,15 +19,21 @@ class PG2(object):
     def __init__(self, config):
         self.config = config
         self.babypose_obj = BabyPose()
-        self.update_discriminator = 0
+
+        if config.ARCHITECTURE == "mono":
+            self.G1 = G1
+            self.G2 = G2
+            self.D = Discriminator
+        elif config.ARCHITECTURE == "bi":
+            self.G1 = G1_Bibranch
+            self.G2 = G2_Bibranch
+            self.D = Discriminator
 
         # TODO
         #  inserire qui un controllo in cui in base a se viene selezionato nella config bibranch o mono setta le
         #  variabili self.G1 self.G2 self.D
 
     def train_G1(self):
-
-        #Provaa
 
         # -Caricamento dataset
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)

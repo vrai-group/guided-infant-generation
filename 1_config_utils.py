@@ -5,16 +5,16 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.Dataset = "Syntetich_complete"
-        self.type = "negative_no_flip_camp_5_keypoints_2_mask_1"   # radius_<num> or new
+        self.DATASET = "Syntetich_complete"
+        self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
+        self.ARCHITECTURE = "mono" #['mono','bi']
 
         # - Path
-        self.data_path = './data/' + self.Dataset # dove si trova il dataset
-        self.data_tfrecord_path = './data/' + self.Dataset + '/tfrecord/' + self.type  # dove si trova il dataset in tfrecord
-        self.weigths_path = './weights' # dove salvare i pesi
-        self.logs_path = './logs' # dove salvare i logs
-        self.training_weights_path = './Training/' # cartella dove sono tutti i vari training effettuati
-
+        self.ROOT = './'
+        self.data_path = os.path.join(self.ROOT, "data", self.DATASET) # dove si trova il dataset
+        self.data_tfrecord_path = os.path.join(self.data_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
+        self.weigths_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
+        self.logs_path = os.path.join(self.ROOT, "logs")
 
         # - Dataset
         self.img_H = 96 #'input image height'
@@ -122,8 +122,8 @@ class Config:
 
         dic_G1 = {
 
-            "name_dataset": self.Dataset,
-            "type_dataset": self.type,
+            "name_dataset": self.DATASET,
+            "type_dataset": self.DATASET_type,
             "Allenamento G1": True,
             "lr iniziale": self.lr_initial_G1,
             "lr update rate epoche": self.lr_update_epoch_G1,
@@ -134,8 +134,8 @@ class Config:
 
         dic_GAN = {
 
-            "name_dataset": self.Dataset,
-            "type_dataset": self.type,
+            "name_dataset": self.DATASET,
+            "type_dataset": self.DATASET_type,
             "Allenamento GAN":True,
             "lr iniziale G2": self.lr_initial_G2,
             "lr iniziale D": self.lr_initial_D,
