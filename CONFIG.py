@@ -5,10 +5,10 @@ import pickle
 class Config:
     def __init__(self) :
 
-        self.DATASET = "Syntetich_complete"
+        self.DATASET = "Syntetich_complete"  # tag_note
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
 
-        self.ARCHITECTURE = "mono"
+        self.ARCHITECTURE = "mono"  # il nome deve match la cartella in models/Syntetich
         self.MODE = "train" #['train', 'test']
 
         # - Path
@@ -17,6 +17,7 @@ class Config:
         self.data_tfrecord_path = os.path.join(self.data_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
         self.weigths_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
         self.logs_path = os.path.join(self.ROOT, "logs")
+        self.dataset_file_path = os.path.join(self.ROOT, "dataset")
         self.models_path = os.path.join(self.ROOT, "models", self.ARCHITECTURE)
 
         # - Dataset

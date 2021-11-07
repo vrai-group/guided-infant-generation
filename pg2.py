@@ -10,24 +10,26 @@ import tensorflow as tf
 from utils import grid
 from utils import utils_wgan
 from utils.augumentation import apply_augumentation
-from models.mono import G1, G2, D
-from models.bi import G1_Bibranch, G2_Bibranch, D
-from datasets.Syntetich import Syntetich
+
+import importlib.util
 
 
 class PG2(object):
 
     def __init__(self, config):
         self.config = config
-        self.babypose_obj = Syntetich()
+        self.dataset_obj = self._import_module("Syntetich", config.dataset_file_path).Syntetich()
 
-        self._import_models()
+        self.G1 = self._import_module("G1", config.models_path).G1()
+        self.G2 = self._import_module("G2", config.models_path).G2()
+        self.D = self._import_module("D", config.models_path).D()
 
-    def _import_models(self):
-        for module in glob.glob(os.path.join(self.config.models_path, "*.py")):
-            a = module
-            # TODO. import module
+    def _import_module(self, name_module, path):
+        spec = importlib.util.spec_from_file_location(name_module, os.path.join(path, name_module + ".py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
 
+        return module
 
     # def train_G1(self):
     #
