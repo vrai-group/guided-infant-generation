@@ -7,14 +7,17 @@ class Config:
 
         self.DATASET = "Syntetich_complete"
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
-        self.ARCHITECTURE = "mono" #['mono','bi']
+
+        self.ARCHITECTURE = "mono"
+        self.MODE = "train" #['train', 'test']
 
         # - Path
-        self.ROOT = './'
+        self.ROOT = '.'
         self.data_path = os.path.join(self.ROOT, "data", self.DATASET) # dove si trova il dataset
         self.data_tfrecord_path = os.path.join(self.data_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
         self.weigths_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
         self.logs_path = os.path.join(self.ROOT, "logs")
+        self.models_path = os.path.join(self.ROOT, "models", self.ARCHITECTURE)
 
         # - Dataset
         self.img_H = 96 #'input image height'
@@ -51,9 +54,8 @@ class Config:
         self.keypoint_num = 14  # numero di keypoints
 
         # -G1
-        self.trainig_G1 = False
+        self.trainig_G1 = True
         # -- Model
-        self.input_shape_G1 = [96, 128, 15]  # concat tra image_raw_0 a 1 channel e la posa a 14 channel
 
         # -- Training / test parameters
         self.epochs_G1 = 100
@@ -62,7 +64,7 @@ class Config:
         self.drop_rate_G1 = 0.5
 
         # -GAN
-        self.trainig_GAN = True
+        self.trainig_GAN = False
         # -- Model
         self.input_shape_G2 = [96, 128, 2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
         self.input_shape_D = [96, 128, 1]
@@ -76,7 +78,7 @@ class Config:
 
         # - General (Sia per G1 che per GAN)
         self.save_grid_ssim_epoch_valid = 1
-        self.save_grid_ssim_epoch_train = 1  
+        self.save_grid_ssim_epoch_train = 1
 
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size

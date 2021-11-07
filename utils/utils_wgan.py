@@ -5,14 +5,6 @@ import os, sys
 from tensorflow.keras.applications.inception_v3 import preprocess_input
 from skimage.transform import resize
 
-def process_image(image, mean_pixel, norm):
-    return (image - mean_pixel) / norm
-
-
-def unprocess_image(image, mean_pixel, norm):
-    return image * norm + mean_pixel
-
-
 def inception_preprocess_image(image, mean):
     def scale_images(images, new_shape):
         new_image = resize(images[0], new_shape, 0)

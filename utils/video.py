@@ -11,22 +11,22 @@ from tensorflow.keras.layers import Input
 from utils import utils_wgan
 from utils import grid
 from utils.utils_wgan import inception_preprocess_image
-from model import G1, G2, Discriminator
-from datasets.BabyPose import BabyPose
+from models import G1, G2, Discriminator
+from datasets.Syntetich import Syntetich
 
 
 def generation():
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
-    babypose_obj = BabyPose()
+    babypose_obj = Syntetich()
 
     name_dataset = config.name_tfrecord_valid
     name_weights_file = 'Model_G1_epoch_001-loss_0.004598-ssim_0.746547-mask_ssim_0.945029-val_loss_0.001273-val_ssim_0.883418-val_mask_ssim_0.965246.hdf5'
     dataset_len = config.dataset_valid_len
     name_dir_to_save_img = './imgs'
 
-    dataset = babypose_obj.get_unprocess_dataset(name_dataset)
-    dataset = babypose_obj.get_preprocess_G1_dataset(dataset)
+    dataset = babypose_obj.get_unprocess(name_dataset)
+    dataset = babypose_obj.get_preprocess(dataset)
     dataset = dataset.batch(1)
 
 

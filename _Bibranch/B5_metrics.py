@@ -13,7 +13,7 @@ from tensorflow.keras.layers import Input
 from utils import utils_wgan
 from utils import grid
 from utils.utils_wgan import inception_preprocess_image
-from _Bibranch.model import G1_Bibranch, G2_Bibranch, Discriminator
+from _Bibranch.models import G1_Bibranch, G2_Bibranch, Discriminator
 from _Bibranch.datasets.BabyPose import BabyPose
 
 def pipeline(model_G1, model_G2,dataset_len, dataset):

@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from utils import augumentation, grid, utils_wgan
-from model import G1_Bibranch, G2_Bibranch, Discriminator
+from models import G1_Bibranch, G2_Bibranch, Discriminator
 from _Bibranch.datasets.BabyPose import BabyPose
 
 

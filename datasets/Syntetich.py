@@ -2,19 +2,15 @@
 Questo codice rilascia un reader per la lettura del TFRecord del dataset Market
 """
 import os
-import pdb
-import pickle
-import sys
 import tensorflow as tf
 
-sys.path.insert(1, '../')
 from utils import utils_wgan
 
-Config_file = __import__('1_config_utils')
+Config_file = __import__('CONFIG')
 config = Config_file.Config()
 
 
-class BabyPose():
+class Syntetich():
     def __init__(self):
         self.keypoint_num = config.keypoint_num
         self.config = config
@@ -50,7 +46,7 @@ class BabyPose():
         }
 
     # ritorna un TF.data
-    def get_unprocess_dataset(self, name_tfrecord):
+    def get_unprocess(self, name_tfrecord):
         # deve sempre ritornare uno o piu elementi
         def _decode_function(example_proto):
             example = tf.io.parse_single_example(example_proto, self.example_description)
@@ -108,7 +104,7 @@ class BabyPose():
         return dataset
 
     # ritorna un TF.data preprocessato in G1
-    def get_preprocess_G1_dataset(self, unprocess_dataset):
+    def get_preprocess(self, unprocess_dataset):
         def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
                            indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 

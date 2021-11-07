@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Input
 from utils import utils_wgan
 from utils import grid
 from utils.utils_wgan import inception_preprocess_image
-from model import G1_Bibranch, G2_Bibranch, Discriminator
+from models import G1_Bibranch, G2_Bibranch, Discriminator
 from _Bibranch.datasets.BabyPose import BabyPose
 
 

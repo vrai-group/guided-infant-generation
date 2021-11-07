@@ -12,8 +12,8 @@ from tensorflow.keras.layers import Input
 from utils import utils_wgan
 from utils import grid
 from utils.utils_wgan import inception_preprocess_image
-from model import G1, G2, Discriminator
-from datasets.BabyPose import BabyPose
+from models import G1, G2, Discriminator
+from datasets.Syntetich import Syntetich
 
 
 def calculate_fid_score(embeddings_real, embeddings_fake):
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     # Config file
     Config_file = __import__('1_config_utils')
     config = Config_file.Config()
-    babypose_obj = BabyPose()
+    babypose_obj = Syntetich()
 
     name_weights_file_G1 = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
     for w in os.listdir('./weights/G2'):
@@ -282,8 +282,8 @@ if __name__ == "__main__":
             os.mkdir(name_dir)
 
         # Dataset
-        dataset = babypose_obj.get_unprocess_dataset(name_dataset)
-        dataset = babypose_obj.get_preprocess_G1_dataset(dataset)
+        dataset = babypose_obj.get_unprocess(name_dataset)
+        dataset = babypose_obj.get_preprocess(dataset)
         # Togliere shugfffle se no non va bene il cnt della save figure
         # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
         dataset = dataset.batch(1)
