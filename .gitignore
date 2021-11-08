@@ -1,0 +1,18 @@
+# Directory #
+data/pyOniExtractor
+Training/*
+data/**/*.txt
+results_ssim/
+logs/*.npy
+
+
+# estensioni #
+*.rar
+*.png
+*.bat
+*.hdf5
+*.tfrecord
+*.csv
+*.pyc
+*.pkl
+
