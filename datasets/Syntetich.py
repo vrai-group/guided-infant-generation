@@ -1,6 +1,7 @@
 """
 Questo modulo rilascia un reader per la lettura del TFRecord del dataset Market
 """
+import os
 import tensorflow as tf
 from utils import utils_wgan
 
@@ -35,57 +36,63 @@ example_description = {
     'radius_keypoints': tf.io.FixedLenFeature([], tf.int64),
 }
 
-def get_reader(name_dataset):
-    return tf.data.TFRecordDataset(name_dataset)
 
-def get_unprocess(example_proto):
-    example = tf.io.parse_single_example(example_proto, example_description)
+def get_unprocess(self, name_tfrecord):
+    # deve sempre ritornare uno o piu elementi
+    def _decode_function(example_proto):
+        example = tf.io.parse_single_example(example_proto, self.example_description)
 
-    # NAME
-    name_0 = example['image_name_0']
-    name_1 = example['image_name_1']
+        # NAME
+        name_0 = example['image_name_0']
+        name_1 = example['image_name_1']
 
-    # PZ
-    pz_0 = example['pz_0']
-    pz_1 = example['pz_1']
+        # PZ
+        pz_0 = example['pz_0']
+        pz_1 = example['pz_1']
 
-    # ORIGINAL_PEAKS
-    shape_len_original_peaks_0 = example['shape_len_original_peaks_0']
-    original_peaks_0 = tf.reshape(tf.io.decode_raw(example['original_peaks_0'], tf.int64),
-                                  [shape_len_original_peaks_0, 2])
+        # ORIGINAL_PEAKS
+        shape_len_original_peaks_0 = example['shape_len_original_peaks_0']
+        original_peaks_0 = tf.reshape(tf.io.decode_raw(example['original_peaks_0'], tf.int64),
+                                      [shape_len_original_peaks_0, 2])
 
-    shape_len_original_peaks_1 = example['shape_len_original_peaks_1']
-    original_peaks_1 = tf.reshape(tf.io.decode_raw(example['original_peaks_1'], tf.int64),
-                                  [shape_len_original_peaks_1, 2])
+        shape_len_original_peaks_1 = example['shape_len_original_peaks_1']
+        original_peaks_1 = tf.reshape(tf.io.decode_raw(example['original_peaks_1'], tf.int64),
+                                      [shape_len_original_peaks_1, 2])
 
-    # INDICES E VALUES
-    shape_len_indices_0 = example['shape_len_indices_0']
-    indices_0 = tf.reshape(tf.io.decode_raw(example['indices_r4_0'], tf.int64), [shape_len_indices_0, 3])
-    values_0 = tf.io.decode_raw(example['values_r4_0'], tf.int64)
+        # INDICES E VALUES
+        shape_len_indices_0 = example['shape_len_indices_0']
+        indices_0 = tf.reshape(tf.io.decode_raw(example['indices_r4_0'], tf.int64), [shape_len_indices_0, 3])
+        values_0 = tf.io.decode_raw(example['values_r4_0'], tf.int64)
 
-    shape_len_indices_1 = example['shape_len_indices_1']
-    indices_1 = tf.reshape(tf.io.decode_raw(example['indices_r4_1'], tf.int64), [shape_len_indices_1, 3])
-    values_1 = tf.io.decode_raw(example['values_r4_1'], tf.int64)
+        shape_len_indices_1 = example['shape_len_indices_1']
+        indices_1 = tf.reshape(tf.io.decode_raw(example['indices_r4_1'], tf.int64), [shape_len_indices_1, 3])
+        values_1 = tf.io.decode_raw(example['values_r4_1'], tf.int64)
 
-    # IMAGE
-    image_raw_0 = tf.reshape(tf.io.decode_raw(example['image_raw_0'], tf.uint16), [96, 128, 1])
-    image_raw_1 = tf.reshape(tf.io.decode_raw(example['image_raw_1'], tf.uint16), [96, 128, 1])
+        # IMAGE
+        image_raw_0 = tf.reshape(tf.io.decode_raw(example['image_raw_0'], tf.uint16), [96, 128, 1])
+        image_raw_1 = tf.reshape(tf.io.decode_raw(example['image_raw_1'], tf.uint16), [96, 128, 1])
 
-    # POSE
-    pose_0 = tf.sparse.SparseTensor(indices=indices_0, values=values_0,
-                                    dense_shape=[96, 128, 14])
-    pose_1 = tf.sparse.SparseTensor(indices=indices_1, values=values_1,
-                                    dense_shape=[96, 128, 14])
+        # POSE
+        pose_0 = tf.sparse.SparseTensor(indices=indices_0, values=values_0,
+                                        dense_shape=[96, 128, self.keypoint_num])
+        pose_1 = tf.sparse.SparseTensor(indices=indices_1, values=values_1,
+                                        dense_shape=[96, 128, self.keypoint_num])
 
-    # POSE_MASK
-    mask_0 = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
-    mask_1 = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
+        # POSE_MASK
+        mask_0 = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
+        mask_1 = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
 
-    # RADIUS KEY
-    radius_keypoints = example['radius_keypoints']
+        # RADIUS KEY
+        radius_keypoints = example['radius_keypoints']
 
-    return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, \
-           indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
+        return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
+
+    file_pattern = os.path.join(self.config.data_tfrecord_path,
+                                name_tfrecord)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
+    reader = tf.data.TFRecordDataset(file_pattern)
+    dataset = reader.map(_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
+
+    return dataset
 
 
 def preprocess_dataset(unprocess_dataset):
