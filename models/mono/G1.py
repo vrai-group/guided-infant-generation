@@ -61,7 +61,7 @@ class G1(Model_Template):
         return Model(inputs, outputs)
 
     # LOSS
-    def PoseMaskloss(self, output_G1, image_raw_1, mask_1):
+    def PoseMaskloss1(self, output_G1, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
         mask_1 = tf.cast(mask_1, dtype=tf.float32)
 
@@ -70,10 +70,6 @@ class G1(Model_Template):
         PoseMaskLoss1 = primo_membro + secondo_membro
 
         return PoseMaskLoss1
-
-    # Learning rate
-    def step_decay(self):
-        pass
 
     # Optimizer
     def optimizer(self):

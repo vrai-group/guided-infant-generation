@@ -75,8 +75,7 @@ class G2(Model_Template):
     def optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
-    # Fuinzione di loss
-    def Loss(self, D_neg_refined_result, refined_result, image_raw_1, mask_1):
+    def PoseMaskLoss2(self, D_neg_refined_result, refined_result, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
         refined_result = tf.cast(refined_result, dtype=tf.float32)
         mask_1 = tf.cast(mask_1, dtype=tf.float32)
