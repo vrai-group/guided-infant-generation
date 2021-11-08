@@ -46,10 +46,6 @@ class PG2(object):
         dataset_valid = reader_valid.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
         dataset_valid = dataset_valid.batch(1)
 
-        # -Costruzione modello
-        self.model_G1 = self.G1.build_model()
-        self.opt_G1 = self.G1.optimizer()
-
         # -History del training
         history_G1 = {'epoch': 0,
                       'loss_train': np.empty((self.config.epochs_G1)),
@@ -85,7 +81,7 @@ class PG2(object):
             print("\n")
 
             ## Preprocess Dataset Augumentato
-            dataset_train_aug = self.babypose_obj.get_unprocess(name_tfrecord_aug_train)
+            dataset_train_aug = self.dataset_module.get_unprocess(name_tfrecord_aug_train)
             dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
             dataset_train_aug = self.babypose_obj.get_preprocess(dataset_train_aug)
             dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)

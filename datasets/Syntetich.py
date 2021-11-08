@@ -36,9 +36,6 @@ example_description = {
 }
 
 
-def get_reader():
-    reader_train = tf.data.TFRecordDataset(self.config.data_tfrecord_path, self.config.name_tfrecord_train)
-
 def get_unprocess(example_proto):
     example = tf.io.parse_single_example(example_proto, example_description)
 

@@ -9,7 +9,7 @@ from models.Model_template import Model_Template
 class G1(Model_Template):
 
     def __init__(self):
-        #TODO: RIchiamare il costruttore super
+        super().__init__()
         self.input_shape = [96, 128, 15]
         self.output_channels = 1
         self.conv_hidden_num = 128
