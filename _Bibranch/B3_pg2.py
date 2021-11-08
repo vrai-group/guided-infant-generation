@@ -44,8 +44,8 @@ class PG2(object):
                       'mask_ssim_valid': np.empty((self.config.epochs_G1_Bibranch))}
 
         # Se esistenti, precarico i logs
-        if os.path.exists(os.path.join(config.logs_path, 'history_G1_Bibranch.npy')):
-            old_history_G1_Bibranch = np.load(os.path.join(self.config.logs_path, 'history_G1_Bibranch.npy'), allow_pickle='TRUE')
+        if os.path.exists(os.path.join(config.logs_dir_path, 'history_G1_Bibranch.npy')):
+            old_history_G1_Bibranch = np.load(os.path.join(self.config.logs_dir_path, 'history_G1_Bibranch.npy'), allow_pickle='TRUE')
             epoch = old_history_G1_Bibranch.item().get('epoch')
             for key, value in old_history_G1_Bibranch.item().items():
                 if key == 'epoch':
@@ -151,7 +151,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid']),
                 val_m_ssim=np.mean(logs_to_print['ssim_valid']),
                 val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
-            filepath = os.path.join(self.config.weigths_path, name_model)
+            filepath = os.path.join(self.config.weigths_dir_path, name_model)
             self.model_G1_Bibranch.save_weights(filepath)
 
             # --Update learning rate
@@ -168,7 +168,7 @@ class PG2(object):
             history_G1_Bibranch['loss_valid'][epoch] = np.mean(logs_to_print['loss_values_valid'])
             history_G1_Bibranch['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
             history_G1_Bibranch['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
-            np.save(os.path.join(self.config.logs_path, 'history_G1_Bibranch.npy'), history_G1_Bibranch)
+            np.save(os.path.join(self.config.logs_dir_path, 'history_G1_Bibranch.npy'), history_G1_Bibranch)
 
             # --Save Gooogle colab
             if self.config.run_google_colab and (
@@ -322,7 +322,7 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.model_G1_Bibranch = G1_Bibranch.build_model()
-        self.model_G1_Bibranch.load_weights(os.path.join(self.config.weigths_path,'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'))
+        self.model_G1_Bibranch.load_weights(os.path.join(self.config.weigths_dir_path, 'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'))
         self.model_G1_Bibranch.summary()
 
         # Buildo la GAN
@@ -358,8 +358,8 @@ class PG2(object):
                        }
 
         # Se esistenti, precarico i logs
-        if os.path.exists(os.path.join(config.logs_path, 'history_GAN.npy')):
-            old_history_GAN = np.load(os.path.join(self.config.logs_path, 'history_GAN.npy'), allow_pickle='TRUE')
+        if os.path.exists(os.path.join(config.logs_dir_path, 'history_GAN.npy')):
+            old_history_GAN = np.load(os.path.join(self.config.logs_dir_path, 'history_GAN.npy'), allow_pickle='TRUE')
             # epoch = old_history_G1[()]['epoch'] --> anche in questo modi riesco ad ottenere il value dell'epoca
             epoch = old_history_GAN.item().get('epoch')
             for key, value in old_history_GAN.item().items():
@@ -519,7 +519,7 @@ class PG2(object):
                 val_im_0=int(np.sum(logs_to_print['img_0_valid'])),
                 val_im_1=int(np.sum(logs_to_print['img_1_valid'])),
             )
-            filepath = os.path.join(self.config.weigths_path, name_model)
+            filepath = os.path.join(self.config.weigths_dir_path, name_model)
             self.model_G2_Bibranch.save_weights(filepath)
 
             # D
@@ -537,7 +537,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid_D']),
                 val_loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
                 val_loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']))
-            filepath = os.path.join(self.config.weigths_path, name_model)
+            filepath = os.path.join(self.config.weigths_dir_path, name_model)
             self.model_D.save_weights(filepath)
 
             # --Save logs
@@ -560,7 +560,7 @@ class PG2(object):
             history_GAN['r_r_valid'][epoch] = np.sum(logs_to_print['r_r_valid'])
             history_GAN['img_0_valid'][epoch] = np.sum(logs_to_print['img_0_valid'])
             history_GAN['img_1_valid'][epoch] = np.sum(logs_to_print['img_1_valid'])
-            np.save(os.path.join(self.config.logs_path, 'history_GAN.npy'), history_GAN)
+            np.save(os.path.join(self.config.logs_dir_path, 'history_GAN.npy'), history_GAN)
 
             # --Update learning rate
             if epoch % self.config.lr_update_epoch_GAN == self.config.lr_update_epoch_GAN - 1:

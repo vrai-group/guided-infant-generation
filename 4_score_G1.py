@@ -280,7 +280,7 @@ if __name__ == "__main__":
 
         # Model
         model_G1 = G1.build_model()
-        model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file))
+        model_G1.load_weights(os.path.join(config.weigths_dir_path, name_weights_file))
 
         # Pipiline score
         pipeline(model_G1, dataset, dataset_len, name_dir, batch_size, bool_save_img=bool_save_img)

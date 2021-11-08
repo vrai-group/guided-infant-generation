@@ -92,10 +92,10 @@ if __name__ == "__main__":
 
     # Model
     model_G1 = G1.build_model()
-    model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file_G1))
+    model_G1.load_weights(os.path.join(config.weigths_dir_path, name_weights_file_G1))
 
     model_G2 = G2.build_model()
-    model_G2.load_weights(os.path.join(config.weigths_path, name_weights_file_G2))
+    model_G2.load_weights(os.path.join(config.weigths_dir_path, name_weights_file_G2))
 
     vgg_model = VGG16(include_top=True, weights='imagenet', pooling='max', input_shape=(224, 224, 3), classes=1000)
     # --obtain latent space

@@ -13,12 +13,12 @@ class Config:
 
         # - Path
         self.ROOT = '.'
-        self.data_path = os.path.join(self.ROOT, "data", self.DATASET) # dove si trova il dataset
-        self.data_tfrecord_path = os.path.join(self.data_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
-        self.weigths_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
-        self.logs_path = os.path.join(self.ROOT, "logs")
-        self.dataset_file_path = os.path.join(self.ROOT, "dataset")
-        self.models_path = os.path.join(self.ROOT, "models", self.ARCHITECTURE)
+        self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET) #
+        self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
+        self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
+        self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITECTURE) # dove è presente il modello
+        self.dataset_module_dir_path = os.path.join(self.ROOT, "dataset") # dov è presente il modulo per il datasrt
+        self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
 
         # - Dataset
         self.img_H = 96 #'input image height'
@@ -27,9 +27,9 @@ class Config:
             with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
                 dic = pickle.load(f)
 
-            self.name_tfrecord_train = dic['train']['name_file'] # nome dataset train
-            self.name_tfrecord_valid = dic['valid']['name_file'] # nome dataset valid
-            self.name_tfrecord_test = dic['test']['name_file']  # nome dataset test
+            self.name_tfrecord_train = os.path.join(self.data_tfrecord_path, dic['train']['name_file']) # nome dataset train
+            self.name_tfrecord_valid = os.path.join(self.data_tfrecord_path, dic['valid']['name_file']) # nome dataset valid
+            self.name_tfrecord_test = os.path.join(self.data_tfrecord_path, dic['test']['name_file'])  # nome dataset test
 
             self.dataset_train_len = int(dic['train']['tot']) # numero di pair nel train
             self.dataset_valid_len = int(dic['valid']['tot'])  # numero di pair nel valid
@@ -155,7 +155,7 @@ class Config:
         elif self.trainig_GAN:
             dic = dic_GAN
 
-        log_trainig = os.path.join(self.weigths_path, 'dic.pkl')
+        log_trainig = os.path.join(self.weigths_dir_path, 'dic.pkl')
         f = open(log_trainig, "wb")
         pickle.dump(dic, f)
         f.close()

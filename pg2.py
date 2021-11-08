@@ -18,11 +18,11 @@ class PG2(object):
 
     def __init__(self, config):
         self.config = config
-        self.dataset_module = self._import_module("Syntetich", config.dataset_file_path)
+        self.dataset_module = self._import_module("Syntetich", config.dataset_module_dir_path)
 
-        self.G1 = self._import_module("G1", config.models_path).G1()
-        self.G2 = self._import_module("G2", config.models_path).G2()
-        self.D = self._import_module("D", config.models_path).D()
+        self.G1 = self._import_module("G1", config.models_dir_path).G1()
+        self.G2 = self._import_module("G2", config.models_dir_path).G2()
+        self.D = self._import_module("D", config.models_dir_path).D()
 
 
     """
@@ -38,11 +38,11 @@ class PG2(object):
     def train_G1(self):
 
         # -Caricamento dataset
-        reader_train = tf.data.TFRecordDataset(self.config.data_tfrecord_path, self.config.name_tfrecord_train)
+        reader_train = self.dataset_module.get_reader(self.config.name_tfrecord_train)
         dataset_train = reader_train.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
         dataset_train = dataset_train.batch(1)
 
-        reader_valid = tf.data.TFRecordDataset(self.config.data_tfrecord_path, self.config.name_tfrecord_valid)
+        reader_valid = self.dataset_module.get_reader(self.config.name_tfrecord_valid)
         dataset_valid = reader_valid.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
         dataset_valid = dataset_valid.batch(1)
 
@@ -57,10 +57,9 @@ class PG2(object):
                       'mask_ssim_valid': np.empty((self.config.epochs_G1))}
 
         # Se esistenti, precarico i logs
-        if os.path.exists(os.path.join(self.config.logs_path, 'history_G1.npy')):
-            old_history_G1 = np.load(os.path.join(self.config.logs_path, 'history_G1.npy'), allow_pickle='TRUE')
-            # epoch = old_history_G1[()]['epoch'] --> anche in questo modi riesco ad ottenere il value dell'epoca
-            epoch = old_history_G1.item().get('epoch')
+        if os.path.exists(os.path.join(self.config.logs_dir_path, 'history_G1.npy')):
+            old_history_G1 = np.load(os.path.join(self.config.logs_dir_path, 'history_G1.npy'), allow_pickle='TRUE')
+            epoch = old_history_G1[()]['epoch']
             for key, value in old_history_G1.item().items():
                 if key == 'epoch':
                     history_G1[key] = value
@@ -71,7 +70,7 @@ class PG2(object):
             it_train = iter(dataset_train)
             it_valid = iter(dataset_valid)
 
-            ## Augumentazione Dataset
+            # Augumentazione Dataset
             name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(it_train, self.config, "train")
             name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(it_valid, self.config, "valid")
 
@@ -81,14 +80,17 @@ class PG2(object):
             print("\n")
 
             ## Preprocess Dataset Augumentato
-            dataset_train_aug = self.dataset_module.get_unprocess(name_tfrecord_aug_train)
+            reader_train_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_train))
+            dataset_train_aug = reader_train_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
             dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
-            dataset_train_aug = self.babypose_obj.get_preprocess(dataset_train_aug)
+            dataset_train_aug = self.dataset_module.get_preprocess(dataset_train_aug)
             dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
             dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
 
-            dataset_valid_aug = self.babypose_obj.get_unprocess(name_tfrecord_aug_valid)
-            dataset_valid_aug = self.babypose_obj.get_preprocess(dataset_valid_aug)
+            reader_valid_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_valid))
+            dataset_valid_aug = reader_valid_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
+            dataset_valid_aug = dataset_valid_aug.shuffle(dataset_valid_aug_len, reshuffle_each_iteration=True)
+            dataset_valid_aug = self.dataset_module.get_preprocess(dataset_valid_aug)
             dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
             dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
 

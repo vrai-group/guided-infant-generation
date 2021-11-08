@@ -116,11 +116,11 @@ if __name__ == "__main__":
 
         # Model
         model_G1 = G1_Bibranch.build_model()
-        model_G1.load_weights(os.path.join(config.weigths_path, name_weights_file_G1))
+        model_G1.load_weights(os.path.join(config.weigths_dir_path, name_weights_file_G1))
 
         model_G2 = G2_Bibranch.build_model()
         model_G2.summary()
-        model_G2.load_weights(os.path.join(config.weigths_path, "G2", name_weights_file_G2))
+        model_G2.load_weights(os.path.join(config.weigths_dir_path, "G2", name_weights_file_G2))
 
         # Pipiline score
         pipeline(model_G1, model_G2, dataset_len, dataset)

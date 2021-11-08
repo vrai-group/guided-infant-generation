@@ -35,6 +35,8 @@ example_description = {
     'radius_keypoints': tf.io.FixedLenFeature([], tf.int64),
 }
 
+def get_reader(name_dataset):
+    return tf.data.TFRecordDataset(name_dataset)
 
 def get_unprocess(example_proto):
     example = tf.io.parse_single_example(example_proto, example_description)
