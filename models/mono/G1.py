@@ -9,6 +9,7 @@ from models.Model_template import Model_Template
 class G1(Model_Template):
 
     def __init__(self):
+        #TODO: RIchiamare il costruttore super
         self.input_shape = [96, 128, 15]
         self.output_channels = 1
         self.conv_hidden_num = 128
@@ -16,7 +17,6 @@ class G1(Model_Template):
         self.activation_fn = 'relu'
         self.data_format = 'channels_last'
         self.lr_initial_G1 = 2e-5
-        self.model = self.build_model()
 
     # MODEL
     def build_model(self):
@@ -61,8 +61,7 @@ class G1(Model_Template):
         return Model(inputs, outputs)
 
     # LOSS
-    # PoseMaskLoss1
-    def loss(self, output_G1, image_raw_1, mask_1):
+    def PoseMaskloss(self, output_G1, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
         mask_1 = tf.cast(mask_1, dtype=tf.float32)
 
