@@ -10,6 +10,7 @@ import tensorflow as tf
 from utils import grid
 from utils import utils_wgan
 from utils.augumentation import apply_augumentation
+from utils.
 
 import importlib.util
 
@@ -25,18 +26,6 @@ class PG2(object):
         self.G2 = self._import_module(name_module="G2", path=self.config.models_dir_path).G2()
         self.D = self._import_module(name_module="D", path=self.config.models_dir_path).D()
 
-
-    """
-    Questo metodo mi consente di caricare in maniera dinamica i vari moduli di riferimento per G1, G2, D, Syntetich.
-    Ad esempio: models/mono/G1.py
-    Ad esempio: dataset/Syntetich.py
-    """
-    def _import_module(self, name_module, path):
-        spec = importlib.util.spec_from_file_location(name_module, os.path.join(path, name_module + ".py"))
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        return module
 
     def train_G1(self):
 

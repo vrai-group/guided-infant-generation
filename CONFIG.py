@@ -10,12 +10,11 @@ class Config:
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
         self.ARCHITETURE = "mono"
 
-        self.load_path()
-        self.load_dataset_info()
-        self.load_info()
+        self._load_path()
+        self._load_dataset_info()
 
 
-    def load_path(self):
+    def _load_path(self):
         # - Path
         self.ROOT = '.'
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)  #
@@ -25,7 +24,7 @@ class Config:
         self.dataset_module_dir_path = os.path.join(self.ROOT, "datasets")  # dov è presente il modulo per processare il dataset
         self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
 
-    def load_dataset_info(self):
+    def _load_dataset_info(self):
         # - Dataset
 
         self.img_H = 96  # 'input image height'
@@ -51,54 +50,6 @@ class Config:
 
         else:
             print("Dataset non presente. Eventualmente è ancora da formare")
-
-    def load_info(self):
-        # numero di blocchi residuali del G1. --> 4 con height 96
-        # Per il G2 verrà considerato un repeat_num - 2
-        self.repeat_num = int(np.log2(self.img_H)) - 2
-        self.conv_hidden_num = 128  # numero di filtri del primo layer convoluzionale
-        self.z_num = 64  # numero neuroni del fully connected del G1
-        self.input_image_raw_channel = 1  # indica per le image_raw_0 il 1 GRAY, mi serve per la regressione di output della rete
-        self.activation_fn = 'relu'
-        self.min_fea_map_H = 12
-        self.min_fea_map_W = 16
-        self.keypoint_num = 14  # numero di keypoints
-
-        # -G1
-        self.trainig_G1 = True
-        # -- Model
-
-        # -- Training / test parameters
-        self.epochs_G1 = 100
-        self.lr_update_epoch_G1 = 1
-        self.lr_initial_G1 = 2e-5
-        self.drop_rate_G1 = 0.5
-
-        # -GAN
-        self.trainig_GAN = False
-        # -- Model
-        self.input_shape_G2 = [96, 128,
-                               2]  # concat tra image_raw_0 a 1 channel e l' output del generatore G1 a 1 canale
-        self.input_shape_D = [96, 128, 1]
-
-        # -- Training / test parameters
-        self.epochs_GAN = 200
-        self.lr_update_epoch_GAN = 1000
-        self.lr_initial_G2 = 2e-5
-        self.lr_initial_D = 2e-5
-        self.drop_rate_GAN = self.drop_rate_G1
-
-        # - General (Sia per G1 che per GAN)
-        self.save_grid_ssim_epoch_valid = 1
-        self.save_grid_ssim_epoch_train = 1
-
-        self.batch_size_train = 16  # grandezza del batch_size
-        self.batch_size_valid = 16  # grandezza del batch_size
-
-        self.run_google_colab = False
-        self.download_weight = 1  # step di epoche in cui andremo ad aggiornare il rar dei pesi
-
-        self.data_format = 'channels_last'
 
 
     def print_info(self):
