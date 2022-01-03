@@ -18,15 +18,18 @@ class PG2(object):
 
     def __init__(self, config):
         self.config = config
-        self.dataset_module = self._import_module("Syntetich", config.dataset_module_dir_path)
+        name_module_preprocess_dataset = config.DATASET.split('_')[0]
+        self.dataset_module = self._import_module(name_module_preprocess_dataset, config.dataset_module_dir_path )
 
-        self.G1 = self._import_module("G1", config.models_dir_path).G1()
-        self.G2 = self._import_module("G2", config.models_dir_path).G2()
-        self.D = self._import_module("D", config.models_dir_path).D()
+        self.G1 = self._import_module(name_module="G1", path=self.config.models_dir_path).G1()
+        self.G2 = self._import_module(name_module="G2", path=self.config.models_dir_path).G2()
+        self.D = self._import_module(name_module="D", path=self.config.models_dir_path).D()
 
 
     """
-    Questo metodo mi consente di caricare in maniera dinamica i vari moduli di riferimento per G1, G2, D
+    Questo metodo mi consente di caricare in maniera dinamica i vari moduli di riferimento per G1, G2, D, Syntetich.
+    Ad esempio: models/mono/G1.py
+    Ad esempio: dataset/Syntetich.py
     """
     def _import_module(self, name_module, path):
         spec = importlib.util.spec_from_file_location(name_module, os.path.join(path, name_module + ".py"))

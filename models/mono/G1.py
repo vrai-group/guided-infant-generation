@@ -9,7 +9,6 @@ from models.Model_template import Model_Template
 class G1(Model_Template):
 
     def __init__(self):
-        super().__init__()
         self.input_shape = [96, 128, 15]
         self.output_channels = 1
         self.conv_hidden_num = 128
@@ -17,6 +16,8 @@ class G1(Model_Template):
         self.activation_fn = 'relu'
         self.data_format = 'channels_last'
         self.lr_initial_G1 = 2e-5
+        super().__init__()
+
 
     # MODEL
     def build_model(self):
