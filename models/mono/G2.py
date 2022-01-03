@@ -76,6 +76,7 @@ class G2(Model_Template):
     def optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
+    # Loss
     def PoseMaskLoss2(self, D_neg_refined_result, refined_result, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
         refined_result = tf.cast(refined_result, dtype=tf.float32)
@@ -94,7 +95,7 @@ class G2(Model_Template):
         return loss
 
 
-    # Metrica
+    # Metriche
     def m_ssim(self, refined_result, image_raw_1, mean_0, mean_1):
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])

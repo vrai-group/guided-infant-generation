@@ -51,6 +51,10 @@ class D(Model_Template):
 
         return model
 
+    # Optimizer
+    def optimizer(self):
+        return Adam(learning_rate=self.lr_initial_D, beta_1=0.5)
+
     # LOSS
     def Loss(self, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0):
 
@@ -66,9 +70,6 @@ class D(Model_Template):
         return loss, fake, real
 
 
-    # Optimizer
-    def optimizer(self):
-        return Adam(learning_rate=self.lr_initial_D, beta_1=0.5)
 
 
 

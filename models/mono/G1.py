@@ -61,6 +61,10 @@ class G1(Model_Template):
 
         return Model(inputs, outputs)
 
+    # Optimizer
+    def optimizer(self):
+        return Adam(learning_rate=self.lr_initial_G1, beta_1=0.5, beta_2=0.999)
+
     # LOSS
     def PoseMaskloss1(self, output_G1, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
@@ -71,10 +75,6 @@ class G1(Model_Template):
         PoseMaskLoss1 = primo_membro + secondo_membro
 
         return PoseMaskLoss1
-
-    # Optimizer
-    def optimizer(self):
-        return Adam(learning_rate=self.lr_initial_G1, beta_1=0.5, beta_2=0.999)
 
     # METRICHE
     def m_ssim(self, output_G1, image_raw_1, mean_0, mean_1):

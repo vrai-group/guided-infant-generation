@@ -16,7 +16,7 @@ class Config:
     def _load_path(self):
         # - Path
         self.ROOT = '.'
-        self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)  #
+        self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
         self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
         self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
         self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove è presente il modello
