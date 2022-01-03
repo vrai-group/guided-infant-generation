@@ -1,7 +1,9 @@
 """
-Questo modulo rilascia un reader per la lettura del TFRecord del dataset Market
+Questo contiene:
+
+- PROCESSAMENTO IMMAGINE: funzioni per processare la singola immagine
+- PROCESSAMENTO TFRECORD: funzioni per preprocessare il TFrecord file
 """
-import os
 import tensorflow as tf
 
 ##########################
@@ -48,9 +50,10 @@ example_description = {
     'radius_keypoints': tf.io.FixedLenFeature([], tf.int64),
 }
 
-def get_unprocess(self, name_tfrecord):
-    def _decode_function(example_proto):
-        example = tf.io.parse_single_example(example_proto, self.example_description)
+# ritorna un TF.data
+def get_unprocess_dataset(name_tfrecord):
+    def _decode_function(example_proto): # funzione di decodifica
+        example = tf.io.parse_single_example(example_proto, example_description)
 
         # NAME
         name_0 = example['image_name_0']
@@ -83,10 +86,8 @@ def get_unprocess(self, name_tfrecord):
         image_raw_1 = tf.reshape(tf.io.decode_raw(example['image_raw_1'], tf.uint16), [96, 128, 1])
 
         # POSE
-        pose_0 = tf.sparse.SparseTensor(indices=indices_0, values=values_0,
-                                        dense_shape=[96, 128, self.keypoint_num])
-        pose_1 = tf.sparse.SparseTensor(indices=indices_1, values=values_1,
-                                        dense_shape=[96, 128, self.keypoint_num])
+        pose_0 = tf.sparse.SparseTensor(indices=indices_0, values=values_0, dense_shape=[96, 128, 14])
+        pose_1 = tf.sparse.SparseTensor(indices=indices_1, values=values_1, dense_shape=[96, 128, 14])
 
         # POSE_MASK
         mask_0 = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
@@ -95,17 +96,17 @@ def get_unprocess(self, name_tfrecord):
         # RADIUS KEY
         radius_keypoints = example['radius_keypoints']
 
-        return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
+        return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, \
+               indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
 
-    file_pattern = os.path.join(self.config.data_tfrecord_path, name_tfrecord)
-    reader = tf.data.TFRecordDataset(file_pattern)
+    reader = tf.data.TFRecordDataset(name_tfrecord)
     dataset = reader.map(_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
 
     return dataset
 
 
 def preprocess_dataset(unprocess_dataset):
-    def _preprocess_G1(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
+    def _preprocess(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
                        indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 
         mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
@@ -122,6 +123,7 @@ def preprocess_dataset(unprocess_dataset):
 
         return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, pz_0, pz_1, name_0, name_1, mean_0, mean_1
 
-    return unprocess_dataset.map(_preprocess_G1, num_parallel_calls=tf.data.AUTOTUNE)
+
+    return unprocess_dataset.map(_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
 
 

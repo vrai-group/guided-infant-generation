@@ -12,6 +12,7 @@ class Config:
 
         self._load_path()
         self._load_dataset_info()
+        self._load_train_info()
 
     def _load_path(self):
         # - Path
@@ -46,3 +47,7 @@ class Config:
             self.dataset_train_list = dic['train']['list_pz']  # pz presenti nel train
             self.dataset_valid_list = dic['valid']['list_pz']
             self.dataset_test_list = dic['test']['list_pz']
+
+
+    def _load_train_info(self):
+        self.epochs_G1 = 100

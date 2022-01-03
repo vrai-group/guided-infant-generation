@@ -4,13 +4,10 @@ Questo script consente di avviare il training del G1 e della GAN
 import os
 import sys
 import numpy as np
-import glob
 import tensorflow as tf
 
-from utils import grid
-from utils import utils_wgan
 from utils.augumentation import apply_augumentation
-from utils.utils import import_module
+from utils.utils_methods import import_module, save_grid
 
 
 class PG2(object):
@@ -19,6 +16,7 @@ class PG2(object):
         self.config = config
 
         # -Import dinamico dell modulo di preprocess dataset
+        # Ad esempio: Syntetich
         name_module_preprocess_dataset = config.DATASET.split('_')[0]
         self.dataset_module = import_module(name_module_preprocess_dataset, config.dataset_module_dir_path)
 
@@ -31,13 +29,10 @@ class PG2(object):
     def train_G1(self):
 
         # -Caricamento dataset
-        #TODO:modificare modulo dataset
-        reader_train = self.dataset_module.get_reader(self.config.name_tfrecord_train)
-        dataset_train = reader_train.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset_train = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
         dataset_train = dataset_train.batch(1)
 
-        reader_valid = self.dataset_module.get_reader(self.config.name_tfrecord_valid)
-        dataset_valid = reader_valid.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
+        dataset_valid = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
         dataset_valid = dataset_valid.batch(1)
 
         # -History del training
