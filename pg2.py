@@ -10,26 +10,28 @@ import tensorflow as tf
 from utils import grid
 from utils import utils_wgan
 from utils.augumentation import apply_augumentation
-from utils.
-
-import importlib.util
+from utils.utils import import_module
 
 
 class PG2(object):
 
     def __init__(self, config):
         self.config = config
-        name_module_preprocess_dataset = config.DATASET.split('_')[0]
-        self.dataset_module = self._import_module(name_module_preprocess_dataset, config.dataset_module_dir_path )
 
-        self.G1 = self._import_module(name_module="G1", path=self.config.models_dir_path).G1()
-        self.G2 = self._import_module(name_module="G2", path=self.config.models_dir_path).G2()
-        self.D = self._import_module(name_module="D", path=self.config.models_dir_path).D()
+        # -Import dinamico dell modulo di preprocess dataset
+        name_module_preprocess_dataset = config.DATASET.split('_')[0]
+        self.dataset_module = import_module(name_module_preprocess_dataset, config.dataset_module_dir_path)
+
+        # -Import dinamico dell'architettura
+        self.G1 = import_module(name_module="G1", path=self.config.models_dir_path).G1()
+        self.G2 = import_module(name_module="G2", path=self.config.models_dir_path).G2()
+        self.D = import_module(name_module="D", path=self.config.models_dir_path).D()
 
 
     def train_G1(self):
 
         # -Caricamento dataset
+        #TODO:modificare modulo dataset
         reader_train = self.dataset_module.get_reader(self.config.name_tfrecord_train)
         dataset_train = reader_train.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
         dataset_train = dataset_train.batch(1)
