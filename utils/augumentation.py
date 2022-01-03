@@ -6,7 +6,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from utils import dataset_utils
+from utils.utils_methods import bytes_feature, int64_feature, float_feature
+
 
 def _getSparseKeypoint(y, x, k, height, width, radius=4, mode='Solid'):
     indices = []
@@ -23,11 +24,12 @@ def _getSparseKeypoint(y, x, k, height, width, radius=4, mode='Solid'):
 
     return indices, values
 
+
 def _getSparsePose(peaks, height, width, radius, mode='Solid'):
     indices = []
     values = []
     for k in range(len(peaks)):
-        p = peaks[k] # coordinate peak ex: "300,200"
+        p = peaks[k]  # coordinate peak ex: "300,200"
         x = p[0]
         y = p[1]
         if x != -1 and y != -1:  # non considero le occlusioni indicate con -1
@@ -36,48 +38,48 @@ def _getSparsePose(peaks, height, width, radius, mode='Solid'):
             values.extend(val)
     return indices, values
 
+
 def _format_example(dic):
-
-
     example = tf.train.Example(features=tf.train.Features(feature={
 
-        'pz_0': dataset_utils.bytes_feature(dic["pz_0"].encode('utf-8')),  # nome del pz
-        'pz_1': dataset_utils.bytes_feature(dic["pz_1"].encode('utf-8')),
+        'pz_0': bytes_feature(dic["pz_0"].encode('utf-8')),  # nome del pz
+        'pz_1': bytes_feature(dic["pz_1"].encode('utf-8')),
 
-        'image_name_0': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 0
-        'image_name_1': dataset_utils.bytes_feature(dic["image_name_1"].encode('utf-8')),  # nome dell immagine 1
-        'image_raw_0': dataset_utils.bytes_feature(dic["image_raw_0"].tostring()),  # immagine 0 in bytes
-        'image_raw_1': dataset_utils.bytes_feature(dic["image_raw_1"].tostring()),  # immagine 1 in bytes
+        'image_name_0': bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 0
+        'image_name_1': bytes_feature(dic["image_name_1"].encode('utf-8')),  # nome dell immagine 1
+        'image_raw_0': bytes_feature(dic["image_raw_0"].tostring()),  # immagine 0 in bytes
+        'image_raw_1': bytes_feature(dic["image_raw_1"].tostring()),  # immagine 1 in bytes
 
-        'image_format': dataset_utils.bytes_feature('PNG'.encode('utf-8')),
-        'image_height': dataset_utils.int64_feature(96),
-        'image_width': dataset_utils.int64_feature(128),
+        'image_format': bytes_feature('PNG'.encode('utf-8')),
+        'image_height': int64_feature(96),
+        'image_width': int64_feature(128),
 
-        'original_peaks_0': dataset_utils.bytes_feature(np.array(dic["original_peaks_0"]).astype(np.int64).tostring()),
-        'original_peaks_1': dataset_utils.bytes_feature(np.array(dic["original_peaks_1"]).astype(np.int64).tostring()),
-        'shape_len_original_peaks_0': dataset_utils.int64_feature(np.array(dic["original_peaks_0"]).shape[0]),
-        'shape_len_original_peaks_1': dataset_utils.int64_feature(np.array(dic["original_peaks_1"]).shape[0]),
+        'original_peaks_0': bytes_feature(np.array(dic["original_peaks_0"]).astype(np.int64).tostring()),
+        'original_peaks_1': bytes_feature(np.array(dic["original_peaks_1"]).astype(np.int64).tostring()),
+        'shape_len_original_peaks_0': int64_feature(np.array(dic["original_peaks_0"]).shape[0]),
+        'shape_len_original_peaks_1': int64_feature(np.array(dic["original_peaks_1"]).shape[0]),
 
-        'pose_mask_r4_0': dataset_utils.int64_feature(dic["pose_mask_r4_0"].astype(np.uint16).flatten().tolist()),
+        'pose_mask_r4_0': int64_feature(dic["pose_mask_r4_0"].astype(np.uint16).flatten().tolist()),
         # maschera binaria a radius 4 con shape [96, 128, 1]
-        'pose_mask_r4_1': dataset_utils.int64_feature(dic["pose_mask_r4_1"].astype(np.uint16).flatten().tolist()),
+        'pose_mask_r4_1': int64_feature(dic["pose_mask_r4_1"].astype(np.uint16).flatten().tolist()),
         # maschera binaria a radius 4 con shape [96, 128, 1]
 
-        'indices_r4_0': dataset_utils.bytes_feature(np.array(dic["indices_r4_0"]).astype(np.int64).tostring()),
+        'indices_r4_0': bytes_feature(np.array(dic["indices_r4_0"]).astype(np.int64).tostring()),
         # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
-        'values_r4_0': dataset_utils.bytes_feature(np.array(dic["values_r4_0"]).astype(np.int64).tostring()),
+        'values_r4_0': bytes_feature(np.array(dic["values_r4_0"]).astype(np.int64).tostring()),
         # coordinate a radius 4 dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
-        'indices_r4_1': dataset_utils.bytes_feature(np.array(dic["indices_r4_1"]).astype(np.int64).tostring()),
+        'indices_r4_1': bytes_feature(np.array(dic["indices_r4_1"]).astype(np.int64).tostring()),
         # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
-        'values_r4_1': dataset_utils.bytes_feature(np.array(dic["values_r4_1"]).astype(np.int64).tostring()),
-        'shape_len_indices_0': dataset_utils.int64_feature(np.array(dic["indices_r4_0"]).shape[0]),
-        'shape_len_indices_1': dataset_utils.int64_feature(np.array(dic["indices_r4_1"]).shape[0]),
+        'values_r4_1': bytes_feature(np.array(dic["values_r4_1"]).astype(np.int64).tostring()),
+        'shape_len_indices_0': int64_feature(np.array(dic["indices_r4_0"]).shape[0]),
+        'shape_len_indices_1': int64_feature(np.array(dic["indices_r4_1"]).shape[0]),
 
-        'radius_keypoints': dataset_utils.int64_feature(dic['radius_keypoints']),
+        'radius_keypoints': int64_feature(dic['radius_keypoints']),
 
     }))
 
     return example
+
 
 ##################################
 #   Funzioni di Augumentation
@@ -89,18 +91,20 @@ def _aug_shift(dic_data, type, indx_img, tx=0, ty=0):
     elif type == "ver":
         assert (tx == 0)
 
-    h, w, c = dic_data["image_raw_"+str(indx_img)].shape
+    h, w, c = dic_data["image_raw_" + str(indx_img)].shape
 
     M = np.float32([[1, 0, tx], [0, 1, ty]])
-    dic_data["image_raw_"+str(indx_img)] = cv2.warpAffine(dic_data["image_raw_"+str(indx_img)], M, (w, h), flags=cv2.INTER_NEAREST,
-                                             borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
+    dic_data["image_raw_" + str(indx_img)] = cv2.warpAffine(dic_data["image_raw_" + str(indx_img)], M, (w, h),
+                                                            flags=cv2.INTER_NEAREST,
+                                                            borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
 
-    dic_data["pose_mask_r4_"+str(indx_img)] = cv2.warpAffine(dic_data["pose_mask_r4_"+str(indx_img)], M, (w, h), flags=cv2.INTER_NEAREST,
-                                                borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
+    dic_data["pose_mask_r4_" + str(indx_img)] = cv2.warpAffine(dic_data["pose_mask_r4_" + str(indx_img)], M, (w, h),
+                                                               flags=cv2.INTER_NEAREST,
+                                                               borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
 
     keypoints_shifted = []
     values_shifted = []
-    for coordinates in dic_data["indices_r4_"+str(indx_img)]:
+    for coordinates in dic_data["indices_r4_" + str(indx_img)]:
         y, x, id = coordinates
 
         if type == "or":
@@ -117,14 +121,15 @@ def _aug_shift(dic_data, type, indx_img, tx=0, ty=0):
                 keypoints_shifted.append([ys, xs, id])
                 values_shifted.append(1)
 
-    dic_data["indices_r4_"+str(indx_img)] = keypoints_shifted
-    dic_data["values_r4_"+str(indx_img)] = values_shifted
+    dic_data["indices_r4_" + str(indx_img)] = keypoints_shifted
+    dic_data["values_r4_" + str(indx_img)] = values_shifted
 
     return dic_data
 
+
 # luminoità tra max//3 e -max//3
 def random_brightness(dic_data, indx_img):
-    image = dic_data["image_raw_"+str(indx_img)]
+    image = dic_data["image_raw_" + str(indx_img)]
     max = np.int64(image.max())
     max_d = max // 3
     min_d = -max_d
@@ -133,32 +138,33 @@ def random_brightness(dic_data, indx_img):
     new_image = image + brightness
     new_image = np.clip(new_image, 0, 32765)
     new_image = new_image.astype(np.uint16)
-    dic_data["image_raw_"+str(indx_img)] = new_image
+    dic_data["image_raw_" + str(indx_img)] = new_image
 
     return dic_data
 
+
 # contrasto tra max// e -max//2
 def random_contrast(dic_data, indx_img):
-    image = dic_data["image_raw_"+str(indx_img)]
+    image = dic_data["image_raw_" + str(indx_img)]
     max = np.int64(image.max())
     max_d = max // 2
     min_d = -max_d
     contrast = tf.random.uniform(shape=[1], minval=min_d, maxval=max_d, dtype=tf.dtypes.int64).numpy()
 
-    f = (max+4) * (contrast + max ) / (max * ((max+4) - contrast))
+    f = (max + 4) * (contrast + max) / (max * ((max + 4) - contrast))
     alpha = f
     gamma = (max_d) * (1 - f)
 
     new_image = (alpha * image) + gamma
     new_image = np.clip(new_image, 0, 32765)
     new_image = new_image.astype(np.uint16)
-    dic_data["image_raw_"+str(indx_img)] = new_image
+    dic_data["image_raw_" + str(indx_img)] = new_image
 
     return dic_data
 
-def _aug_rotation_angle(dic_data, angle_deegre, indx_img):
 
-    h, w, c = dic_data["image_raw_"+str(indx_img)].shape
+def _aug_rotation_angle(dic_data, angle_deegre, indx_img):
+    h, w, c = dic_data["image_raw_" + str(indx_img)].shape
     ym, xm = h // 2, w // 2  # midpoint dell'immagine 96x128
     angle_radias = math.radians(angle_deegre)  # angolo di rotazione
 
@@ -175,25 +181,29 @@ def _aug_rotation_angle(dic_data, angle_deegre, indx_img):
 
         return keypoints_rotated
 
-    #If the angle is positive, the image gets rotated in the counter-clockwise direction.
+    # If the angle is positive, the image gets rotated in the counter-clockwise direction.
     M = cv2.getRotationMatrix2D((xm, ym), -angle_deegre, 1.0)
     # Rotate image
-    dic_data["image_raw_"+str(indx_img)] = cv2.warpAffine(dic_data["image_raw_"+str(indx_img)], M, (w, h),
-                                             flags= cv2.INTER_NEAREST,
-                                             borderMode=cv2.BORDER_REPLICATE).reshape(h,w,c)
+    dic_data["image_raw_" + str(indx_img)] = cv2.warpAffine(dic_data["image_raw_" + str(indx_img)], M, (w, h),
+                                                            flags=cv2.INTER_NEAREST,
+                                                            borderMode=cv2.BORDER_REPLICATE).reshape(h, w, c)
 
     # Rotate mask
-    dic_data["pose_mask_r4_"+str(indx_img)] = cv2.warpAffine(dic_data["pose_mask_r4_"+str(indx_img)], M, (w, h)).reshape(h,w,c)
+    dic_data["pose_mask_r4_" + str(indx_img)] = cv2.warpAffine(dic_data["pose_mask_r4_" + str(indx_img)], M,
+                                                               (w, h)).reshape(h, w, c)
 
     # Rotate keypoints coordinate
-    keypoints_rotated = rotate_keypoints(dic_data["original_peaks_"+str(indx_img)])
-    dic_data["indices_r4_"+str(indx_img)], dic_data["values_r4_"+str(indx_img)] = _getSparsePose(keypoints_rotated, h, w, radius=dic_data['radius_keypoints'], mode='Solid')
-
+    keypoints_rotated = rotate_keypoints(dic_data["original_peaks_" + str(indx_img)])
+    dic_data["indices_r4_" + str(indx_img)], dic_data["values_r4_" + str(indx_img)] = _getSparsePose(keypoints_rotated,
+                                                                                                     h, w,
+                                                                                                     radius=dic_data[
+                                                                                                         'radius_keypoints'],
+                                                                                                     mode='Solid')
 
     return dic_data
 
-def _aug_flip(dic_data):
 
+def _aug_flip(dic_data):
     ### Flip vertical pz_0
     mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
     dic_data["image_raw_0"] = cv2.flip(dic_data["image_raw_0"], 1)
@@ -208,32 +218,20 @@ def _aug_flip(dic_data):
 
     return dic_data
 
+
 ###################################################################
 
-def apply_augumentation(unprocess_dataset_it, config, type):
-
-    sys.stdout.write('\n')
-    sys.stdout.write("Applico augumentazione {type}..".format(type=type))
-    sys.stdout.write('\n')
-
-    num_example = None
-    if type == "train":
-        num_example = config.dataset_train_len
-    elif type == "valid":
-        num_example = config.dataset_valid_len
-    elif type == "test":
-        num_example = config.dataset_test_len
-
-    name_tfrecord = type+'_augumentation.tfrecord'
-    cnt_dataset = 0
-    output_filename = os.path.join(config.data_tfrecord_path, name_tfrecord)
+def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dataset, len_dataset):
+    name_tfrecord = name_dataset + '_augumentation.tfrecord'
+    output_filename = os.path.join(data_tfrecord_path, name_tfrecord)
     tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(output_filename)
 
-    for id_batch in range(num_example):#num example
-        sys.stdout.write('\r')
-        sys.stdout.write('Example: {id} / {tot}'.format(id=id_batch+1,tot=num_example))
+    cnt_dataset = 0
+    sys.stdout.write("\nApplico augumentazione {name}..\n".format(name=name_dataset))
+    for id_example in range(len_dataset):  # num example
+        sys.stdout.write('\rExample: {id} / {tot}'.format(id=id_example + 1, tot=len_dataset))
 
-        batch = next(unprocess_dataset_it)
+        batch = next(unprocess_dataset_iterator)
         image_raw_0 = batch[0]  # [batch, 96, 128, 1]
         image_raw_1 = batch[1]  # [batch, 96,128, 1]
         mask_0 = batch[4]  # [batch, 96,128, 1]
@@ -294,7 +292,7 @@ def apply_augumentation(unprocess_dataset_it, config, type):
         # Rotazione Random
         random_angles_1 = tf.random.uniform(shape=[4], minval=-91, maxval=91, dtype=tf.int64).numpy()
         for angle in random_angles_1:
-            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), angle, indx_img=1) #rotazione image raw_1
+            dic_data_rotate = _aug_rotation_angle(dic_data.copy(), angle, indx_img=1)  # rotazione image raw_1
             vec_dic_affine.append(dic_data_rotate)
 
         # Shift Random
@@ -310,7 +308,7 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             vec_dic_affine.append(dic_data_shifted)
 
         ### Aug image_raw_0
-        #Piccole trasformaizoni
+        # Piccole trasformaizoni
         list = vec_dic_affine.copy()
         for i, dic in enumerate(list):  # escludo l'immagine originale
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=4, dtype=tf.int64).numpy()
@@ -334,7 +332,6 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             example = _format_example(dic)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-
 
         ###############################
         # Structural trasformation
@@ -394,7 +391,7 @@ def apply_augumentation(unprocess_dataset_it, config, type):
 
         ###### Image raw 0 (structural)
 
-        for i,dic in enumerate(vec_dic_structural):
+        for i, dic in enumerate(vec_dic_structural):
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
             if trasformation == 0:  # Nessuna trasformazione
                 continue
@@ -405,13 +402,11 @@ def apply_augumentation(unprocess_dataset_it, config, type):
                 dic_new = random_contrast(dic.copy(), indx_img=0)
                 vec_dic_structural[i] = dic_new
 
-
         ### Salvo Structural trasformation
         for dic in vec_dic_structural:
             example = _format_example(dic)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-
 
         ###############################
         # Flipping trasformation
@@ -423,6 +418,5 @@ def apply_augumentation(unprocess_dataset_it, config, type):
             example = _format_example(dic_aug)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
-
 
     return name_tfrecord, cnt_dataset

@@ -28,14 +28,7 @@ class PG2(object):
 
     def train_G1(self):
 
-        # -Caricamento dataset
-        dataset_train = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
-        dataset_train = dataset_train.batch(1)
-
-        dataset_valid = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
-        dataset_valid = dataset_valid.batch(1)
-
-        # -History del training
+        # - LOGS
         history_G1 = {'epoch': 0,
                       'loss_train': np.empty((self.config.epochs_G1)),
                       'ssim_train': np.empty((self.config.epochs_G1)),
@@ -55,50 +48,62 @@ class PG2(object):
                 else:
                     history_G1[key][:epoch] = value[:epoch]
 
+        # -Caricamento dataset
+        dataset_train = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
+        dataset_train = dataset_train.batch(1)
+
+        dataset_valid = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
+        dataset_valid = dataset_valid.batch(1)
+
         for epoch in range(history_G1['epoch'], self.config.epochs_G1):
-            it_train = iter(dataset_train)
-            it_valid = iter(dataset_valid)
+            train_iterator = iter(dataset_train)
+            valid_iterator = iter(dataset_valid)
 
             # Augumentazione Dataset
-            name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(it_train, self.config, "train")
-            name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(it_valid, self.config, "valid")
+            name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
+                                                             unprocess_dataset_iterator=train_iterator,
+                                                             name_dataset="train",
+                                                             len_dataset=self.config.dataset_train_len)
+            name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(unprocess_dataset_iterator=valid_iterator,
+                                                             name_dataset="valid",
+                                                             len_dataset=self.config.dataset_valid_len)
 
             print("\nAugumentazione terminata: ")
             print("- lunghezza train: ", dataset_train_aug_len)
             print("- lunghezza valid: ", dataset_valid_aug_len)
             print("\n")
 
-            ## Preprocess Dataset Augumentato
-            reader_train_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_train))
-            dataset_train_aug = reader_train_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
-            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
-            dataset_train_aug = self.dataset_module.get_preprocess(dataset_train_aug)
-            dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
-            dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
-
-            reader_valid_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_valid))
-            dataset_valid_aug = reader_valid_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
-            dataset_valid_aug = dataset_valid_aug.shuffle(dataset_valid_aug_len, reshuffle_each_iteration=True)
-            dataset_valid_aug = self.dataset_module.get_preprocess(dataset_valid_aug)
-            dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
-            dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
-
-            # numero di batches nel dataset
-            num_batches_train = dataset_train_aug_len // self.config.batch_size_train
-            num_batches_valid = dataset_valid_aug_len // self.config.batch_size_valid
-
-            train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
-            valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
-
-            # Vettori che mi serviranno per salvare i valori per ogni epoca in modo tale da printare a schermo le medie
-            logs_to_print = {'loss_values_train': np.empty((num_batches_train)),
-                             'ssim_train': np.empty((num_batches_train)),
-                             'mask_ssim_train': np.empty((num_batches_train)),
-
-                             'loss_values_valid': np.empty((num_batches_valid)),
-                             'ssim_valid': np.empty((num_batches_valid)),
-                             'mask_ssim_valid': np.empty((num_batches_valid))
-                             }
+            # ## Preprocess Dataset Augumentato
+            # reader_train_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_train))
+            # dataset_train_aug = reader_train_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
+            # dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
+            # dataset_train_aug = self.dataset_module.get_preprocess(dataset_train_aug)
+            # dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
+            # dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
+            #
+            # reader_valid_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_valid))
+            # dataset_valid_aug = reader_valid_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
+            # dataset_valid_aug = dataset_valid_aug.shuffle(dataset_valid_aug_len, reshuffle_each_iteration=True)
+            # dataset_valid_aug = self.dataset_module.get_preprocess(dataset_valid_aug)
+            # dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
+            # dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
+            #
+            # # numero di batches nel dataset
+            # num_batches_train = dataset_train_aug_len // self.config.batch_size_train
+            # num_batches_valid = dataset_valid_aug_len // self.config.batch_size_valid
+            #
+            # train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
+            # valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
+            #
+            # # Vettori che mi serviranno per salvare i valori per ogni epoca in modo tale da printare a schermo le medie
+            # logs_to_print = {'loss_values_train': np.empty((num_batches_train)),
+            #                  'ssim_train': np.empty((num_batches_train)),
+            #                  'mask_ssim_train': np.empty((num_batches_train)),
+            #
+            #                  'loss_values_valid': np.empty((num_batches_valid)),
+            #                  'ssim_valid': np.empty((num_batches_valid)),
+            #                  'mask_ssim_valid': np.empty((num_batches_valid))
+            #                  }
 
         #     # Train
         #     for id_batch in range(num_batches_train):
