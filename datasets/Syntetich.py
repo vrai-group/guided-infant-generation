@@ -3,8 +3,20 @@ Questo modulo rilascia un reader per la lettura del TFRecord del dataset Market
 """
 import os
 import tensorflow as tf
-from utils import utils_wgan
 
+##########################
+# PROCESSAMENTO IMMAGINE
+##########################
+def process_image(image, mean_pixel, norm):
+    return (image - mean_pixel) / norm
+
+def unprocess_image(image, mean_pixel, norm):
+    return image * norm + mean_pixel
+
+
+##########################
+# PROCESSAMENTO TFRECORD
+##########################
 example_description = {
 
     'pz_0': tf.io.FixedLenFeature([], tf.string),  # nome del pz
@@ -12,8 +24,8 @@ example_description = {
 
     'image_name_0': tf.io.FixedLenFeature([], tf.string),  # nome img
     'image_name_1': tf.io.FixedLenFeature([], tf.string),
-    'image_raw_0': tf.io.FixedLenFeature([], tf.string),  # condizioni al contorno
-    'image_raw_1': tf.io.FixedLenFeature([], tf.string),  # GT
+    'image_raw_0': tf.io.FixedLenFeature([], tf.string),  # Condizione
+    'image_raw_1': tf.io.FixedLenFeature([], tf.string),  # Target
 
     'image_height': tf.io.FixedLenFeature([], tf.int64, default_value=96),
     'image_width': tf.io.FixedLenFeature([], tf.int64, default_value=128),
@@ -36,9 +48,7 @@ example_description = {
     'radius_keypoints': tf.io.FixedLenFeature([], tf.int64),
 }
 
-
 def get_unprocess(self, name_tfrecord):
-    # deve sempre ritornare uno o piu elementi
     def _decode_function(example_proto):
         example = tf.io.parse_single_example(example_proto, self.example_description)
 
@@ -87,8 +97,7 @@ def get_unprocess(self, name_tfrecord):
 
         return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
 
-    file_pattern = os.path.join(self.config.data_tfrecord_path,
-                                name_tfrecord)  # poichè la sintassi del file pateern è _FILE_PATTERN = '%s_%s_*.tfrecord'
+    file_pattern = os.path.join(self.config.data_tfrecord_path, name_tfrecord)
     reader = tf.data.TFRecordDataset(file_pattern)
     dataset = reader.map(_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
 
@@ -101,8 +110,8 @@ def preprocess_dataset(unprocess_dataset):
 
         mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
         mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-        image_raw_0 = utils_wgan.process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
-        image_raw_1 = utils_wgan.process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
+        image_raw_0 = process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
+        image_raw_1 = process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
 
         pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
         pose_1 = pose_1 * 2
