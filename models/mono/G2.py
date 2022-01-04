@@ -20,7 +20,7 @@ class G2(Model_Template):
         super().__init__()
 
 
-    def build_model(self):
+    def _build_model(self):
         # Encoder
         inputs = Input(shape=self.input_shape)
 
@@ -73,7 +73,7 @@ class G2(Model_Template):
         return model
 
     # Optimizer
-    def optimizer(self):
+    def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
     # Loss
@@ -99,7 +99,7 @@ class G2(Model_Template):
     def m_ssim(self, refined_result, image_raw_1, mean_0, mean_1):
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])
-
+        #TODO: sistemare l unprocess
         image_raw_1 = tf.cast(tf.clip_by_value(self.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
         refined_result = tf.cast(tf.clip_by_value(self.unprocess_image(refined_result, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 

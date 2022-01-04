@@ -16,7 +16,7 @@ class D(Model_Template):
         super().__init__()
 
 
-    def build_model(self):
+    def _build_model(self):
         inputs = Input(shape=self.input_shape)
 
         # Primo layer
@@ -52,7 +52,7 @@ class D(Model_Template):
         return model
 
     # Optimizer
-    def optimizer(self):
+    def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_D, beta_1=0.5)
 
     # LOSS

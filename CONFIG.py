@@ -51,3 +51,5 @@ class Config:
 
     def _load_train_info(self):
         self.epochs_G1 = 100
+        self.batch_size_train = 16  # grandezza del batch_size
+        self.batch_size_valid = 16  # grandezza del batch_size

@@ -25,7 +25,6 @@ class PG2(object):
         self.G2 = import_module(name_module="G2", path=self.config.models_dir_path).G2()
         self.D = import_module(name_module="D", path=self.config.models_dir_path).D()
 
-
     def train_G1(self):
 
         # - LOGS
@@ -48,23 +47,25 @@ class PG2(object):
                 else:
                     history_G1[key][:epoch] = value[:epoch]
 
-        # -Caricamento dataset
+        # - DATASET: caricamento
         dataset_train = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
         dataset_train = dataset_train.batch(1)
 
         dataset_valid = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_train)
         dataset_valid = dataset_valid.batch(1)
 
+        # TRAIN: epoch
         for epoch in range(history_G1['epoch'], self.config.epochs_G1):
             train_iterator = iter(dataset_train)
             valid_iterator = iter(dataset_valid)
 
-            # Augumentazione Dataset
+            # -DATASET: augumentazione
             name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
                                                              unprocess_dataset_iterator=train_iterator,
                                                              name_dataset="train",
                                                              len_dataset=self.config.dataset_train_len)
-            name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(unprocess_dataset_iterator=valid_iterator,
+            name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
+                                                             unprocess_dataset_iterator=valid_iterator,
                                                              name_dataset="valid",
                                                              len_dataset=self.config.dataset_valid_len)
 
@@ -73,54 +74,54 @@ class PG2(object):
             print("- lunghezza valid: ", dataset_valid_aug_len)
             print("\n")
 
-            # ## Preprocess Dataset Augumentato
-            # reader_train_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_train))
-            # dataset_train_aug = reader_train_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
-            # dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
-            # dataset_train_aug = self.dataset_module.get_preprocess(dataset_train_aug)
-            # dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
-            # dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
-            #
-            # reader_valid_aug = self.dataset_module.get_reader(os.path.join(self.config.data_tfrecord_path, name_tfrecord_aug_valid))
-            # dataset_valid_aug = reader_valid_aug.map(self.dataset_module.get_unprocess, num_parallel_calls=tf.data.AUTOTUNE)
-            # dataset_valid_aug = dataset_valid_aug.shuffle(dataset_valid_aug_len, reshuffle_each_iteration=True)
-            # dataset_valid_aug = self.dataset_module.get_preprocess(dataset_valid_aug)
-            # dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
-            # dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
-            #
-            # # numero di batches nel dataset
-            # num_batches_train = dataset_train_aug_len // self.config.batch_size_train
-            # num_batches_valid = dataset_valid_aug_len // self.config.batch_size_valid
-            #
-            # train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
-            # valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
-            #
-            # # Vettori che mi serviranno per salvare i valori per ogni epoca in modo tale da printare a schermo le medie
-            # logs_to_print = {'loss_values_train': np.empty((num_batches_train)),
-            #                  'ssim_train': np.empty((num_batches_train)),
-            #                  'mask_ssim_train': np.empty((num_batches_train)),
-            #
-            #                  'loss_values_valid': np.empty((num_batches_valid)),
-            #                  'ssim_valid': np.empty((num_batches_valid)),
-            #                  'mask_ssim_valid': np.empty((num_batches_valid))
-            #                  }
+            # DATASET augumentato: pipeline preprocessamento
+            dataset_train_aug_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_tfrecord_aug_train)
+            dataset_train_aug = self.dataset_module.preprocess_dataset(dataset_train_aug_unp)
+            dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
+            dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
+            dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
 
-        #     # Train
-        #     for id_batch in range(num_batches_train):
-        #         logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
-        #         logs_to_print['mask_ssim_train'][id_batch] = self._train_step_G1(train_it, epoch, id_batch)
-        #
-        #         # Logs a schermo
-        #         sys.stdout.write('\r')
-        #         sys.stdout.write('Epoch {epoch} step {id_batch} / {num_batches} --> loss_G1: {loss_G1:.4f}, '
-        #                          'ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
-        #             epoch=epoch + 1,
-        #             id_batch=id_batch + 1,
-        #             num_batches=num_batches_train,
-        #             loss_G1=np.mean(logs_to_print['loss_values_train'][:id_batch + 1]),
-        #             ssmi=np.mean(logs_to_print['ssim_train'][:id_batch + 1]),
-        #             mask_ssmi=np.mean(logs_to_print['mask_ssim_train'][:id_batch + 1])))
-        #         sys.stdout.flush()
+            dataset_valid_aug_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_tfrecord_aug_train)
+            dataset_valid_aug = self.dataset_module.preprocess_dataset(dataset_valid_aug_unp)
+            dataset_valid_aug = dataset_valid_aug.shuffle(dataset_valid_aug_len, reshuffle_each_iteration=True)
+            dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
+            dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
+
+            # calcolo l'effettivo numero di bacthes considerando la grandezza del dataset di augumentazione
+            num_batches_train = dataset_train_aug_len // self.config.batch_size_train
+            num_batches_valid = dataset_valid_aug_len // self.config.batch_size_valid
+
+            # rinizializzo gli iteratori sul dataset augumentato
+            train_aug_iterator = iter(dataset_train_aug)
+            valid_aug_iterator = iter(dataset_valid_aug)
+
+            # dizionario utilizzato per salvare i valori per ogni epoca in modo tale da printare a schermo le medie di step
+            # in step. Lo rinizializzo ad ogni nuova epoca
+            logs_to_print = {'loss_values_train': np.empty((num_batches_train)),
+                             'ssim_train': np.empty((num_batches_train)),
+                             'mask_ssim_train': np.empty((num_batches_train)),
+
+                             'loss_values_valid': np.empty((num_batches_valid)),
+                             'ssim_valid': np.empty((num_batches_valid)),
+                             'mask_ssim_valid': np.empty((num_batches_valid))
+                             }
+
+            # TRAIN: iteration
+            for id_batch in range(num_batches_train):
+                #TODO: terminare
+                logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
+                logs_to_print['mask_ssim_train'][id_batch] = self._train_step_G1(train_aug_iterator, epoch, id_batch)
+                
+                # Logs a schermo
+                sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> \
+                                  loss_G1: {loss_G1:.4f}, ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
+                    epoch=epoch + 1,
+                    id_batch=id_batch + 1,
+                    num_batches=num_batches_train,
+                    loss_G1=np.mean(logs_to_print['loss_values_train'][:id_batch + 1]),
+                    ssmi=np.mean(logs_to_print['ssim_train'][:id_batch + 1]),
+                    mask_ssmi=np.mean(logs_to_print['mask_ssim_train'][:id_batch + 1])))
+                sys.stdout.flush()
         #
         #     sys.stdout.write('\nValidazione..\n')
         #     sys.stdout.flush()
@@ -194,65 +195,61 @@ class PG2(object):
         #
         # print("#############\n\n")
 
-    #
-    # def _train_step_G1(self, train_it, epoch, id_batch):
-    #
-    #     batch = next(train_it)
-    #     image_raw_0 = batch[0]  # [batch, 96, 128, 1]
-    #     image_raw_1 = batch[1]  # [batch, 96,128, 1]
-    #     pose_1 = batch[2]  # [batch, 96,128, 14]
-    #     mask_1 = batch[3]  # [batch, 96,128, 1]
-    #     mask_0 = batch[4]  # [batch, 96,128, 1]
-    #     pz_0 = batch[5]  # [batch, 1]
-    #     pz_1 = batch[6]  # [batch, 1]
-    #     name_0 = batch[7]  # [batch, 1]
-    #     name_1 = batch[8]  # [batch, 1]
-    #     mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
-    #     mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
-    #
-    #     with tf.GradientTape() as g1_tape:
-    #
-    #         # G1
-    #         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-    #         output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
-    #
-    #         # Loss G1
-    #         loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
-    #
-    #     self.opt_G1.minimize(loss_value_G1, var_list=self.model_G1.trainable_weights, tape=g1_tape)
-    #
-    #     # Metrics
-    #     # - SSIM
-    #     ssim_value = G1.m_ssim(output_G1, image_raw_1, mean_0, mean_1)
-    #     mask_ssim_value = G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
-    #
-    #     # Save griglia di immagini predette
-    #     if epoch % self.config.save_grid_ssim_epoch_train == self.config.save_grid_ssim_epoch_train - 1:
-    #         name_directory = os.path.join("./results_ssim/G1/train", str(epoch + 1))
-    #         if not os.path.exists(name_directory):
-    #             os.mkdir(name_directory)
-    #         name_grid = os.path.join(name_directory,
-    #                                  'G1_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-    #                                      epoch=epoch + 1,
-    #                                      batch=id_batch,
-    #                                      ssim=ssim_value,
-    #                                      mask_ssim=mask_ssim_value))
-    #         mean_0 = tf.cast(mean_0, dtype=tf.float32)
-    #         output_G1 = utils_wgan.unprocess_image(output_G1, mean_0, 32765.5)
-    #         grid.save_image(output_G1,
-    #                         name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
-    #
-    #         stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
-    #         stack_pairs = np.array(
-    #             [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
-    #              stack_pairs])
-    #         txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-    #         file = open(name_directory + '/' + 'G1_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
-    #                                                                                        batch=id_batch), "w")
-    #         file.write(txt_file)
-    #         file.close()
-    #
-    #     return loss_value_G1, ssim_value, mask_ssim_value
+
+    def _train_step_G1(self, train_iterator, epoch, id_batch):
+    #TODO:terminare
+        batch = next(train_iterator)
+        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+        image_raw_1 = batch[1]  # [batch, 96,128, 1]
+        pose_1 = batch[2]  # [batch, 96,128, 14]
+        mask_1 = batch[3]  # [batch, 96,128, 1]
+        mask_0 = batch[4]  # [batch, 96,128, 1]
+        pz_0 = batch[5]  # [batch, 1]
+        pz_1 = batch[6]  # [batch, 1]
+        name_0 = batch[7]  # [batch, 1]
+        name_1 = batch[8]  # [batch, 1]
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
+
+        # BACKPROP
+        with tf.GradientTape() as g1_tape:
+            input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
+            output_G1 = self.G1.model(input_G1) # [batch, 96, 128, 1] dtype=float32
+            loss_value_G1 = self.G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
+        self.G1.opt.minimize(loss_value_G1, var_list=self.G1.model.trainable_weights, tape=g1_tape)
+
+        # METRICS
+        # - SSIM
+        ssim_value = self.G1.m_ssim(output_G1, image_raw_1, mean_0, mean_1)
+        mask_ssim_value = self.G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
+
+        # Save griglia di immagini predette
+        # if epoch % self.config.save_grid_ssim_epoch_train == self.config.save_grid_ssim_epoch_train - 1:
+        #     name_directory = os.path.join("./results_ssim/G1/train", str(epoch + 1))
+        #     if not os.path.exists(name_directory):
+        #         os.mkdir(name_directory)
+        #     name_grid = os.path.join(name_directory,
+        #                              'G1_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
+        #                                  epoch=epoch + 1,
+        #                                  batch=id_batch,
+        #                                  ssim=ssim_value,
+        #                                  mask_ssim=mask_ssim_value))
+        #     mean_0 = tf.cast(mean_0, dtype=tf.float32)
+        #     output_G1 = utils_wgan.unprocess_image(output_G1, mean_0, 32765.5)
+        #     grid.save_image(output_G1,
+        #                     name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+        #
+        #     stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
+        #     stack_pairs = np.array(
+        #         [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
+        #          stack_pairs])
+        #     txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
+        #     file = open(name_directory + '/' + 'G1_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
+        #                                                                                    batch=id_batch), "w")
+        #     file.write(txt_file)
+        #     file.close()
+        #
+        # return loss_value_G1, ssim_value, mask_ssim_value
     #
     # def _valid_step_G1(self, valid_it, epoch, id_batch):
     #

@@ -16,11 +16,11 @@ class G1(Model_Template):
         self.activation_fn = 'relu'
         self.data_format = 'channels_last'
         self.lr_initial_G1 = 2e-5
-        super().__init__()
+        super().__init__() # eredita self.model e self.opt
 
 
     # MODEL
-    def build_model(self):
+    def _build_model(self):
 
         # Encoder
         encoder_layer_list = []
@@ -62,7 +62,7 @@ class G1(Model_Template):
         return Model(inputs, outputs)
 
     # Optimizer
-    def optimizer(self):
+    def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G1, beta_1=0.5, beta_2=0.999)
 
     # LOSS
@@ -78,6 +78,7 @@ class G1(Model_Template):
 
     # METRICHE
     def m_ssim(self, output_G1, image_raw_1, mean_0, mean_1):
+        # TODO: sistemare l unprocess
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
@@ -91,6 +92,7 @@ class G1(Model_Template):
         return mean
 
     def mask_ssim(self, output_G1, image_raw_1, mask_1, mean_0, mean_1):
+        # TODO: sistemare l unprocess
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         mask_1 = tf.reshape(mask_1, [-1, 96, 128, 1])
         output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])

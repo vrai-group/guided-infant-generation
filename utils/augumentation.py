@@ -220,11 +220,14 @@ def _aug_flip(dic_data):
 
 
 ###################################################################
-
+"""
+name_tfrecord: path relativo al tfrecord
+cnt_dataset: lungezza totale dataset augumentato
+"""
 def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dataset, len_dataset):
-    name_tfrecord = name_dataset + '_augumentation.tfrecord'
-    output_filename = os.path.join(data_tfrecord_path, name_tfrecord)
-    tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(output_filename)
+    name_file = name_dataset + '_augumentation.tfrecord'
+    name_tfrecord = os.path.join(data_tfrecord_path, name_file)
+    tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(name_tfrecord)
 
     cnt_dataset = 0
     sys.stdout.write("\nApplico augumentazione {name}..\n".format(name=name_dataset))
