@@ -28,6 +28,7 @@ class PG2(object):
     def train_G1(self):
 
         # - LOGS
+        path_history_G1 = os.path.join(self.config.logs_dir_path, 'history_G1.npy')
         history_G1 = {'epoch': 0,
                       'loss_train': np.empty((self.config.epochs_G1)),
                       'ssim_train': np.empty((self.config.epochs_G1)),
@@ -38,8 +39,8 @@ class PG2(object):
                       'mask_ssim_valid': np.empty((self.config.epochs_G1))}
 
         # Se esistenti, precarico i logs
-        if os.path.exists(os.path.join(self.config.logs_dir_path, 'history_G1.npy')):
-            old_history_G1 = np.load(os.path.join(self.config.logs_dir_path, 'history_G1.npy'), allow_pickle='TRUE')
+        if os.path.exists(path_history_G1):
+            old_history_G1 = np.load(path_history_G1, allow_pickle='TRUE')
             epoch = old_history_G1[()]['epoch']
             for key, value in old_history_G1.item().items():
                 if key == 'epoch':
@@ -111,7 +112,7 @@ class PG2(object):
                 #TODO: terminare
                 logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
                 logs_to_print['mask_ssim_train'][id_batch] = self._train_step_G1(train_aug_iterator, epoch, id_batch)
-                
+
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> \
                                   loss_G1: {loss_G1:.4f}, ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
