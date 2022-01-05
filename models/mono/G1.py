@@ -77,29 +77,29 @@ class G1(Model_Template):
         return PoseMaskLoss1
 
     # METRICHE
-    def m_ssim(self, output_G1, image_raw_1, mean_0, mean_1):
+    def ssim(self, output_G1, image_raw_1, mean_0, mean_1, unprocess_function):
         # TODO: sistemare l unprocess
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
-        image_raw_1 = tf.cast(tf.clip_by_value(self.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        output_G1 = tf.cast(tf.clip_by_value(self.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        image_raw_1 = tf.cast(tf.clip_by_value(unprocess_function(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        output_G1 = tf.cast(tf.clip_by_value(unprocess_function(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
         result = tf.image.ssim(output_G1, image_raw_1, max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
         mean = tf.reduce_mean(result)
 
         return mean
 
-    def mask_ssim(self, output_G1, image_raw_1, mask_1, mean_0, mean_1):
+    def mask_ssim(self, output_G1, image_raw_1, mask_1, mean_0, mean_1, unprocess_function):
         # TODO: sistemare l unprocess
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         mask_1 = tf.reshape(mask_1, [-1, 96, 128, 1])
         output_G1 = tf.reshape(output_G1, [-1, 96, 128, 1])
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
-        image_raw_1 = tf.cast(tf.clip_by_value(self.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        output_G1 = tf.cast(tf.clip_by_value(self.unprocess_image(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        image_raw_1 = tf.cast(tf.clip_by_value(unprocess_function(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        output_G1 = tf.cast(tf.clip_by_value(unprocess_function(output_G1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
         mask_1 = tf.cast(mask_1, dtype=tf.uint16)
 
         mask_image_raw_1 = mask_1 * image_raw_1

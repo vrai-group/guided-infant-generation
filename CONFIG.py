@@ -20,6 +20,7 @@ class Config:
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
         self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
         self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
+        self.grid_dir_path = os.path.join(self.ROOT, "grid")  # dove salvare i le griglie
         self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove è presente il modello
         self.dataset_module_dir_path = os.path.join(self.ROOT, "datasets")  # dov è presente il modulo per processare il dataset
         self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
@@ -51,3 +52,6 @@ class Config:
         self.epochs_G1 = 100
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
+
+        self.save_grid_ssim_epoch_train = 1
+        self.save_grid_ssim_epoch_valid = 1

@@ -96,12 +96,12 @@ class G2(Model_Template):
 
 
     # Metriche
-    def m_ssim(self, refined_result, image_raw_1, mean_0, mean_1):
+    def ssim(self, refined_result, image_raw_1, mean_0, mean_1, unprocess_function):
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])
-        #TODO: sistemare l unprocess
-        image_raw_1 = tf.cast(tf.clip_by_value(self.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        refined_result = tf.cast(tf.clip_by_value(self.unprocess_image(refined_result, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+
+        image_raw_1 = tf.cast(tf.clip_by_value(unprocess_function(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        refined_result = tf.cast(tf.clip_by_value(unprocess_function(refined_result, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
 
         result = tf.image.ssim(refined_result, image_raw_1, max_val=tf.reduce_max(image_raw_1) - tf.reduce_min(image_raw_1))
         mean = tf.reduce_mean(result)
@@ -109,13 +109,13 @@ class G2(Model_Template):
         return mean
 
 
-    def mask_ssim(self, refined_result, image_raw_1, mask_1, mean_0, mean_1):
+    def mask_ssim(self, refined_result, image_raw_1, mask_1, mean_0, mean_1, unprocess_function):
         image_raw_1 = tf.reshape(image_raw_1, [-1, 96, 128, 1])
         mask_1 = tf.reshape(mask_1, [-1, 96, 128, 1])
         refined_result = tf.reshape(refined_result, [-1, 96, 128, 1])
 
-        image_raw_1 = tf.cast(tf.clip_by_value(self.unprocess_image(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        refined_result = tf.cast(tf.clip_by_value(self.unprocess_image(refined_result, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        image_raw_1 = tf.cast(tf.clip_by_value(unprocess_function(image_raw_1, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        refined_result = tf.cast(tf.clip_by_value(unprocess_function(refined_result, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
         mask_1 = tf.cast(mask_1, dtype=tf.uint16)
 
         mask_image_raw_1 = mask_1 * image_raw_1

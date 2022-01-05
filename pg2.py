@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from utils.augumentation import apply_augumentation
-from utils.utils_methods import import_module, save_grid
+from utils.utils_method import import_module, save_grid
 
 
 class PG2(object):
@@ -109,9 +109,14 @@ class PG2(object):
 
             # TRAIN: iteration
             for id_batch in range(num_batches_train):
-                #TODO: terminare
+                batch = next(train_aug_iterator)
                 logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
-                logs_to_print['mask_ssim_train'][id_batch] = self._train_step_G1(train_aug_iterator, epoch, id_batch)
+                logs_to_print['mask_ssim_train'][id_batch], output_G1 = self._train_on_batch_G1(batch)
+
+                # Grid
+                if epoch % self.config.save_grid_ssim_epoch_train == self.config.save_grid_ssim_epoch_train - 1:
+                    self._save_grid(epoch, id_batch, batch, output_G1, logs_to_print['ssim_train'][id_batch],
+                                    logs_to_print['mask_ssim_train'][id_batch], type="valid", architecture="G1")
 
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> \
@@ -123,92 +128,106 @@ class PG2(object):
                     ssmi=np.mean(logs_to_print['ssim_train'][:id_batch + 1]),
                     mask_ssmi=np.mean(logs_to_print['mask_ssim_train'][:id_batch + 1])))
                 sys.stdout.flush()
-        #
-        #     sys.stdout.write('\nValidazione..\n')
-        #     sys.stdout.flush()
-        #
-        #     # Valid
-        #     for id_batch in range(num_batches_valid):
-        #         logs_to_print['loss_values_valid'][id_batch], \
-        #         logs_to_print['ssim_valid'][id_batch], logs_to_print['mask_ssim_valid'][id_batch] \
-        #             = self._valid_step_G1(valid_it, epoch, id_batch)
-        #
-        #         sys.stdout.write('\r')
-        #         sys.stdout.write('{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
-        #         sys.stdout.flush()
-        #
-        #     sys.stdout.write('\r\r')
-        #     sys.stdout.write('val_loss_G1: {loss_G1:.4f}, val_ssmi: {ssmi:.4f}, val_mask_ssmi: {mask_ssmi:.4f}'.format(
-        #         loss_G1=np.mean(logs_to_print['loss_values_valid']),
-        #         ssmi=np.mean(logs_to_print['ssim_valid']),
-        #         mask_ssmi=np.mean(logs_to_print['mask_ssim_valid'])))
-        #     sys.stdout.flush()
-        #     sys.stdout.write('\n\n')
-        #
-        #     # -CallBacks
-        #     # --Save weights
-        #     name_model = 'Model_G1_epoch_{epoch:03d}-' \
-        #                  'loss_{loss:.3f}-' \
-        #                  'ssim_{m_ssim:.3f}-' \
-        #                  'mask_ssim_{mask_ssim:.3f}-' \
-        #                  'val_loss_{val_loss:.3f}-' \
-        #                  'val_ssim_{val_m_ssim:.3f}-' \
-        #                  'val_mask_ssim_{val_mask_ssim:.3f}.hdf5'.format(
-        #         epoch=epoch + 1,
-        #         loss=np.mean(logs_to_print['loss_values_train']),
-        #         m_ssim=np.mean(logs_to_print['ssim_train']),
-        #         mask_ssim=np.mean(logs_to_print['mask_ssim_train']),
-        #         val_loss=np.mean(logs_to_print['loss_values_valid']),
-        #         val_m_ssim=np.mean(logs_to_print['ssim_valid']),
-        #         val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
-        #     filepath = os.path.join(self.config.weigths_path, name_model)
-        #     self.model_G1.save_weights(filepath)
-        #
-        #     # --Update learning rate
-        #     if epoch % self.config.lr_update_epoch_G1 == self.config.lr_update_epoch_G1 - 1:
-        #         self.opt_G1.lr = self.opt_G1.lr * self.config.drop_rate_G1
-        #         print("-Aggiornamento Learning rate G1: ", self.opt_G1.lr.numpy())
-        #         print("\n")
-        #
-        #     # --Save logs
-        #     history_G1['epoch'] = epoch + 1
-        #     history_G1['loss_train'][epoch] = np.mean(logs_to_print['loss_values_train'])
-        #     history_G1['ssim_train'][epoch] = np.mean(logs_to_print['ssim_train'])
-        #     history_G1['mask_ssim_train'][epoch] = np.mean(logs_to_print['mask_ssim_train'])
-        #     history_G1['loss_valid'][epoch] = np.mean(logs_to_print['loss_values_valid'])
-        #     history_G1['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
-        #     history_G1['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
-        #     np.save(os.path.join(self.config.logs_path, 'history_G1.npy'), history_G1)
-        #
-        #     # --Save Gooogle colab
-        #     if self.config.run_google_colab and (
-        #             epoch % self.config.download_weight == self.config.download_weight - 1):
-        #         os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./logs -idq')
-        #         os.system('rar a /gdrive/MyDrive/weights_and_logs.rar ./results_ssim -idq')
-        #         os.system('rar a /gdrive/MyDrive/weights_and_logs.rar weights/ -idq')
-        #         print("-RAR creato\n")
-        #         # Pulizia enviroment
-        #         os.system('rm -r weights/*.hdf5')
-        #         os.system('rm -r results_ssim/G1/train results_ssim/G1/valid')
-        #         os.system('rm -r results_ssim/G1/train results_ssim/G1/valid')
-        #         os.system('mkdir results_ssim/G1/train results_ssim/G1/valid')
-        #         print("-Pulizia enviroment eseguita\n")
-        #
-        # print("#############\n\n")
+
+            sys.stdout.write('\nValidazione..\n')
+            sys.stdout.flush()
+
+            # VALID: iteration
+            for id_batch in range(num_batches_valid):
+                batch = next(valid_aug_iterator)
+                logs_to_print['loss_values_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
+                logs_to_print['mask_ssim_valid'][id_batch], output_G1 = self._valid_on_batch_G1(batch)
+
+                if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
+                    self._save_grid(epoch, id_batch, batch, output_G1, logs_to_print['ssim_valid'][id_batch],
+                                    logs_to_print['mask_ssim_valid'][id_batch], type="valid", architecture="G1")
 
 
-    def _train_step_G1(self, train_iterator, epoch, id_batch):
-    #TODO:terminare
-        batch = next(train_iterator)
+                sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
+                sys.stdout.flush()
+
+            sys.stdout.write('\r\rval_loss_G1: {loss_G1:.4f}, val_ssmi: {ssmi:.4f}, val_mask_ssmi: {mask_ssmi:.4f}'.format(
+                loss_G1=np.mean(logs_to_print['loss_values_valid']),
+                ssmi=np.mean(logs_to_print['ssim_valid']),
+                mask_ssmi=np.mean(logs_to_print['mask_ssim_valid'])))
+            sys.stdout.flush()
+            sys.stdout.write('\n\n')
+
+            # -CallBacks
+            # --Save weights
+            name_model = 'Model_G1_epoch_{epoch:03d}-' \
+                         'loss_{loss:.3f}-' \
+                         'ssim_{m_ssim:.3f}-' \
+                         'mask_ssim_{mask_ssim:.3f}-' \
+                         'val_loss_{val_loss:.3f}-' \
+                         'val_ssim_{val_m_ssim:.3f}-' \
+                         'val_mask_ssim_{val_mask_ssim:.3f}.hdf5'.format(
+                epoch=epoch + 1,
+                loss=np.mean(logs_to_print['loss_values_train']),
+                m_ssim=np.mean(logs_to_print['ssim_train']),
+                mask_ssim=np.mean(logs_to_print['mask_ssim_train']),
+                val_loss=np.mean(logs_to_print['loss_values_valid']),
+                val_m_ssim=np.mean(logs_to_print['ssim_valid']),
+                val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
+            filepath = os.path.join(self.config.weigths_path, name_model)
+            self.G1.save_weights(filepath)
+
+            # --Update learning rate
+            if epoch % self.config.lr_update_epoch_G1 == self.config.lr_update_epoch_G1 - 1:
+                self.G1.opt.lr = self.G1.opt.lr * self.config.drop_rate_G1
+                print("-Aggiornamento Learning rate G1: ", self.G1.opt.lr.lr.numpy())
+                print("\n")
+
+            # --Save logs
+            history_G1['epoch'] = epoch + 1
+            history_G1['loss_train'][epoch] = np.mean(logs_to_print['loss_values_train'])
+            history_G1['ssim_train'][epoch] = np.mean(logs_to_print['ssim_train'])
+            history_G1['mask_ssim_train'][epoch] = np.mean(logs_to_print['mask_ssim_train'])
+            history_G1['loss_valid'][epoch] = np.mean(logs_to_print['loss_values_valid'])
+            history_G1['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
+            history_G1['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
+            np.save(path_history_G1, history_G1)
+
+        print("#############\n\n")
+
+    def _save_grid(self, epoch, id_batch, batch, output_G1, ssim_value, mask_ssim_value, type, architecture):
+        pz_0 = batch[5]  # [batch, 1]
+        pz_1 = batch[6]  # [batch, 1]
+        name_0 = batch[7]  # [batch, 1]
+        name_1 = batch[8]  # [batch, 1]
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+
+        # GRID: Save griglia di immagini predette
+        name_directory = os.path.join(self.config.grid_dir_path, architecture, type, str(epoch + 1))
+        if not os.path.exists(name_directory):
+            os.mkdir(name_directory)
+        name_grid = os.path.join(name_directory,
+                                 architecture+'_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
+                                     epoch=epoch + 1,
+                                     batch=id_batch,
+                                     ssim=ssim_value,
+                                     mask_ssim=mask_ssim_value))
+        mean_0 = tf.cast(mean_0, dtype=tf.float32)
+        output_G1 = self.dataset_module.unprocess_image(output_G1, mean_0, 32765.5)
+        save_grid(output_G1, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+
+        stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
+        stack_pairs = np.array(
+            [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
+             stack_pairs])
+        txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
+        file = open(name_directory + '/' + architecture +'_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
+                                                                                       batch=id_batch), "w")
+        file.write(txt_file)
+        file.close()
+
+    def _train_on_batch_G1(self, batch):
+
         image_raw_0 = batch[0]  # [batch, 96, 128, 1]
         image_raw_1 = batch[1]  # [batch, 96,128, 1]
         pose_1 = batch[2]  # [batch, 96,128, 14]
         mask_1 = batch[3]  # [batch, 96,128, 1]
         mask_0 = batch[4]  # [batch, 96,128, 1]
-        pz_0 = batch[5]  # [batch, 1]
-        pz_1 = batch[6]  # [batch, 1]
-        name_0 = batch[7]  # [batch, 1]
-        name_1 = batch[8]  # [batch, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
@@ -221,92 +240,35 @@ class PG2(object):
 
         # METRICS
         # - SSIM
-        ssim_value = self.G1.m_ssim(output_G1, image_raw_1, mean_0, mean_1)
+        ssim_value = self.G1.ssim(output_G1, image_raw_1, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+
+        return loss_value_G1, ssim_value, mask_ssim_value, output_G1
+
+    def _valid_on_batch_G1(self, batch):
+
+        image_raw_0 = batch[0]  # [batch, 96,128, 1]
+        image_raw_1 = batch[1]  # [batch, 96,128, 1]
+        pose_1 = batch[2]  # [batch, 96,128, 1]
+        mask_1 = batch[3]  # [batch, 96,128, 1]
+        mask_0 = batch[4]  # [batch, 96,128, 1]
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+        mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
+
+        # G1
+        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
+        output_G1 = self.G1.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
+
+        # Loss G1
+        loss_value_G1 = self.G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
+
+        # Metrics
+        # - SSIM
+        ssim_value = self.G1.ssim(output_G1, image_raw_1, mean_0, mean_1)
         mask_ssim_value = self.G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
 
-        # Save griglia di immagini predette
-        # if epoch % self.config.save_grid_ssim_epoch_train == self.config.save_grid_ssim_epoch_train - 1:
-        #     name_directory = os.path.join("./results_ssim/G1/train", str(epoch + 1))
-        #     if not os.path.exists(name_directory):
-        #         os.mkdir(name_directory)
-        #     name_grid = os.path.join(name_directory,
-        #                              'G1_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-        #                                  epoch=epoch + 1,
-        #                                  batch=id_batch,
-        #                                  ssim=ssim_value,
-        #                                  mask_ssim=mask_ssim_value))
-        #     mean_0 = tf.cast(mean_0, dtype=tf.float32)
-        #     output_G1 = utils_wgan.unprocess_image(output_G1, mean_0, 32765.5)
-        #     grid.save_image(output_G1,
-        #                     name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
-        #
-        #     stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
-        #     stack_pairs = np.array(
-        #         [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
-        #          stack_pairs])
-        #     txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-        #     file = open(name_directory + '/' + 'G1_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
-        #                                                                                    batch=id_batch), "w")
-        #     file.write(txt_file)
-        #     file.close()
-        #
-        # return loss_value_G1, ssim_value, mask_ssim_value
-    #
-    # def _valid_step_G1(self, valid_it, epoch, id_batch):
-    #
-    #     batch = next(valid_it)
-    #     image_raw_0 = batch[0]  # [batch, 96,128, 1]
-    #     image_raw_1 = batch[1]  # [batch, 96,128, 1]
-    #     pose_1 = batch[2]  # [batch, 96,128, 1]
-    #     mask_1 = batch[3]  # [batch, 96,128, 1]
-    #     mask_0 = batch[4]  # [batch, 96,128, 1]
-    #     pz_0 = batch[5]  # [batch, 1]
-    #     pz_1 = batch[6]  # [batch, 1]
-    #     name_0 = batch[7]  # [batch, 1]
-    #     name_1 = batch[8]  # [batch, 1]
-    #     mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
-    #     mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
-    #
-    #     # G1
-    #     input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-    #     output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
-    #
-    #     # Loss G1
-    #     loss_value_G1 = G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
-    #
-    #     # Metrics
-    #     # - SSIM
-    #     ssim_value = G1.m_ssim(output_G1, image_raw_1, mean_0, mean_1)
-    #     mask_ssim_value = G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
-    #
-    #     # Save griglia di immagini predette
-    #     if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
-    #         name_directory = os.path.join("./results_ssim/G1/valid", str(epoch + 1))
-    #         if not os.path.exists(name_directory):
-    #             os.mkdir(name_directory)
-    #         name_grid = os.path.join(name_directory,
-    #                                  'G1_epoch_{epoch}_batch_{batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-    #                                      epoch=epoch + 1,
-    #                                      batch=id_batch,
-    #                                      ssim=ssim_value,
-    #                                      mask_ssim=mask_ssim_value))
-    #         mean_0 = tf.cast(mean_0, dtype=tf.float32)
-    #         output_G1 = utils_wgan.unprocess_image(output_G1, mean_0, 32765.5)
-    #         grid.save_image(output_G1,
-    #                         name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
-    #
-    #         stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
-    #         stack_pairs = np.array(
-    #             [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
-    #              stack_pairs])
-    #         txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-    #         file = open(name_directory + '/' + 'G1_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
-    #                                                                                        batch=id_batch), "w")
-    #         file.write(txt_file)
-    #         file.close()
-    #
-    #     return loss_value_G1, ssim_value, mask_ssim_value
-    #
+        return loss_value_G1, ssim_value, mask_ssim_value, output_G1
+
     # def train_conditional_GAN(self):
     #
     #     # Note: G1 è preaddestrato
