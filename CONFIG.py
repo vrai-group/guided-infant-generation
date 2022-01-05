@@ -53,5 +53,8 @@ class Config:
         self.batch_size_train = 16  # grandezza del batch_size
         self.batch_size_valid = 16  # grandezza del batch_size
 
+        self.lr_update_epoch_G1 = 1
+        self.drop_rate_G1 = 0.5
+
         self.save_grid_ssim_epoch_train = 1
         self.save_grid_ssim_epoch_valid = 1

@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from utils.augumentation import apply_augumentation
-from utils.utils_method import import_module, save_grid
+from utils.utils_methods import import_module, save_grid
 
 
 class PG2(object):
@@ -141,7 +141,6 @@ class PG2(object):
                 if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, output_G1, logs_to_print['ssim_valid'][id_batch],
                                     logs_to_print['mask_ssim_valid'][id_batch], type="valid", architecture="G1")
-
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
