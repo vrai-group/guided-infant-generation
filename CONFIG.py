@@ -19,11 +19,16 @@ class Config:
         self.ROOT = '.'
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
         self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
+        self.G1_weigths_dir_path = os.path.join(self.weigths_dir_path, "G1")  # dove salvare i pesi
+        self.GAN_weigths_dir_path = os.path.join(self.weigths_dir_path, "GAN")  # dove salvare i pesi
         self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
         self.grid_dir_path = os.path.join(self.ROOT, "grid")  # dove salvare i le griglie
         self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove è presente il modello
         self.dataset_module_dir_path = os.path.join(self.ROOT, "datasets")  # dov è presente il modulo per processare il dataset
         self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
+
+        # - check path
+        # TODO: fare
 
     def _load_dataset_info(self):
         # - Dataset

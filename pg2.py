@@ -168,7 +168,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid']),
                 val_m_ssim=np.mean(logs_to_print['ssim_valid']),
                 val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
-            filepath = os.path.join(self.config.weigths_path, name_model)
+            filepath = os.path.join(self.config.G1_weigths_path, name_model)
             self.G1.save_weights(filepath)
 
             # --Update learning rate
@@ -322,7 +322,7 @@ class PG2(object):
         num_batches_valid = self.config.dataset_valid_len // self.config.GAN_batch_size_valid
 
         # Carico il modello preaddestrato G1
-        self.G1.model.load_weights(os.path.join(self.config.weigths_path,'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'))
+        self.G1.model.load_weights(os.path.join(self.config.G1_weigths_path,'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'))
         #self.model_G1.summary()
 
         # TRAIN: epoch
@@ -452,7 +452,7 @@ class PG2(object):
                 val_im_0=int(np.sum(logs_to_print['img_0_valid'])),
                 val_im_1=int(np.sum(logs_to_print['img_1_valid'])),
             )
-            filepath = os.path.join(self.config.weigths_path, name_model)
+            filepath = os.path.join(self.config.GAN_weigths_path, name_model)
             self.G2.models.save_weights(filepath)
 
             # D
@@ -470,7 +470,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid_D']),
                 val_loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
                 val_loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']))
-            filepath = os.path.join(self.config.weigths_path, name_model)
+            filepath = os.path.join(self.config.GAN_weigths_path, name_model)
             self.D.model.save_weights(filepath)
 
             # --Save logs
@@ -644,12 +644,10 @@ class PG2(object):
 
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=path_tfrecord)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
-        # Togliere shugfffle se no non va bene il cnt della save figure
-        # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
         dataset = dataset.batch(1)
         dataset_iterator = iter(dataset)
 
         # Model
-        self.G1.model.load_weights(os.path.join(self.config.weigths_dir_path, name_weights_file_G1))
-        self.G1.model.load_weights(os.path.join(self.config.weigths_dir_path, name_weights_file_G2))
+        self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, name_weights_file_G1))
+        self.G2.model.load_weights(os.path.join(self.config.GAN_weigths_dir_path, name_weights_file_G2))
 
