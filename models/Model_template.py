@@ -1,8 +1,8 @@
 class Model_Template:
 
     def __init__(self):
-        self.model = self.build_model()
-        self.opt = self.optimizer()
+        self.model = self._build_model()
+        self.opt = self._optimizer()
 
     def _build_model(self):
         pass

@@ -321,24 +321,9 @@ class PG2(object):
         num_batches_train = self.config.dataset_train_len // self.config.GAN_batch_size_train
         num_batches_valid = self.config.dataset_valid_len // self.config.GAN_batch_size_valid
 
-
-        # MODELS
         # Carico il modello preaddestrato G1
-        self.model_G1 = self.G1.build_model()
-        self.model_G1.load_weights(os.path.join(self.config.weigths_path,'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'))
+        self.G1.model.load_weights(os.path.join(self.config.weigths_path,'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'))
         #self.model_G1.summary()
-
-        # Carico la GAN
-        self.model_G2 = self.G2.build_model()  # architettura Generatore G2
-        # self.model_G2.load_weights(os.path.join(self.config.weigths_path, 'Model_G2_epoch_015-loss_train_0.646448_real_valid_13_real_train_2790.hdf5'))
-        # self.model_G2.summary()
-        self.opt_G2 = self.G2.optimizer()  # ottimizzatore
-
-        # D
-        self.model_D = self.D.build_model()
-        # self.model_D.load_weights(os.path.join(self.config.weigths_path, 'Model_D_epoch_005-loss_0.483811-loss_values_D_fake_0.275987-loss_values_D_real_0.207833-val_loss_0.497179-val_loss_values_D_fake_0.176609-val_loss_values_D_real_0.320597.hdf5'))
-        # self.model_D.summary()
-        self.opt_D = self.D.optimizer()
 
         # TRAIN: epoch
         for epoch in range(history_GAN['epoch'], self.config.GAN_epochs):
@@ -468,7 +453,7 @@ class PG2(object):
                 val_im_1=int(np.sum(logs_to_print['img_1_valid'])),
             )
             filepath = os.path.join(self.config.weigths_path, name_model)
-            self.model_G2.save_weights(filepath)
+            self.G2.models.save_weights(filepath)
 
             # D
             name_model = "Model_D_epoch_{epoch:03d}-" \
@@ -486,7 +471,7 @@ class PG2(object):
                 val_loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
                 val_loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']))
             filepath = os.path.join(self.config.weigths_path, name_model)
-            self.model_D.save_weights(filepath)
+            self.D.model.save_weights(filepath)
 
             # --Save logs
             history_GAN['epoch'] = epoch + 1
@@ -514,8 +499,8 @@ class PG2(object):
             if epoch % self.config.GAN_lr_update_epoch == self.config.GAN_lr_update_epoch - 1:
                 self.G2.optimizer.lr = self.G2.optimizer.lr * self.config.GAN_G2_drop_rate
                 self.D.optimizer.lr = self.D.optimizer.lr * self.config.GAN_D_drop_rate
-                print("-Aggiornamento Learning rate G2: ", self.opt_G2.lr.numpy())
-                print("-Aggiornamento Learning rate D: ", self.opt_D.lr.numpy())
+                print("-Aggiornamento Learning rate G2: ", self.G2.optimizer.lr.numpy())
+                print("-Aggiornamento Learning rate D: ", self.D.optimizer.lr.numpy())
                 print("\n")
 
             print("#######")
@@ -531,19 +516,19 @@ class PG2(object):
 
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 15]
-        output_G1 = self.model_G1(input_G1)  # [batch, 96, 128, 1] dtype=float32
+        output_G1 = self.G1.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
 
         # G2
         with tf.GradientTape() as g2_tape:
             input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
-            output_G2 = self.model_G2(input_G2)  # [batch, 96, 128, 1] dtype=float32
+            output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
 
             # Predizione D
             output_G2 = tf.cast(output_G2, dtype=tf.float16)
             refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
             input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-            output_D = self.model_D(input_D)  # [batch * 3, 1]
+            output_D = self.D.model(input_D)  # [batch * 3, 1]
             output_D = tf.reshape(output_D, [-1])  # [batch*3]
             output_D = tf.cast(output_D, dtype=tf.float16)
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
@@ -553,20 +538,20 @@ class PG2(object):
 
         # BACKPROP
         if (id_batch + 1) % 3 == 0:
-            self.opt_G2.minimize(loss_value_G2, var_list=self.model_G2.trainable_weights, tape=g2_tape)
+            self.G2.optimizer.minimize(loss_value_G2, var_list=self.G2.optimizer.trainable_weights, tape=g2_tape)
 
         # D
         with tf.GradientTape() as d_tape:
             # Predizione G2
             input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
-            output_G2 = self.model_G2(input_G2)  # [batch, 96, 128, 1]
+            output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1]
 
             # D
             output_G2 = tf.cast(output_G2, dtype=tf.float16)
             refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
             input_D = tf.concat([image_raw_1, refined_result, image_raw_0],
                                 axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-            output_D = self.model_D(input_D)  # [batch * 3, 1]
+            output_D = self.D.model(input_D)  # [batch * 3, 1]
             output_D = tf.reshape(output_D, [-1])  # [batch*3]
             output_D = tf.cast(output_D, dtype=tf.float16)
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
@@ -576,7 +561,7 @@ class PG2(object):
                                                                     D_neg_image_raw_0)
         # BACKPROP
         if not (id_batch + 1) % 3 == 0:
-            self.opt_D.minimize(loss_value_D, var_list=self.model_D.trainable_weights, tape=d_tape)
+            self.D.optimizer.minimize(loss_value_D, var_list=self.D.optimizer.trainable_weights, tape=d_tape)
 
         # Metrics
         # - SSIM
@@ -610,18 +595,18 @@ class PG2(object):
 
         # G1
         input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 1]
-        output_G1 = self.model_G1(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+        output_G1 = self.G1.model(input_G1)  # output_g1 --> [batch, 96, 128, 1]
 
         # G2
         output_G1 = tf.cast(output_G1, dtype=tf.float16)
         input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
-        output_G2 = self.model_G2(input_G2)  # [batch, 96, 128, 1]
+        output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1]
 
         # D
         output_G2 = tf.cast(output_G2, dtype=tf.float16)
         refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
         input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-        output_D = self.model_D(input_D)  # [batch * 3, 1]
+        output_D = self.D.model(input_D)  # [batch * 3, 1]
         output_D = tf.reshape(output_D, [-1])  # [batch*3]
         output_D = tf.cast(output_D, dtype=tf.float16)
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
@@ -651,5 +636,20 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), refined_result
 
+    def prediction(self):
 
+        path_tfrecord = self.config.name_tfrecord_test
+        name_weights_file_G1 = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
+        name_weights_file_G2 = 'Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
+
+        dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=path_tfrecord)
+        dataset = self.dataset_module.preprocess_dataset(dataset_unp)
+        # Togliere shugfffle se no non va bene il cnt della save figure
+        # dataset_aug = dataset_aug.shuffle(dataset_aug_len // 2, reshuffle_each_iteration=True)
+        dataset = dataset.batch(1)
+        dataset_iterator = iter(dataset)
+
+        # Model
+        self.G1.model.load_weights(os.path.join(self.config.weigths_dir_path, name_weights_file_G1))
+        self.G1.model.load_weights(os.path.join(self.config.weigths_dir_path, name_weights_file_G2))
 
