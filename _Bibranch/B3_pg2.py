@@ -70,17 +70,17 @@ class PG2(object):
             dataset_train_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_train)
             dataset_train_aug = dataset_train_aug.shuffle(dataset_train_aug_len, reshuffle_each_iteration=True)
             dataset_train_aug = self.babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset_train_aug)
-            dataset_train_aug = dataset_train_aug.batch(self.config.batch_size_train)
+            dataset_train_aug = dataset_train_aug.batch(self.config.G1_batch_size_train)
             dataset_train_aug = dataset_train_aug.prefetch(tf.data.AUTOTUNE)
 
             dataset_valid_aug = self.babypose_obj.get_unprocess_dataset(name_tfrecord_aug_valid)
             dataset_valid_aug = self.babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset_valid_aug)
-            dataset_valid_aug = dataset_valid_aug.batch(self.config.batch_size_valid)
+            dataset_valid_aug = dataset_valid_aug.batch(self.config.G1_batch_size_valid)
             dataset_valid_aug = dataset_valid_aug.prefetch(tf.data.AUTOTUNE)
 
             # numero di batches nel dataset
-            num_batches_train = dataset_train_aug_len // self.config.batch_size_train
-            num_batches_valid = dataset_valid_aug_len // self.config.batch_size_valid
+            num_batches_train = dataset_train_aug_len // self.config.G1_batch_size_train
+            num_batches_valid = dataset_valid_aug_len // self.config.G1_batch_size_valid
 
             train_it = iter(dataset_train_aug)  # rinizializzo l iteratore sul train dataset
             valid_it = iter(dataset_valid_aug)  # rinizializzo l iteratore sul valid dataset
@@ -308,16 +308,16 @@ class PG2(object):
         dataset_train = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_train)
         dataset_train = dataset_train.shuffle(self.config.dataset_train_len, reshuffle_each_iteration=True)
         dataset_train = self.babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset_train)
-        dataset_train = dataset_train.batch(self.config.batch_size_train)
+        dataset_train = dataset_train.batch(self.config.G1_batch_size_train)
         dataset_train = dataset_train.prefetch(tf.data.AUTOTUNE)
 
         dataset_valid = self.babypose_obj.get_unprocess_dataset(self.config.name_tfrecord_valid)
         dataset_valid = self.babypose_obj.get_preprocess_G1_Bibranch_dataset(dataset_valid)
-        dataset_valid = dataset_valid.batch(self.config.batch_size_valid)
+        dataset_valid = dataset_valid.batch(self.config.G1_batch_size_valid)
         dataset_valid = dataset_valid.prefetch(tf.data.AUTOTUNE)
 
-        num_batches_train = self.config.dataset_train_len // self.config.batch_size_train
-        num_batches_valid = self.config.dataset_valid_len // self.config.batch_size_valid
+        num_batches_train = self.config.dataset_train_len // self.config.G1_batch_size_train
+        num_batches_valid = self.config.dataset_valid_len // self.config.G1_batch_size_valid
 
 
         # Carico il modello preaddestrato G1
@@ -336,25 +336,25 @@ class PG2(object):
 
         # -History del training
         history_GAN = {'epoch': 0,
-                       'loss_train_G2_Bibranch': np.empty((self.config.epochs_GAN)),
-                       'loss_train_D': np.empty((self.config.epochs_GAN)),
-                       'loss_train_fake_D': np.empty((self.config.epochs_GAN)),
-                       'loss_train_real_D': np.empty((self.config.epochs_GAN)),
-                       'ssim_train': np.empty((self.config.epochs_GAN)),
-                       'mask_ssim_train': np.empty((self.config.epochs_GAN)),
-                       'r_r_train': np.empty((self.config.epochs_GAN), dtype=np.uint32),
-                       'img_0_train': np.empty((self.config.epochs_GAN), dtype=np.uint32),
-                       'img_1_train': np.empty((self.config.epochs_GAN), dtype=np.uint32),
+                       'loss_train_G2_Bibranch': np.empty((self.config.GAN_epochs)),
+                       'loss_train_D': np.empty((self.config.GAN_epochs)),
+                       'loss_train_fake_D': np.empty((self.config.GAN_epochs)),
+                       'loss_train_real_D': np.empty((self.config.GAN_epochs)),
+                       'ssim_train': np.empty((self.config.GAN_epochs)),
+                       'mask_ssim_train': np.empty((self.config.GAN_epochs)),
+                       'r_r_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'img_0_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'img_1_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
 
-                       'loss_valid_G2_Bibranch': np.empty((self.config.epochs_GAN)),
-                       'loss_valid_D': np.empty((self.config.epochs_GAN)),
-                       'loss_valid_fake_D': np.empty((self.config.epochs_GAN)),
-                       'loss_valid_real_D': np.empty((self.config.epochs_GAN)),
-                       'ssim_valid': np.empty((self.config.epochs_GAN)),
-                       'mask_ssim_valid': np.empty((self.config.epochs_GAN)),
-                       'r_r_valid': np.empty((self.config.epochs_GAN), dtype=np.uint32),
-                       'img_0_valid': np.empty((self.config.epochs_GAN), dtype=np.uint32),
-                       'img_1_valid': np.empty((self.config.epochs_GAN), dtype=np.uint32),
+                       'loss_valid_G2_Bibranch': np.empty((self.config.GAN_epochs)),
+                       'loss_valid_D': np.empty((self.config.GAN_epochs)),
+                       'loss_valid_fake_D': np.empty((self.config.GAN_epochs)),
+                       'loss_valid_real_D': np.empty((self.config.GAN_epochs)),
+                       'ssim_valid': np.empty((self.config.GAN_epochs)),
+                       'mask_ssim_valid': np.empty((self.config.GAN_epochs)),
+                       'r_r_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'img_0_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'img_1_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
                        }
 
         # Se esistenti, precarico i logs
@@ -368,7 +368,7 @@ class PG2(object):
                 else:
                     history_GAN[key][:epoch] = value[:epoch]
 
-        for epoch in range(history_GAN['epoch'], self.config.epochs_GAN):
+        for epoch in range(history_GAN['epoch'], self.config.GAN_epochs):
             train_it = iter(dataset_train)
             valid_it = iter(dataset_valid)
 
@@ -563,7 +563,7 @@ class PG2(object):
             np.save(os.path.join(self.config.logs_dir_path, 'history_GAN.npy'), history_GAN)
 
             # --Update learning rate
-            if epoch % self.config.lr_update_epoch_GAN == self.config.lr_update_epoch_GAN - 1:
+            if epoch % self.config.GAN_lr_update_epoch == self.config.GAN_lr_update_epoch - 1:
                 self.opt_G2_Bibranch.lr = self.opt_G2_Bibranch.lr * 0.5
                 self.opt_D.lr = self.opt_D.lr * 0.5
                 print("-Aggiornamento Learning rate G2_Bibranch: ", self.opt_G2_Bibranch.lr.numpy())

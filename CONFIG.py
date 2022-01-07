@@ -49,12 +49,21 @@ class Config:
 
 
     def _load_train_info(self):
-        self.epochs_G1 = 100
-        self.batch_size_train = 16  # grandezza del batch_size
-        self.batch_size_valid = 16  # grandezza del batch_size
+        self.G1_epochs = 100
+        self.G1_batch_size_train = 16  # grandezza del batch_size
+        self.G1_batch_size_valid = 16  # grandezza del batch_size
+        self.G1_lr_update_epoch = 1
+        self.G1_drop_rate = 0.5
+        self.G1_save_grid_ssim_epoch_train = 1
+        self.G1_save_grid_ssim_epoch_valid = 1
 
-        self.lr_update_epoch_G1 = 1
-        self.drop_rate_G1 = 0.5
+        self.GAN_epochs = 200
+        self.GAN_batch_size_train = 16  # grandezza del batch_size
+        self.GAN_batch_size_valid = 16
+        self.GAN_lr_update_epoch = 1000
+        self.GAN_G2_drop_rate = 0.5
+        self.GAN_D_drop_rate_D = 0.5
+        self.GAN_save_grid_ssim_epoch_train = 1
+        self.GAN_save_grid_ssim_epoch_valid = 1
 
-        self.save_grid_ssim_epoch_train = 1
-        self.save_grid_ssim_epoch_valid = 1
+
