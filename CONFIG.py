@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import pickle
+from datetime import datetime
+
 
 
 class Config:
@@ -52,7 +54,6 @@ class Config:
             self.dataset_valid_list = dic['valid']['list_pz']
             self.dataset_test_list = dic['test']['list_pz']
 
-
     def _load_train_info(self):
         self.G1_epochs = 100
         self.G1_batch_size_train = 16  # grandezza del batch_size
@@ -70,5 +71,12 @@ class Config:
         self.GAN_D_drop_rate_D = 0.5
         self.GAN_save_grid_ssim_epoch_train = 1
         self.GAN_save_grid_ssim_epoch_valid = 1
+
+    def save_config(self):
+        list = self.__dict__
+        path_file = os.path.join(self.logs_dir_path, datetime.today().strftime('%D-%M-%H %H:%M'), ".npy")
+        np.save(path_file, list)
+
+
 
 

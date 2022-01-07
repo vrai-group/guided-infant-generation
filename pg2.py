@@ -12,8 +12,12 @@ from utils.utils_methods import import_module, save_grid
 
 class PG2(object):
 
-    def __init__(self, config):
+    def __init__(self, config, name_weights_file_G1, name_weights_file_G2, name_weights_file_D):
         self.config = config
+        self.G1_name_weights = name_weights_file_G1
+        self.G2_name_weights = name_weights_file_G2
+        self.D_name_weights = name_weights_file_D
+
 
         # -Import dinamico dell modulo di preprocess dataset
         # Ad esempio: Syntetich
@@ -322,7 +326,7 @@ class PG2(object):
         num_batches_valid = self.config.dataset_valid_len // self.config.GAN_batch_size_valid
 
         # Carico il modello preaddestrato G1
-        self.G1.model.load_weights(os.path.join(self.config.G1_weigths_path,'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'))
+        self.G1.model.load_weights(self.G1_name_weights)
         #self.model_G1.summary()
 
         # TRAIN: epoch
@@ -639,8 +643,6 @@ class PG2(object):
     def prediction(self):
 
         path_tfrecord = self.config.name_tfrecord_test
-        name_weights_file_G1 = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
-        name_weights_file_G2 = 'Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
 
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=path_tfrecord)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
@@ -648,6 +650,6 @@ class PG2(object):
         dataset_iterator = iter(dataset)
 
         # Model
-        self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, name_weights_file_G1))
-        self.G2.model.load_weights(os.path.join(self.config.GAN_weigths_dir_path, name_weights_file_G2))
+        self.G1.model.load_weights(self.G1_name_weights)
+        self.G2.model.load_weights(self.G2_name_weights)
 
