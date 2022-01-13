@@ -195,6 +195,11 @@ class G1(Model_Template):
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G1, beta_1=0.5, beta_2=0.999)
 
+    def prediction(self, Ic, Pt):
+        input_G1 = tf.concat([Ic, Pt], axis=-1)
+        output_G1 = self.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
+        return output_G1
+
     # LOSS
     def PoseMaskloss1(self, output_G1, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)

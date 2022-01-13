@@ -614,7 +614,7 @@ class PG2(object):
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
 
-    def prediction(self):
+    def inference_on_test(self):
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
@@ -636,8 +636,8 @@ class PG2(object):
             mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
             # Predizione
-            I_PT1 = self._prediction_G1(Ic, Pt)
-            I_D = self._prediction_G2(I_PT1, Ic)
+            I_PT1 = self.G1.prediction(Ic, Pt)
+            I_D = self.G2.prediction(I_PT1, Ic)
             I_PT2 = I_D + I_PT1
 
             # Unprocess
