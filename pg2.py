@@ -5,6 +5,7 @@ import os
 import sys
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from utils.augumentation import apply_augumentation
 from utils.utils_methods import import_module, save_grid
@@ -636,11 +637,9 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), refined_result
 
+
     def prediction(self):
-
-        path_tfrecord = self.config.name_tfrecord_test
-
-        dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=path_tfrecord)
+        dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
         dataset_iterator = iter(dataset)
@@ -648,4 +647,71 @@ class PG2(object):
         # Model
         self.G1.model.load_weights(self.config.G1_weigths_file_path)
         self.G2.model.load_weights(self.config.G2_weigths_file_path)
+
+        for i in range(self.config.dataset_test_len):
+            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=dataset_aug_len))
+            sys.stdout.flush()
+            batch = next(dataset_iterator)
+            image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+            image_raw_1 = batch[1]  # [batch, 96,128, 1]
+            pose_1 = batch[2]  # [batch, 96,128, 14]
+            mask_1 = batch[3]  # [batch, 96,128, 1]
+            mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+            mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
+
+            # Predizione
+            input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
+            output_G1 = self.G1.model.predict(input_G1)
+
+            input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)
+            output_G2 = self.G2.model.predict(input_G2)
+            output_G2 = output_G2 + output_G1
+
+
+            # Unprocess
+            image_raw_0 = tf.cast(self.dataset_module.unprocess_image(image_raw_0, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            image_raw_1 = tf.cast(self.dataset_module.unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+
+            pose_1 = pose_1[0]
+            pose_1 = tf.math.add(pose_1, 1, name=None) / 2  # rescale tra [0, 1]
+            pose_1 = tf.reshape(pose_1, [96, 128, 14]) * 255
+            pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
+            pose_1 = tf.cast(pose_1, dtype=tf.uint16).numpy()
+
+            mask_1 = tf.cast(mask_1, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
+
+            output_G1 = tf.cast(self.dataset_module.unprocess_image(output_G1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            output_G2 = tf.cast(self.dataset_module.unprocess_image(output_G2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+
+            # Plot Figure
+            fig = plt.figure(figsize=(10, 2))
+            columns = 5
+            rows = 1
+            imgs = [output_G2, output_G1, image_raw_0, image_raw_1, pose_1, mask_1]
+            labels = ["I_PT2", "I_PT1", "Ic", "It", "Pt", "Mt"]
+            for j in range(1, columns * rows + 1):
+                sub = fig.add_subplot(rows, columns, j)
+                sub.set_title(labels[j - 1])
+                plt.imshow(imgs[j - 1], cmap='gray')
+            plt.show()
+
+            #Save figure
+            # pz_0 = batch[5]  # [batch, 1]
+            # pz_1 = batch[6]  # [batch, 1]
+            # name_0 = batch[7]  # [batch, 1]
+            # name_1 = batch[8]  # [batch, 1]
+            # pz_0 = pz_0.numpy()[0].decode("utf-8")
+            # pz_1 = pz_1.numpy()[0].decode("utf-8")
+            # id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
+            # id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
+            # name_img = os.path.join(name_dir_to_save_img,
+            #                         "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+            #                             id=i,
+            #                             pz_0=pz_0,
+            #                             pz_1=pz_1,
+            #                             id_0=id_0,
+            #                             id_1=id_1))
+            #
+            # plt.savefig(name_img)
+            # plt.close(fig)
 

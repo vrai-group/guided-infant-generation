@@ -9,3 +9,4 @@ if __name__ == "__main__":
 
     #pg2.train_G1()
     #pg2.train_cDCGAN()
+    #pg2.prediction()
