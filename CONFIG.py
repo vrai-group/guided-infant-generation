@@ -7,15 +7,19 @@ from datetime import datetime
 
 class Config:
     def __init__(self):
-        self.MODE = "train"  # ['train', 'test']
-        self.DATASET = "Syntetich_complete"
-        self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
-        self.ARCHITETURE = "mono"
-
+        self._load_enviroment_variable()
         self._load_path()
         self._load_dataset_info()
         self._load_G1_info()
         self._load_GAN_info()
+
+    def _load_enviroment_variable(self):
+        self.MODE = "train"  # ['train', 'test']
+        self.DATASET = "Syntetich_complete"
+        self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
+        self.ARCHITETURE = "mono"
+        self.G1_NAME_WEIGHTS_FILE = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
+        self.G2_NAME_WEIGHTS_FILE = 'Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
 
     def _load_path(self):
         # - Path
@@ -24,6 +28,8 @@ class Config:
         self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
         self.G1_weigths_dir_path = os.path.join(self.weigths_dir_path, "G1")  # dove salvare i pesi
         self.GAN_weigths_dir_path = os.path.join(self.weigths_dir_path, "GAN")  # dove salvare i pesi
+        self.G1_weigths_file_path = os.path.join(self.G1_weigths_dir_path, self.G1_NAME_WEIGHTS_FILE)  # nome file pesi G1
+        self.G2_weigths_file_path = os.path.join(self.GAN_weigths_dir_path, self.G2_NAME_WEIGHTS_FILE)  # nome file pesi G2
         self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
         self.grid_dir_path = os.path.join(self.ROOT, "grid")  # dove salvare i le griglie
         self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove è presente il modello

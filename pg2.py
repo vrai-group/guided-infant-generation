@@ -14,10 +14,6 @@ class PG2(object):
 
     def __init__(self, config, name_weights_file_G1, name_weights_file_G2, name_weights_file_D):
         self.config = config
-        self.G1_name_weights = name_weights_file_G1
-        self.G2_name_weights = name_weights_file_G2
-        self.D_name_weights = name_weights_file_D
-
 
         # -Import dinamico dell modulo di preprocess dataset
         # Ad esempio: Syntetich
@@ -326,7 +322,7 @@ class PG2(object):
         num_batches_valid = self.config.dataset_valid_len // self.config.GAN_batch_size_valid
 
         # Carico il modello preaddestrato G1
-        self.G1.model.load_weights(self.G1_name_weights)
+        self.G1.model.load_weights(self.config.G1_weigths_file_path)
         #self.model_G1.summary()
 
         # TRAIN: epoch
@@ -650,6 +646,6 @@ class PG2(object):
         dataset_iterator = iter(dataset)
 
         # Model
-        self.G1.model.load_weights(self.G1_name_weights)
-        self.G2.model.load_weights(self.G2_name_weights)
+        self.G1.model.load_weights(self.config.G1_weigths_file_path)
+        self.G2.model.load_weights(self.config.G2_weigths_file_path)
 
