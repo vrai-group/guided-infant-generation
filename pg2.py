@@ -13,6 +13,8 @@ from utils.utils_methods import import_module, save_grid
 
 class PG2(object):
 
+    # Todo: aggiungere solo per i bibranch il rumore
+
     def __init__(self, config):
         self.config = config
 
@@ -58,10 +60,7 @@ class PG2(object):
         file.write(txt_file)
         file.close()
 
-    def _prediction_G1(self, Ic, Pt):
-        input_G1 = tf.concat([Ic, Pt], axis=-1)
-        output_G1 = self.G1.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
-        return output_G1
+
 
     def _prediction_G2(self, I_PT1, Ic):
         input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
@@ -161,11 +160,11 @@ class PG2(object):
             for id_batch in range(num_batches_train):
                 batch = next(train_aug_iterator)
                 logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
-                logs_to_print['mask_ssim_train'][id_batch], output_G1 = self._train_on_batch_G1(batch)
+                logs_to_print['mask_ssim_train'][id_batch], I_PT1 = self._train_on_batch_G1(batch)
 
                 # Grid
                 if epoch % self.config.G1_save_grid_ssim_epoch_train == self.config.G1_save_grid_ssim_epoch_train - 1:
-                    self._save_grid(epoch, id_batch, batch, output_G1, logs_to_print['ssim_train'][id_batch],
+                    self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_train'][id_batch],
                                     logs_to_print['mask_ssim_train'][id_batch], type="valid", architecture="G1")
 
                 # Logs a schermo
@@ -186,10 +185,10 @@ class PG2(object):
             for id_batch in range(num_batches_valid):
                 batch = next(valid_aug_iterator)
                 logs_to_print['loss_values_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
-                logs_to_print['mask_ssim_valid'][id_batch], output_G1 = self._valid_on_batch_G1(batch)
+                logs_to_print['mask_ssim_valid'][id_batch], I_PT1 = self._valid_on_batch_G1(batch)
 
                 if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
-                    self._save_grid(epoch, id_batch, batch, output_G1, logs_to_print['ssim_valid'][id_batch],
+                    self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
                                     logs_to_print['mask_ssim_valid'][id_batch], type="valid", architecture="G1")
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
@@ -240,7 +239,6 @@ class PG2(object):
         print("#############\n\n")
 
     def _train_on_batch_G1(self, batch):
-
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
         Pt = batch[2]  # [batch, 96,128, 14]
@@ -249,14 +247,8 @@ class PG2(object):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
-        # BACKPROP
-        with tf.GradientTape() as g1_tape:
-            I_PT1 = self._prediction_G1(Ic, Pt)
-            loss_value_G1 = self.G1.PoseMaskLoss1(I_PT1, It, Ic, Mt, Mc)
-        self.G1.opt.minimize(loss_value_G1, var_list=self.G1.model.trainable_weights, tape=g1_tape)
-
+        I_PT1, loss_value_G1 = self.G1.train_on_batch(Ic, It, Pt, Mt, mean_0, mean_1)
         # METRICS
-        # - SSIM
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
         mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
 
@@ -272,15 +264,9 @@ class PG2(object):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
-        # G1
-        I_PT1 = self._prediction_G1(Ic, Pt)
+        I_PT1, loss_value_G1 = self.G1.valid_on_batch(self, Ic, It, Pt, Mt)
 
-
-        # Loss G1
-        loss_value_G1 = self.G1.PoseMaskLoss1(I_PT1, It, Ic, Mt, Mc)
-
-        # Metrics
-        # - SSIM
+        # METRICS
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1)
         mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
 
@@ -377,12 +363,12 @@ class PG2(object):
                 logs_to_print['loss_values_train_fake_D'][id_batch], logs_to_print['loss_values_train_real_D'][id_batch], \
                 logs_to_print['r_r_train'][id_batch], logs_to_print['img_0_train'][id_batch], \
                 logs_to_print['img_1_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
-                logs_to_print['mask_ssim_train'][id_batch], refined_result = \
+                logs_to_print['mask_ssim_train'][id_batch], I_PT2 = \
                     self._train_on_batch_cDCGAN(id_batch, batch)
 
                 # GRID
                 if epoch % self.config.GAN_save_grid_ssim_epoch_train == self.config.GAN_save_grid_ssim_epoch_train.save_grid_ssim_epoch_train - 1:
-                    self._save_grid(epoch, id_batch, batch, refined_result, logs_to_print['ssim_train'][id_batch],
+                    self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_train'][id_batch],
                                     logs_to_print['mask_ssim_train'][id_batch], type="train", architecture="GAN")
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2f}, '
@@ -414,13 +400,13 @@ class PG2(object):
                 logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][id_batch], \
                 logs_to_print['r_r_valid'][id_batch], logs_to_print['img_0_valid'][id_batch], \
                 logs_to_print['img_1_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
-                logs_to_print['mask_ssim_valid'][id_batch], refined_result = self._valid_on_batch_cDCGAN(batch)
+                logs_to_print['mask_ssim_valid'][id_batch], I_PT2 = self._valid_on_batch_cDCGAN(batch)
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
 
                 if epoch % self.config.GAN_save_grid_ssim_epoch_valid == self.config.GAN_save_grid_ssim_epoch_valid - 1:
-                    self._save_grid(epoch, id_batch, batch, refined_result, logs_to_print['ssim_valid'][id_batch],
+                    self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_valid'][id_batch],
                                     logs_to_print['mask_ssim_valid'][id_batch], type="valid", architecture="GAN")
 
             sys.stdout.write('')
@@ -653,7 +639,7 @@ class PG2(object):
         self.G2.model.load_weights(self.config.G2_weigths_file_path)
 
         for i in range(self.config.dataset_test_len):
-            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=dataset_aug_len))
+            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))
             sys.stdout.flush()
             batch = next(dataset_iterator)
             Ic = batch[0]  # [batch, 96, 128, 1]
@@ -665,18 +651,12 @@ class PG2(object):
 
             # Predizione
             I_PT1 = self._prediction_G1(Ic, Pt)
-            I_D = self._prediction_G2(I_PT1,Ic)
+            I_D = self._prediction_G2(I_PT1, Ic)
             I_PT2 = I_D + I_PT1
 
             # Unprocess
             Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
             It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
-
-            Pt = Pt[0]
-            Pt = tf.math.add(Pt, 1, name=None) / 2  # rescale tra [0, 1]
-            Pt = tf.reshape(Pt, [96, 128, 14]) * 255
-            Pt = tf.math.reduce_sum(Pt, axis=-1).numpy().reshape(96, 128, 1)
-            Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
 
             Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
