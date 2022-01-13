@@ -51,6 +51,12 @@ class D(Model_Template):
 
         return model
 
+    def prediction(self, It, I_PT2, Ic):
+        input_D = tf.concat([It, I_PT2, Ic], axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
+        output_D = self.model(input_D)  # [batch * 3, 1]
+        output_D = tf.reshape(output_D, [-1])  # [batch*3]
+        return output_D
+
     # Optimizer
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_D, beta_1=0.5)
@@ -67,7 +73,7 @@ class D(Model_Template):
 
         loss = fake + real
 
-        return loss, fake, real
+        return [loss, fake, real]
 
 
 

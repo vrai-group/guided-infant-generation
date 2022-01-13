@@ -72,12 +72,17 @@ class G2(Model_Template):
 
         return model
 
+    def prediction(self, I_PT1, Ic):
+        input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
+        output_G2 = self.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
+        return output_G2
+
     # Optimizer
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
     # Loss
-    def PoseMaskLoss2(self, D_neg_refined_result, refined_result, image_raw_1, mask_1):
+    def PoseMaskloss2(self, D_neg_refined_result, refined_result, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)
         refined_result = tf.cast(refined_result, dtype=tf.float32)
         mask_1 = tf.cast(mask_1, dtype=tf.float32)

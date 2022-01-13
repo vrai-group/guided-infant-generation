@@ -70,18 +70,6 @@ class G1(Model_Template):
         output_G1 = self.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
         return output_G1
 
-    def train_on_batch(self, Ic, It, Pt, Mt, mean_0, mean_1):
-        with tf.GradientTape() as g1_tape:
-            I_PT1 = self.prediction(Ic, Pt)
-            loss_value_G1 = self.PoseMaskloss1(I_PT1, It, Mt)
-        self.opt.minimize(loss_value_G1, var_list=self.model.trainable_weights, tape=g1_tape)
-        return I_PT1, loss_value_G1
-
-    def valid_on_batch(self, Ic, It, Pt, Mt):
-        I_PT1 = self.prediction(Ic, Pt)
-        loss_value_G1 = self.PoseMaskloss1(I_PT1, It, Mt)
-        return I_PT1, loss_value_G1
-
     # LOSS
     def PoseMaskloss1(self, output_G1, image_raw_1, mask_1):
         image_raw_1 = tf.cast(image_raw_1, dtype=tf.float32)

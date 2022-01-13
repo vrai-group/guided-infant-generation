@@ -60,20 +60,6 @@ class PG2(object):
         file.write(txt_file)
         file.close()
 
-
-
-    def _prediction_G2(self, I_PT1, Ic):
-        input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
-        output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
-        return output_G2
-
-    def _prediction_D(self, It, I_PT2, Ic):
-        input_D = tf.concat([It, I_PT2, Ic],
-                            axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-        output_D = self.D.model(input_D)  # [batch * 3, 1]
-        output_D = tf.reshape(output_D, [-1])  # [batch*3]
-        return output_D
-
     def train_G1(self):
 
         # - LOGS
@@ -247,7 +233,11 @@ class PG2(object):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
-        I_PT1, loss_value_G1 = self.G1.train_on_batch(Ic, It, Pt, Mt, mean_0, mean_1)
+        with tf.GradientTape() as g1_tape:
+            I_PT1 = self.G1.prediction(Ic, Pt)
+            loss_value_G1 = self.G1.PoseMaskloss1(I_PT1, It, Mt)
+        self.G1.opt.minimize(loss_value_G1, var_list=self.G1.model.trainable_weights, tape=g1_tape)
+
         # METRICS
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
         mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
@@ -264,7 +254,8 @@ class PG2(object):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
-        I_PT1, loss_value_G1 = self.G1.valid_on_batch(self, Ic, It, Pt, Mt)
+        I_PT1 = self.G1.prediction(Ic, Pt)
+        loss_value_G1 = self.G1.PoseMaskloss1(I_PT1, It, Mt)
 
         # METRICS
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1)
@@ -510,6 +501,22 @@ class PG2(object):
             print("#######")
 
     def _train_on_batch_cDCGAN(self, id_batch, batch):
+
+        def _tape(loss_function):
+            with tf.GradientTape() as tape:
+                I_D = self.G2.prediction(I_PT1, Ic)
+                I_D = tf.cast(I_D, dtype=tf.float16)
+                I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
+
+                output_D = self.D.prediction(It, I_PT2, Ic)
+                output_D = tf.cast(output_D, dtype=tf.float16)
+                D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
+
+                loss_value = loss_function(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
+
+            return tape, loss_value, I_PT2, I_D, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0
+
+
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
         Pt = batch[2]  # [batch, 96,128, 14]
@@ -519,43 +526,22 @@ class PG2(object):
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
-        I_PT1 = self._prediction_G1(Ic, Pt)
+        I_PT1 = self.G1.prediction(Ic, Pt)
         I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
-        # G2
-        with tf.GradientTape() as g2_tape:
-            I_D = self._prediction_G2(I_PT1, Ic)
-            I_D = tf.cast(I_D, dtype=tf.float16)
-            I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
-
-            # Predizione D
-            output_D = self._prediction_D(It, I_PT2, Ic)
-            output_D = tf.cast(output_D, dtype=tf.float16)
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
-
-            # Loss G2
-            loss_value_G2 = self.G2.Loss(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
-
-        # BACKPROP
+        # BACKPROP G2
         if (id_batch + 1) % 3 == 0:
+            g2_tape, loss_value_G2, \
+            I_PT2, I_D, \
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(loss_function=self.G2.PoseMaskloss2)
             self.G2.optimizer.minimize(loss_value_G2, var_list=self.G2.optimizer.trainable_weights, tape=g2_tape)
 
-        # D
-        with tf.GradientTape() as d_tape:
-            I_D = self._prediction_G2(I_PT1, Ic)
-            I_D = tf.cast(I_D, dtype=tf.float16)
-            I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
-
-            # D
-            output_D = self._prediction_D(It, I_PT2, Ic)
-            output_D = tf.cast(output_D, dtype=tf.float16)
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
-
-            # Loss D
-            loss_value_D, loss_fake, loss_real = self.D.Loss(D_pos_image_raw_1, D_neg_refined_result,
-                                                                    D_neg_image_raw_0)
-        # BACKPROP
+        # BACKPROP D
         if not (id_batch + 1) % 3 == 0:
+            d_tape, loss_value_D, \
+            I_PT2, I_D, \
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(loss_function=self.D.Loss)
+            loss_value_D, loss_fake, loss_real = loss_value_D
             self.D.optimizer.minimize(loss_value_D, var_list=self.D.optimizer.trainable_weights, tape=d_tape)
 
         # Metrics
@@ -589,21 +575,21 @@ class PG2(object):
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
-        I_PT1 = self._prediction_G1(Ic, Pt)
+        I_PT1 = self.G1.prediction(Ic, Pt)
         I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
         # G2
-        I_D = self._prediction_G2(I_PT1, Ic)
+        I_D = self.G2.prediction(I_PT1, Ic)
         I_D = tf.cast(I_D, dtype=tf.float16)
         I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
 
         # D
-        output_D = self._prediction_D(It, I_PT2, Ic)
+        output_D = self.D.prediction(It, I_PT2, Ic)
         output_D = tf.cast(output_D, dtype=tf.float16)
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
         # Loss
-        loss_value_G2 = self.G2.Loss(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
+        loss_value_G2 = self.G2.PoseMaskloss2(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
         loss_value_D, loss_fake, loss_real = self.D.Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
         # Metrics
