@@ -28,8 +28,8 @@ class Config:
         self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
         self.G1_weigths_dir_path = os.path.join(self.weigths_dir_path, "G1")  # dove salvare i pesi
         self.GAN_weigths_dir_path = os.path.join(self.weigths_dir_path, "GAN")  # dove salvare i pesi
-        self.G1_weigths_file_path = os.path.join(self.G1_weigths_dir_path, self.G1_NAME_WEIGHTS_FILE)  # nome file pesi G1
-        self.G2_weigths_file_path = os.path.join(self.GAN_weigths_dir_path, self.G2_NAME_WEIGHTS_FILE)  # nome file pesi G2
+        self.G1_weigths_file_path = None
+        self.G2_weigths_file_path = None
         self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
         self.grid_dir_path = os.path.join(self.ROOT, "grid")  # dove salvare i le griglie
         self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove è presente il modello

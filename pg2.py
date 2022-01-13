@@ -8,25 +8,19 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from utils.augumentation import apply_augumentation
-from utils.utils_methods import import_module, save_grid
+from utils.utils_methods import save_grid
 
 
 class PG2(object):
 
     # Todo: aggiungere solo per i bibranch il rumore
 
-    def __init__(self, config):
+    def __init__(self, config, dataset_module, G1, G2, D):
         self.config = config
-
-        # -Import dinamico dell modulo di preprocess dataset
-        # Ad esempio: Syntetich
-        name_module_preprocess_dataset = config.DATASET.split('_')[0]
-        self.dataset_module = import_module(name_module_preprocess_dataset, config.dataset_module_dir_path)
-
-        # -Import dinamico dell'architettura
-        self.G1 = import_module(name_module="G1", path=self.config.models_dir_path).G1()
-        self.G2 = import_module(name_module="G2", path=self.config.models_dir_path).G2()
-        self.D = import_module(name_module="D", path=self.config.models_dir_path).D()
+        self.dataset_module = dataset_module
+        self.G1 = G1
+        self.G2 = G2
+        self.D = D
 
     def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, type, architecture):
         pz_0 = batch[5]  # [batch, 1]
