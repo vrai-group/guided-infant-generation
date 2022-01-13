@@ -656,42 +656,38 @@ class PG2(object):
             sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=dataset_aug_len))
             sys.stdout.flush()
             batch = next(dataset_iterator)
-            image_raw_0 = batch[0]  # [batch, 96, 128, 1]
-            image_raw_1 = batch[1]  # [batch, 96,128, 1]
-            pose_1 = batch[2]  # [batch, 96,128, 14]
-            mask_1 = batch[3]  # [batch, 96,128, 1]
+            Ic = batch[0]  # [batch, 96, 128, 1]
+            It = batch[1]  # [batch, 96,128, 1]
+            Pt = batch[2]  # [batch, 96,128, 14]
+            Mt = batch[3]  # [batch, 96,128, 1]
             mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
             mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
             # Predizione
-            input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-            output_G1 = self.G1.model.predict(input_G1)
-
-            input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)
-            output_G2 = self.G2.model.predict(input_G2)
-            output_G2 = output_G2 + output_G1
-
+            I_PT1 = self._prediction_G1(Ic, Pt)
+            I_D = self._prediction_G2(I_PT1,Ic)
+            I_PT2 = I_D + I_PT1
 
             # Unprocess
-            image_raw_0 = tf.cast(self.dataset_module.unprocess_image(image_raw_0, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-            image_raw_1 = tf.cast(self.dataset_module.unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+            Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
 
-            pose_1 = pose_1[0]
-            pose_1 = tf.math.add(pose_1, 1, name=None) / 2  # rescale tra [0, 1]
-            pose_1 = tf.reshape(pose_1, [96, 128, 14]) * 255
-            pose_1 = tf.math.reduce_sum(pose_1, axis=-1).numpy().reshape(96, 128, 1)
-            pose_1 = tf.cast(pose_1, dtype=tf.uint16).numpy()
+            Pt = Pt[0]
+            Pt = tf.math.add(Pt, 1, name=None) / 2  # rescale tra [0, 1]
+            Pt = tf.reshape(Pt, [96, 128, 14]) * 255
+            Pt = tf.math.reduce_sum(Pt, axis=-1).numpy().reshape(96, 128, 1)
+            Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
 
-            mask_1 = tf.cast(mask_1, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
+            Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
-            output_G1 = tf.cast(self.dataset_module.unprocess_image(output_G1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-            output_G2 = tf.cast(self.dataset_module.unprocess_image(output_G2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            I_PT2 = tf.cast(self.dataset_module.unprocess_image(I_PT2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
 
             # Plot Figure
             fig = plt.figure(figsize=(10, 2))
             columns = 5
             rows = 1
-            imgs = [output_G2, output_G1, image_raw_0, image_raw_1, pose_1, mask_1]
+            imgs = [I_PT2, I_PT1, Ic, It, It, Mt]
             labels = ["I_PT2", "I_PT1", "Ic", "It", "Pt", "Mt"]
             for j in range(1, columns * rows + 1):
                 sub = fig.add_subplot(rows, columns, j)
