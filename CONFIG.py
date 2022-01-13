@@ -14,7 +14,8 @@ class Config:
 
         self._load_path()
         self._load_dataset_info()
-        self._load_train_info()
+        self._load_G1_info()
+        self._load_GAN_info()
 
     def _load_path(self):
         # - Path
@@ -54,7 +55,7 @@ class Config:
             self.dataset_valid_list = dic['valid']['list_pz']
             self.dataset_test_list = dic['test']['list_pz']
 
-    def _load_train_info(self):
+    def _load_G1_info(self):
         self.G1_epochs = 100
         self.G1_batch_size_train = 16  # grandezza del batch_size
         self.G1_batch_size_valid = 16  # grandezza del batch_size
@@ -63,6 +64,7 @@ class Config:
         self.G1_save_grid_ssim_epoch_train = 1
         self.G1_save_grid_ssim_epoch_valid = 1
 
+    def _load_GAN_info(self):
         self.GAN_epochs = 200
         self.GAN_batch_size_train = 16  # grandezza del batch_size
         self.GAN_batch_size_valid = 16
