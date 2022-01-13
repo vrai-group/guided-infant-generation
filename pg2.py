@@ -13,7 +13,7 @@ from utils.utils_methods import import_module, save_grid
 
 class PG2(object):
 
-    def __init__(self, config, name_weights_file_G1, name_weights_file_G2, name_weights_file_D):
+    def __init__(self, config):
         self.config = config
 
         # -Import dinamico dell modulo di preprocess dataset
@@ -25,6 +25,55 @@ class PG2(object):
         self.G1 = import_module(name_module="G1", path=self.config.models_dir_path).G1()
         self.G2 = import_module(name_module="G2", path=self.config.models_dir_path).G2()
         self.D = import_module(name_module="D", path=self.config.models_dir_path).D()
+
+    def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, type, architecture):
+        pz_0 = batch[5]  # [batch, 1]
+        pz_1 = batch[6]  # [batch, 1]
+        name_0 = batch[7]  # [batch, 1]
+        name_1 = batch[8]  # [batch, 1]
+        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+
+        # GRID: Save griglia di immagini predette
+        name_directory = os.path.join(self.config.grid_dir_path, architecture, type, str(epoch + 1))
+        if not os.path.exists(name_directory):
+            os.mkdir(name_directory)
+        name_grid = os.path.join(name_directory,
+                                 architecture + '_epoch_{epoch}_batch_{id_batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
+                                     epoch=epoch + 1,
+                                     id_batch=id_batch,
+                                     ssim=ssim_value,
+                                     mask_ssim=mask_ssim_value))
+        mean_0 = tf.cast(mean_0, dtype=tf.float32)
+        output = self.dataset_module.unprocess_image(output, mean_0, 32765.5)
+        save_grid(output, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+
+        stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
+        stack_pairs = np.array(
+            [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
+             stack_pairs])
+        txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
+        file = open(name_directory + '/' + architecture + '_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
+                                                                                                    batch=id_batch),
+                    "w")
+        file.write(txt_file)
+        file.close()
+
+    def _prediction_G1(self, Ic, Pt):
+        input_G1 = tf.concat([Ic, Pt], axis=-1)
+        output_G1 = self.G1.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
+        return output_G1
+
+    def _prediction_G2(self, I_PT1, Ic):
+        input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
+        output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
+        return output_G2
+
+    def _prediction_D(self, It, I_PT2, Ic):
+        input_D = tf.concat([It, I_PT2, Ic],
+                            axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
+        output_D = self.D.model(input_D)  # [batch * 3, 1]
+        output_D = tf.reshape(output_D, [-1])  # [batch*3]
+        return output_D
 
     def train_G1(self):
 
@@ -190,84 +239,52 @@ class PG2(object):
 
         print("#############\n\n")
 
-    def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, type, architecture):
-        pz_0 = batch[5]  # [batch, 1]
-        pz_1 = batch[6]  # [batch, 1]
-        name_0 = batch[7]  # [batch, 1]
-        name_1 = batch[8]  # [batch, 1]
-        mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
-
-        # GRID: Save griglia di immagini predette
-        name_directory = os.path.join(self.config.grid_dir_path, architecture, type, str(epoch + 1))
-        if not os.path.exists(name_directory):
-            os.mkdir(name_directory)
-        name_grid = os.path.join(name_directory,
-                                 architecture+'_epoch_{epoch}_batch_{id_batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-                                     epoch=epoch + 1,
-                                     id_batch=id_batch,
-                                     ssim=ssim_value,
-                                     mask_ssim=mask_ssim_value))
-        mean_0 = tf.cast(mean_0, dtype=tf.float32)
-        output= self.dataset_module.unprocess_image(output, mean_0, 32765.5)
-        save_grid(output, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
-
-        stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
-        stack_pairs = np.array(
-            [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
-             stack_pairs])
-        txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-        file = open(name_directory + '/' + architecture +'_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
-                                                                                       batch=id_batch), "w")
-        file.write(txt_file)
-        file.close()
-
     def _train_on_batch_G1(self, batch):
 
-        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
-        image_raw_1 = batch[1]  # [batch, 96,128, 1]
-        pose_1 = batch[2]  # [batch, 96,128, 14]
-        mask_1 = batch[3]  # [batch, 96,128, 1]
-        mask_0 = batch[4]  # [batch, 96,128, 1]
+        Ic = batch[0]  # [batch, 96, 128, 1]
+        It = batch[1]  # [batch, 96,128, 1]
+        Pt = batch[2]  # [batch, 96,128, 14]
+        Mt = batch[3]  # [batch, 96,128, 1]
+        Mc = batch[4]  # [batch, 96,128, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # BACKPROP
         with tf.GradientTape() as g1_tape:
-            input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-            output_G1 = self.G1.model(input_G1) # [batch, 96, 128, 1] dtype=float32
-            loss_value_G1 = self.G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
+            I_PT1 = self._prediction_G1(Ic, Pt)
+            loss_value_G1 = self.G1.PoseMaskLoss1(I_PT1, It, Ic, Mt, Mc)
         self.G1.opt.minimize(loss_value_G1, var_list=self.G1.model.trainable_weights, tape=g1_tape)
 
         # METRICS
         # - SSIM
-        ssim_value = self.G1.ssim(output_G1, image_raw_1, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
-        mask_ssim_value = self.G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
 
-        return loss_value_G1, ssim_value, mask_ssim_value, output_G1
+        return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
     def _valid_on_batch_G1(self, batch):
 
-        image_raw_0 = batch[0]  # [batch, 96,128, 1]
-        image_raw_1 = batch[1]  # [batch, 96,128, 1]
-        pose_1 = batch[2]  # [batch, 96,128, 1]
-        mask_1 = batch[3]  # [batch, 96,128, 1]
-        mask_0 = batch[4]  # [batch, 96,128, 1]
+        Ic = batch[0]  # [batch, 96, 128, 1]
+        It = batch[1]  # [batch, 96,128, 1]
+        Pt = batch[2]  # [batch, 96,128, 14]
+        Mt = batch[3]  # [batch, 96,128, 1]
+        Mc = batch[4]  # [batch, 96,128, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
-        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)
-        output_G1 = self.G1.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
+        I_PT1 = self._prediction_G1(Ic, Pt)
+
 
         # Loss G1
-        loss_value_G1 = self.G1.PoseMaskLoss1(output_G1, image_raw_1, image_raw_0, mask_1, mask_0)
+        loss_value_G1 = self.G1.PoseMaskLoss1(I_PT1, It, Ic, Mt, Mc)
 
         # Metrics
         # - SSIM
-        ssim_value = self.G1.ssim(output_G1, image_raw_1, mean_0, mean_1)
-        mask_ssim_value = self.G1.mask_ssim(output_G1, image_raw_1, mask_1, mean_0, mean_1)
+        ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1)
+        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
 
-        return loss_value_G1, ssim_value, mask_ssim_value, output_G1
+        return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
     def train_cDCGAN(self):
         # Note: G1 è preaddestrato
@@ -507,35 +524,31 @@ class PG2(object):
             print("#######")
 
     def _train_on_batch_cDCGAN(self, id_batch, batch):
-        image_raw_0 = batch[0]  # [batch, 96, 128, 1]
-        image_raw_1 = batch[1]  # [batch, 96,128, 1]
-        pose_1 = batch[2]  # [batch, 96,128, 14]
-        mask_1 = batch[3]  # [batch, 96,128, 1]
-        mask_0 = batch[4]  # [batch, 96,128, 1]
+        Ic = batch[0]  # [batch, 96, 128, 1]
+        It = batch[1]  # [batch, 96,128, 1]
+        Pt = batch[2]  # [batch, 96,128, 14]
+        Mt = batch[3]  # [batch, 96,128, 1]
+        Mc = batch[4]  # [batch, 96,128, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
-        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 15]
-        output_G1 = self.G1.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
-        output_G1 = tf.cast(output_G1, dtype=tf.float16)
+        I_PT1 = self._prediction_G1(Ic, Pt)
+        I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
         # G2
         with tf.GradientTape() as g2_tape:
-            input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
-            output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
+            I_D = self._prediction_G2(I_PT1, Ic)
+            I_D = tf.cast(I_D, dtype=tf.float16)
+            I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
 
             # Predizione D
-            output_G2 = tf.cast(output_G2, dtype=tf.float16)
-            refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
-            input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-            output_D = self.D.model(input_D)  # [batch * 3, 1]
-            output_D = tf.reshape(output_D, [-1])  # [batch*3]
+            output_D = self._prediction_D(It, I_PT2, Ic)
             output_D = tf.cast(output_D, dtype=tf.float16)
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
             # Loss G2
-            loss_value_G2 = self.G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
+            loss_value_G2 = self.G2.Loss(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
 
         # BACKPROP
         if (id_batch + 1) % 3 == 0:
@@ -543,17 +556,12 @@ class PG2(object):
 
         # D
         with tf.GradientTape() as d_tape:
-            # Predizione G2
-            input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
-            output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1]
+            I_D = self._prediction_G2(I_PT1, Ic)
+            I_D = tf.cast(I_D, dtype=tf.float16)
+            I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
 
             # D
-            output_G2 = tf.cast(output_G2, dtype=tf.float16)
-            refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
-            input_D = tf.concat([image_raw_1, refined_result, image_raw_0],
-                                axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-            output_D = self.D.model(input_D)  # [batch * 3, 1]
-            output_D = tf.reshape(output_D, [-1])  # [batch*3]
+            output_D = self._prediction_D(It, I_PT2, Ic)
             output_D = tf.cast(output_D, dtype=tf.float16)
             D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
@@ -566,8 +574,8 @@ class PG2(object):
 
         # Metrics
         # - SSIM
-        ssim_value = self.G2.ssim(refined_result, image_raw_1, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
-        mask_ssim_value = self.G2.mask_ssim(refined_result, image_raw_1, mask_1, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        ssim_value = self.G2.ssim(I_PT2, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G2.mask_ssim(I_PT2, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
 
         # - Real predette di refined_result dal discriminatore
         np_array_D_neg_refined_result = D_neg_refined_result.numpy()
@@ -583,43 +591,39 @@ class PG2(object):
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
-               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), refined_result
+               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
     def _valid_on_batch_cDCGAN(self, batch):
-        image_raw_0 = batch[0]  # [batch, 96,128, 1]
-        image_raw_1 = batch[1]  # [batch, 96,128, 1]
-        pose_1 = batch[2]  # [batch, 96,128, 1]
-        mask_1 = batch[3]  # [batch, 96,128, 1]
-        mask_0 = batch[4]  # [batch, 96,128, 1]
+        Ic = batch[0]  # [batch, 96, 128, 1]
+        It = batch[1]  # [batch, 96,128, 1]
+        Pt = batch[2]  # [batch, 96,128, 14]
+        Mt = batch[3]  # [batch, 96,128, 1]
+        Mc = batch[4]  # [batch, 96,128, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         # G1
-        input_G1 = tf.concat([image_raw_0, pose_1], axis=-1)  # [batch, 96, 128, 1]
-        output_G1 = self.G1.model(input_G1)  # output_g1 --> [batch, 96, 128, 1]
+        I_PT1 = self._prediction_G1(Ic, Pt)
+        I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
         # G2
-        output_G1 = tf.cast(output_G1, dtype=tf.float16)
-        input_G2 = tf.concat([output_G1, image_raw_0], axis=-1)  # [batch, 96, 128, 2]
-        output_G2 = self.G2.model(input_G2)  # [batch, 96, 128, 1]
+        I_D = self._prediction_G2(I_PT1, Ic)
+        I_D = tf.cast(I_D, dtype=tf.float16)
+        I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
 
         # D
-        output_G2 = tf.cast(output_G2, dtype=tf.float16)
-        refined_result = output_G1 + output_G2  # [batch, 96, 128, 1]
-        input_D = tf.concat([image_raw_1, refined_result, image_raw_0], axis=0)  # [batch * 3, 96, 128, 1] --> batch * 3 poichè concateniamo sul primo asse
-        output_D = self.D.model(input_D)  # [batch * 3, 1]
-        output_D = tf.reshape(output_D, [-1])  # [batch*3]
+        output_D = self._prediction_D(It, I_PT2, Ic)
         output_D = tf.cast(output_D, dtype=tf.float16)
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
         # Loss
-        loss_value_G2 = self.G2.Loss(D_neg_refined_result, refined_result, image_raw_1, image_raw_0, mask_1, mask_0)
+        loss_value_G2 = self.G2.Loss(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
         loss_value_D, loss_fake, loss_real = self.D.Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
         # Metrics
         # - SSIM
-        ssim_value = self.G2.m_ssim(refined_result, image_raw_1, mean_0, mean_1)
-        mask_ssim_value = self.G2.mask_ssim(refined_result, image_raw_1, mask_1, mean_0, mean_1)
+        ssim_value = self.G2.m_ssim(I_PT2, It, mean_0, mean_1)
+        mask_ssim_value = self.G2.mask_ssim(I_PT2, It, Mt, mean_0, mean_1)
 
         # - Real predette di refined_result dal discriminatore
         np_array_D_neg_refined_result = D_neg_refined_result.numpy()
@@ -635,7 +639,7 @@ class PG2(object):
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
-               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), refined_result
+               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
 
     def prediction(self):
