@@ -12,7 +12,7 @@ from utils.utils_methods import import_module, save_grid
 
 class PG2(object):
 
-    def __init__(self, config, dataset_module, G1, G2, D):
+    def __init__(self, config):
         self.config = config
 
         # -Import dinamico dell modulo di preprocess dataset Ad esempio: Syntetich
@@ -609,7 +609,6 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
-
     def inference_on_test(self):
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
@@ -676,4 +675,8 @@ class PG2(object):
             #
             # plt.savefig(name_img)
             # plt.close(fig)
+
+    def evaluation(self):
+        pass
+
 

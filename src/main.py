@@ -13,9 +13,10 @@ if __name__ == "__main__":
     config.G1_weigths_file_path = os.path.join(config.G1_weigths_dir_path, config.G1_NAME_WEIGHTS_FILE)  # nome file pesi G1
     config.G2_weigths_file_path = os.path.join(config.GAN_weigths_dir_path, config.G2_NAME_WEIGHTS_FILE)  # nome file pesi G2
 
-    
     pg2 = PG2(config)  # Pose Guided ^2 network
 
-    #pg2.train_G1()
-    #pg2.train_cDCGAN()
-    #pg2.prediction()
+    # pg2.train_G1()
+    # pg2.train_cDCGAN()
+    # pg2.inference_on_test()
+    # pg2.evaluation()
+
