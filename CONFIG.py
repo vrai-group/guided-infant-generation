@@ -3,8 +3,6 @@ import numpy as np
 import pickle
 from datetime import datetime
 
-
-
 class Config:
     def __init__(self):
         self._load_enviroment_variable()
@@ -15,7 +13,7 @@ class Config:
 
     def _load_enviroment_variable(self):
         self.MODE = "train"  # ['train', 'test']
-        self.DATASET = "Syntetich_complete"
+        self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
         self.ARCHITETURE = "mono"
         self.G1_NAME_WEIGHTS_FILE = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
@@ -26,18 +24,26 @@ class Config:
         self.ROOT = '.'
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
         self.weigths_dir_path = os.path.join(self.ROOT, "weights")  # dove salvare i pesi
-        self.G1_weigths_dir_path = os.path.join(self.weigths_dir_path, "G1")  # dove salvare i pesi
-        self.GAN_weigths_dir_path = os.path.join(self.weigths_dir_path, "GAN")  # dove salvare i pesi
-        self.G1_weigths_file_path = None
-        self.G2_weigths_file_path = None
+        self.G1_weigths_dir_path = os.path.join(self.weigths_dir_path, "G1")  # dove salvare i pesi di G1
+        self.GAN_weigths_dir_path = os.path.join(self.weigths_dir_path, "GAN")  # dove salvare i pesi della GAN
         self.logs_dir_path = os.path.join(self.ROOT, "logs")  # dove salvare i logs
-        self.grid_dir_path = os.path.join(self.ROOT, "grid")  # dove salvare i le griglie
-        self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove è presente il modello
+        self.grid_dir_path = os.path.join(self.ROOT, "grid")  # dove salvare le griglie
+        self.models_dir_path = os.path.join(self.ROOT, "models", self.ARCHITETURE)  # dove sono presenti le architetture
         self.dataset_module_dir_path = os.path.join(self.ROOT, "datasets")  # dov è presente il modulo per processare il dataset
         self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
 
-        # - check path
-        # TODO: fare
+        # check
+        assert os.path.exists(self.data_dir_path)
+        assert os.path.exists(self.weigths_dir_path)
+        assert os.path.exists(self.G1_weigths_dir_path)
+        assert os.path.exists(self.GAN_weigths_dir_path)
+        assert os.path.exists(self.logs_dir_path)
+        assert os.path.exists(self.models_dir_path)
+        assert os.path.exists(self.dataset_module_dir_path)
+        assert os.path.exists(self.data_tfrecord_path)
+
+        assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0]))
+        assert os.path.exists(os.path.join(self.data_tfrecord_path, self.DATASET_type))
 
     def _load_dataset_info(self):
         # - Dataset
