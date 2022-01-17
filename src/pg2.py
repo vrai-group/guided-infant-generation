@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from utils.augumentation import apply_augumentation
 from utils.utils_methods import import_module, save_grid
+from utils.evaluation import evaluation_G1, evaluation_GAN
 
 class PG2(object):
 
@@ -676,7 +677,44 @@ class PG2(object):
             # plt.savefig(name_img)
             # plt.close(fig)
 
-    def evaluation(self):
-        pass
+    # Valutazione metrice IS e FID
+    def evaluate(self, generator, analysis="test", bool_save_image=True, batch_size=10):
+
+        #CHECK
+        assert generator != None
+        if generator == "G2":
+           assert self.config.G1_NAME_WEIGHTS_FILE != None
+
+        name_dataset = None
+        dataset_len = None
+        if analysis == "test":
+            name_dataset = self.config.name_tfrecord_test
+            dataset_len = self.config.dataset_test_len
+        elif analysis == "valid":
+            name_dataset = self.config.name_tfrecord_valid
+            dataset_len = self.config.dataset_valid_len
+
+        # Dataset
+        dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
+        dataset = self.dataset_module.preprocess_dataset(dataset_unp)
+        #dataset = dataset_train.shuffle(dataset, reshuffle_each_iteration=True) # Togliere shuffle se no non va bene il cnt della save figure
+        dataset = dataset.batch(1)
+
+        for weight in os.listdir(self.config.G1_weigths_dir_path):
+            num_epoch = weight.split('-')[0].split('_')[3]
+            name_directory_to_save_evaluation = analysis + '_score_epoch' + num_epoch  # directory dove salvare i risultati degli score
+
+            # Directory
+            if not os.path.exists(name_directory_to_save_evaluation):
+                os.mkdir(name_directory_to_save_evaluation)
+
+            # Model
+            self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, weight))
+
+            # Pipiline score
+            evaluation_G1.start(self.G1.model, iter(dataset), dataset_len, batch_size,
+                                dataset_module=self.dataset_module,
+                                bool_save_img=bool_save_image, name_directory_to_save_evaluation=name_directory_to_save_evaluation)
+
 
 
