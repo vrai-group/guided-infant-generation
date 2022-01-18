@@ -678,7 +678,7 @@ class PG2(object):
             # plt.close(fig)
 
     # Valutazione metrice IS e FID
-    def evaluate(self, generator, analysis="test", bool_save_image=True, batch_size=10):
+    def evaluate_G1(self, generator, analysis="test", bool_save_image=True, batch_size=10):
 
         #CHECK
         assert generator != None
@@ -697,24 +697,28 @@ class PG2(object):
         # Dataset
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
-        #dataset = dataset_train.shuffle(dataset, reshuffle_each_iteration=True) # Togliere shuffle se no non va bene il cnt della save figure
         dataset = dataset.batch(1)
 
-        for weight in os.listdir(self.config.G1_weigths_dir_path):
-            num_epoch = weight.split('-')[0].split('_')[3]
-            name_directory_to_save_evaluation = analysis + '_score_epoch' + num_epoch  # directory dove salvare i risultati degli score
+        for weight_G1 in os.listdir(self.config.G1_weigths_dir_path):
+            num_epoch = weight_G1.split('-')[0].split('_')[3]
 
             # Directory
-            if not os.path.exists(name_directory_to_save_evaluation):
-                os.mkdir(name_directory_to_save_evaluation)
+            path_evaluation = analysis + '_score_epoch' + num_epoch  # directory dove salvare i risultati degli score
+            path_imgs = os.path.join(path_evaluation, "imgs")
+            path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
+
+            os.makedirs(path_evaluation, exist_ok=True)
+            os.makedirs(path_imgs, exist_ok=True)
+            os.makedirs(path_embeddings, exist_ok=True)
 
             # Model
-            self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, weight))
+            self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, weight_G1))
 
             # Pipiline score
             evaluation_G1.start(self.G1.model, iter(dataset), dataset_len, batch_size,
-                                dataset_module=self.dataset_module,
-                                bool_save_img=bool_save_image, name_directory_to_save_evaluation=name_directory_to_save_evaluation)
+                                dataset_module=self.dataset_module, bool_save_img=bool_save_image,
+                                path_evaluation=path_evaluation, path_imgs=path_imgs,
+                                path_embeddings=path_embeddings)
 
 
 

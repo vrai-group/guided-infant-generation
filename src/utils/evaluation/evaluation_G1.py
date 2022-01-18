@@ -108,42 +108,31 @@ def _compute_embeddings_inception(cnt_embeddings, inception_model, batch_size,
     vettore_embeddings_mask_real[start:end] = inception_model.predict(input_inception_mask_real)
     vettore_embeddings_mask_fake[start:end] = inception_model.predict(input_inception_mask_fake)
 
-
-def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, name_dir_to_save_evaluation):
-    # Directory dove salvare le immagine di predizione
-    name_dir_to_save_img = None
-    if bool_save_img:
-        name_dir_to_save_img = os.path.join(name_dir_to_save_evaluation, "imgs")
-        if not os.path.exists(name_dir_to_save_img):
-            os.mkdir(name_dir_to_save_img)
-
-    # Directory dove salvare gli embeddings
-    name_dir_to_save_embeddings = os.path.join(name_dir_to_save_evaluation, "inception_embeddings")
-    if not os.path.exists(name_dir_to_save_embeddings):
-        os.mkdir(name_dir_to_save_embeddings)
+def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, path_evaluation, path_imgs,
+                                path_embeddings):
 
     # Modello Inception
     inception_model = tf.keras.applications.InceptionV3(include_top=False, weights="imagenet", pooling='avg',
                                                         input_shape=(299, 299, 3))
 
-    # Vettori
+    # Vettori immagini
     input_inception_real = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini It da dare in input all inception
     input_inception_fake = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini I_PT1 da dare in input all inception
-    vettore_embeddings_real = np.empty((len_dataset, 2048))  # conterrà gli embeddings dell'inception per i reali
-    vettore_embeddings_fake = np.empty((len_dataset, 2048)) #  conterrà gli embeddings dell'inception per le generate
+    input_inception_mask_real = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini It * Mt da dare in input all inception
+    input_inception_mask_fake = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini I_PT1 * Mt da dare in input all inception
 
-    # Vettori Mask
-    input_inception_mask_real = np.empty((batch_size, 299, 299, 3)) # conterrà le immagini It * Mt da dare in input all inception
-    input_inception_mask_fake = np.empty((batch_size, 299, 299, 3)) # conterrà le immagini I_PT1 * Mt da dare in input all inception
-    vettore_embeddings_mask_real = np.empty((len_dataset, 2048))
+    # Vettori embeddings
+    vettore_embeddings_real = np.empty((len_dataset, 2048))  # conterrà gli embeddings dell'inception per i reali
+    vettore_embeddings_fake = np.empty((len_dataset, 2048))  # conterrà gli embeddings dell'inception per le generate
+    vettore_embeddings_mask_real = np.empty((len_dataset, 2048)) # conterrà gli embeddings dell'inception per le maschere dei reali
     vettore_embeddings_mask_fake = np.empty((len_dataset, 2048))
     cnt_embeddings = 0
 
-    ########## SSIM SCORE
+    # SSIM SCORE
     ssim_scores = np.empty(len_dataset)
     mask_ssim_scores = np.empty(len_dataset)
 
-    ########## LOSS SCORE
+    # LOSS SCORE
     loss_scores = np.empty(len_dataset)
 
     # Predizione
@@ -171,21 +160,16 @@ def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_
 
         # Salvataggio immagine
         if bool_save_img:
-            _save_img(cnt_img, name_dir_to_save_img, Ic, It, Pt, Mt, mean_0, mean_1, I_PT1, pz_0, pz_1, id_0, id_1,
+            _save_img(cnt_img, path_imgs, Ic, It, Pt, Mt, mean_0, mean_1, I_PT1, pz_0, pz_1, id_0, id_1,
                       dataset_module)
 
         # Preprocesso immagini per Inception model
-        input_inception_real[cnt_img % batch_size] = _inception_preprocess_image(It, mean_1,
-                                                                                 unprocess_function=dataset_module.unprocess_image)
-        input_inception_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(I_PT1, dtype=tf.float16),
-                                                                                 mean_0,
-                                                                                 unprocess_function=dataset_module.unprocess_image)
+        input_inception_real[cnt_img % batch_size] = _inception_preprocess_image(It, mean_1, unprocess_function=dataset_module.unprocess_image)
+        input_inception_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(I_PT1, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
+        input_inception_mask_real[cnt_img % batch_size] = _inception_preprocess_image(mask_image_raw_1, mean_1, unprocess_function=dataset_module.unprocess_image)
+        input_inception_mask_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(mask_predizione, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
 
-        input_inception_mask_real[cnt_img % batch_size] = _inception_preprocess_image(mask_image_raw_1, mean_1,
-                                                                                      unprocess_function=dataset_module.unprocess_image)
-        input_inception_mask_fake[cnt_img % batch_size] = _inception_preprocess_image(
-            tf.cast(mask_predizione, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
-
+        # Computazinoe embeddings
         if (cnt_img + 1) % batch_size == 0:
             _compute_embeddings_inception(cnt_embeddings, inception_model, batch_size,
                                           input_inception_real, input_inception_mask_real,
@@ -197,42 +181,42 @@ def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_
             input_inception_fake.fill(0)
             input_inception_mask_real.fill(0)
             input_inception_mask_fake.fill(0)
-    """
-        ssim_scores[i] = G1.m_ssim(predizione, image_raw_1, mean_0, mean_1)
-        mask_ssim_scores[i] = G1.mask_ssim(predizione, image_raw_1, mask_1, mean_0, mean_1)
 
-        loss_scores[i] = G1.PoseMaskLoss1(predizione, image_raw_1, image_raw_0, mask_1, mask_0)
+        # Calcolo metriche
+        ssim_scores[cnt_img] = model_G1.m_ssim(I_PT1, It, mean_0, mean_1)
+        mask_ssim_scores[cnt_img] = model_G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
+        loss_scores[cnt_img] = model_G1.PoseMaskLoss1(I_PT1, Mt, Ic, Mt, Mc)
 
     del model_G1
     del batch
 
-    np.save(os.path.join(name_dir_to_save_embeddings, "real_2048_embedding.npy"), vettore_embeddings_real)
-    np.save(os.path.join(name_dir_to_save_embeddings, "fake_2048_embedding.npy"), vettore_embeddings_fake)
-    np.save(os.path.join(name_dir_to_save_embeddings, "mask_real_2048_embedding.npy"), vettore_embeddings_mask_real)
-    np.save(os.path.join(name_dir_to_save_embeddings, "mask_fake_2048_embedding.npy"), vettore_embeddings_mask_fake)
+    # Salvataggio embeddings
+    np.save(os.path.join(path_embeddings, "real_2048_embedding.npy"), vettore_embeddings_real)
+    np.save(os.path.join(path_embeddings, "fake_2048_embedding.npy"), vettore_embeddings_fake)
+    np.save(os.path.join(path_embeddings, "mask_real_2048_embedding.npy"), vettore_embeddings_mask_real)
+    np.save(os.path.join(path_embeddings, "mask_fake_2048_embedding.npy"), vettore_embeddings_mask_fake)
 
-    fid_score = calculate_fid_score(vettore_embeddings_real, vettore_embeddings_fake)
-    mask_fid_score = calculate_fid_score(vettore_embeddings_mask_real, vettore_embeddings_mask_fake)
+    # FID
+    fid_score = _calculate_FID_score(vettore_embeddings_real, vettore_embeddings_fake)
+    mask_fid_score = _calculate_FID_score(vettore_embeddings_mask_real, vettore_embeddings_mask_fake)
 
-    inception_model = tf.keras.applications.InceptionV3(include_top=True,
-                                                        weights="imagenet",
-                                                        pooling='avg',
+    # IS
+    inception_model = tf.keras.applications.InceptionV3(include_top=True, weights="imagenet", pooling='avg',
                                                         input_shape=(299, 299, 3))
     inputs = Input([2048])
     dense_layer = inception_model.layers[-1]
     dense_layer.set_weights(inception_model.layers[-1].get_weights())
     outputs = dense_layer(inputs)
     model_to_is = Model(inputs=inputs, outputs=outputs)
-    # model_to_is.summary()
 
     del inception_model
-    is_score = calculate_is_score(model_to_is, vettore_embeddings_fake)
-    is_score_real = calculate_is_score(model_to_is, vettore_embeddings_real)
+    is_score = _calculate_IS_score(model_to_is, vettore_embeddings_fake)
+    is_score_real = _calculate_IS_score(model_to_is, vettore_embeddings_real)
 
-    mask_is_score = calculate_is_score(model_to_is, vettore_embeddings_mask_fake)
-    mask_is_score_real = calculate_is_score(model_to_is, vettore_embeddings_mask_real)
+    mask_is_score = _calculate_IS_score(model_to_is, vettore_embeddings_mask_fake)
+    mask_is_score_real = _calculate_IS_score(model_to_is, vettore_embeddings_mask_real)
 
-    file = open(os.path.join(name_dir, "scores.txt"), "w")
+    file = open(os.path.join(path_evaluation, "Scores.txt"), "w")
     text = "\nLOSS: {loss_value} " \
            "\nSSIM: {ssim_value} " \
            "\nFID: {fid_value} " \
@@ -255,5 +239,3 @@ def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_
     file.write(text)
     file.close()
     print("\n", text)
-    
-    """
