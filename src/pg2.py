@@ -7,9 +7,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from utils.augumentation.augumentation import apply_augumentation
-from utils.evaluation import evaluation_G1, evaluation_GAN
-from utils.utils_methods import import_module, save_grid
+import utils
 
 class PG2(object):
 
@@ -18,12 +16,12 @@ class PG2(object):
 
         # -Import dinamico dell modulo di preprocess dataset Ad esempio: Syntetich
         name_module_preprocess_dataset = config.DATASET.split('_')[0]
-        self.dataset_module = import_module(name_module_preprocess_dataset, config.dataset_module_dir_path)
+        self.dataset_module = utils.import_module(name_module_preprocess_dataset, config.dataset_module_dir_path)
 
         # -Import dinamico dell'architettura
-        self.G1 = import_module(name_module="G1", path=config.models_dir_path).G1()
-        self.G2 = import_module(name_module="G2", path=config.models_dir_path).G2()
-        self.D = import_module(name_module="D", path=config.models_dir_path).D()
+        self.G1 = utils.import_module(name_module="G1", path=config.models_dir_path).G1()
+        self.G2 = utils.import_module(name_module="G2", path=config.models_dir_path).G2()
+        self.D = utils.import_module(name_module="D", path=config.models_dir_path).D()
 
     def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, type, architecture):
         pz_0 = batch[5]  # [batch, 1]
@@ -44,7 +42,7 @@ class PG2(object):
                                      mask_ssim=mask_ssim_value))
         mean_0 = tf.cast(mean_0, dtype=tf.float32)
         output = self.dataset_module.unprocess_image(output, mean_0, 32765.5)
-        save_grid(output, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+        utils.save_grid(output, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
 
         stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
         stack_pairs = np.array(
@@ -93,11 +91,11 @@ class PG2(object):
             valid_iterator = iter(dataset_valid)
 
             # -DATASET: augumentazione
-            name_tfrecord_aug_train, dataset_train_aug_len = apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
+            name_tfrecord_aug_train, dataset_train_aug_len = utils.apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
                                                              unprocess_dataset_iterator=train_iterator,
                                                              name_dataset="train",
                                                              len_dataset=self.config.dataset_train_len)
-            name_tfrecord_aug_valid, dataset_valid_aug_len = apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
+            name_tfrecord_aug_valid, dataset_valid_aug_len = utils.apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
                                                              unprocess_dataset_iterator=valid_iterator,
                                                              name_dataset="valid",
                                                              len_dataset=self.config.dataset_valid_len)
@@ -715,7 +713,7 @@ class PG2(object):
             self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, weight_G1))
 
             # Pipiline score
-            evaluation_G1.start(self.G1, iter(dataset), dataset_len, batch_size,
+            utils.evaluation_G1.start(self.G1, iter(dataset), dataset_len, batch_size,
                                 dataset_module=self.dataset_module, bool_save_img=bool_save_image,
                                 path_evaluation=path_evaluation, path_imgs=path_imgs,
                                 path_embeddings=path_embeddings)
@@ -757,7 +755,7 @@ class PG2(object):
             self.G2.model.load_weights(os.path.join(self.config.GAN_weigths_dir_path, weight_G2))
 
             # Pipiline score
-            evaluation_GAN.start(self.G1, self.G2, iter(dataset), dataset_len, batch_size,
+            utils.evaluation_GAN.start(self.G1, self.G2, iter(dataset), dataset_len, batch_size,
                                 dataset_module=self.dataset_module, bool_save_img=bool_save_image,
                                 path_evaluation=path_evaluation, path_imgs=path_imgs,
                                 path_embeddings=path_embeddings)
