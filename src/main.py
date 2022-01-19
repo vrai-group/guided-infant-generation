@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 
-    # pg2.train_G1()
+    #pg2.train_G1()
     # pg2.train_cDCGAN()
     # pg2.inference_on_test()
     # pg2.evaluation()

@@ -16,10 +16,9 @@ class Config:
         self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
         self.ARCHITETURE = "mono"
-        self.G1_NAME_WEIGHTS_FILE = 'Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
-        self.G2_NAME_WEIGHTS_FILE = 'Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
 
     def _load_path(self):
+        # TODO creare una cartella per l output come il detectron
         # - Path
         self.ROOT = '..'
         self.SRC = '.'
@@ -87,10 +86,13 @@ class Config:
         self.GAN_save_grid_ssim_epoch_train = 1
         self.GAN_save_grid_ssim_epoch_valid = 1
 
+    """
+    Salvataggio configurazione utilizzate per il training
+    """
     def save_config(self):
         list = self.__dict__
-        path_file = os.path.join(self.logs_dir_path, datetime.today().strftime('%D-%M-%H %H:%M'), ".npy")
-        np.save(path_file, list)
+        name_file = os.path.join(self.logs_dir_path, datetime.now().strftime('%d_%m_%Y_%H,%M')+".npy")
+        np.save(name_file, list)
 
 
 
