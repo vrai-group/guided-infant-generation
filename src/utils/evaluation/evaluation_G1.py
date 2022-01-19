@@ -91,7 +91,6 @@ def _save_img(cnt_img, name_dir_to_save_img, Ic, It, Pt, Mt, mean_0, mean_1, I_P
         pz_1=pz_1,
         id_0=id_0,
         id_1=id_1))
-    plt.show()
     plt.savefig(name_img)
     plt.close(fig)
 
@@ -108,8 +107,8 @@ def _compute_embeddings_inception(cnt_embeddings, inception_model, batch_size,
     vettore_embeddings_mask_real[start:end] = inception_model.predict(input_inception_mask_real)
     vettore_embeddings_mask_fake[start:end] = inception_model.predict(input_inception_mask_fake)
 
-def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, path_evaluation, path_imgs,
-                                path_embeddings):
+def start(G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, path_evaluation, path_imgs,
+          path_embeddings):
 
     # Modello Inception
     inception_model = tf.keras.applications.InceptionV3(include_top=False, weights="imagenet", pooling='avg',
@@ -152,11 +151,11 @@ def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_
         id_1 = batch[8].numpy()[0].decode("utf-8").split('_')[0]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
-        mask_image_raw_1 = It * Mt
+        mask_It = It * Mt
 
         # Predizione G1
-        I_PT1 = model_G1.preiction(Ic, Pt)
-        mask_predizione = I_PT1 * Mt
+        I_PT1 = G1.prediction(Ic, Pt)
+        mask_I_PT1 = I_PT1 * Mt
 
         # Salvataggio immagine
         if bool_save_img:
@@ -166,8 +165,8 @@ def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_
         # Preprocesso immagini per Inception model
         input_inception_real[cnt_img % batch_size] = _inception_preprocess_image(It, mean_1, unprocess_function=dataset_module.unprocess_image)
         input_inception_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(I_PT1, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
-        input_inception_mask_real[cnt_img % batch_size] = _inception_preprocess_image(mask_image_raw_1, mean_1, unprocess_function=dataset_module.unprocess_image)
-        input_inception_mask_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(mask_predizione, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
+        input_inception_mask_real[cnt_img % batch_size] = _inception_preprocess_image(mask_It, mean_1, unprocess_function=dataset_module.unprocess_image)
+        input_inception_mask_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(mask_I_PT1, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
 
         # Computazinoe embeddings
         if (cnt_img + 1) % batch_size == 0:
@@ -183,11 +182,10 @@ def start(model_G1, dataset, len_dataset, batch_size, dataset_module, bool_save_
             input_inception_mask_fake.fill(0)
 
         # Calcolo metriche
-        ssim_scores[cnt_img] = model_G1.m_ssim(I_PT1, It, mean_0, mean_1)
-        mask_ssim_scores[cnt_img] = model_G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
-        loss_scores[cnt_img] = model_G1.PoseMaskLoss1(I_PT1, Mt, Ic, Mt, Mc)
+        ssim_scores[cnt_img] = G1.ssim(I_PT1, It, mean_0, mean_1)
+        mask_ssim_scores[cnt_img] = G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
+        loss_scores[cnt_img] = G1.PoseMaskLoss(I_PT1, Mt, Ic, Mt)
 
-    del model_G1
     del batch
 
     # Salvataggio embeddings

@@ -62,7 +62,7 @@ class D(Model_Template):
         return Adam(learning_rate=self.lr_initial_D, beta_1=0.5)
 
     # LOSS
-    def Loss(self, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0):
+    def adv_loss(self, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0):
 
         # Fake
         fake = 0.25 * tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.zeros_like(D_neg_refined_result))) \

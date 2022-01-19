@@ -232,7 +232,7 @@ class PG2(object):
 
         with tf.GradientTape() as g1_tape:
             I_PT1 = self.G1.prediction(Ic, Pt)
-            loss_value_G1 = self.G1.PoseMaskloss1(I_PT1, It, Mt)
+            loss_value_G1 = self.G1.PoseMaskloss(I_PT1, It, Mt)
         self.G1.opt.minimize(loss_value_G1, var_list=self.G1.model.trainable_weights, tape=g1_tape)
 
         # METRICS
@@ -252,7 +252,7 @@ class PG2(object):
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
 
         I_PT1 = self.G1.prediction(Ic, Pt)
-        loss_value_G1 = self.G1.PoseMaskloss1(I_PT1, It, Mt)
+        loss_value_G1 = self.G1.PoseMaskloss(I_PT1, It, Mt)
 
         # METRICS
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1)
@@ -499,7 +499,7 @@ class PG2(object):
 
     def _train_on_batch_cDCGAN(self, id_batch, batch):
 
-        def _tape(loss_function):
+        def _tape(loss_function, type):
             with tf.GradientTape() as tape:
                 I_D = self.G2.prediction(I_PT1, Ic)
                 I_D = tf.cast(I_D, dtype=tf.float16)
@@ -509,9 +509,12 @@ class PG2(object):
                 output_D = tf.cast(output_D, dtype=tf.float16)
                 D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
-                loss_value = loss_function(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
+                if type == "G2":
+                    loss_function(D_neg_refined_result, I_PT2, It, Mt)
+                elif type == "D":
+                    loss_function(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
-            return tape, loss_value, I_PT2, I_D, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0
+            return tape, I_PT2, I_D, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0
 
 
         Ic = batch[0]  # [batch, 96, 128, 1]
@@ -528,16 +531,14 @@ class PG2(object):
 
         # BACKPROP G2
         if (id_batch + 1) % 3 == 0:
-            g2_tape, loss_value_G2, \
-            I_PT2, I_D, \
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(loss_function=self.G2.PoseMaskloss2)
+            g2_tape, loss_value_G2, I_PT2, I_D, \
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.G2.adv_loss, "G2")
             self.G2.optimizer.minimize(loss_value_G2, var_list=self.G2.optimizer.trainable_weights, tape=g2_tape)
 
         # BACKPROP D
         if not (id_batch + 1) % 3 == 0:
-            d_tape, loss_value_D, \
-            I_PT2, I_D, \
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(loss_function=self.D.Loss)
+            d_tape, loss_value_D, I_PT2, I_D, \
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.D.adv_loss, "D")
             loss_value_D, loss_fake, loss_real = loss_value_D
             self.D.optimizer.minimize(loss_value_D, var_list=self.D.optimizer.trainable_weights, tape=d_tape)
 
@@ -586,7 +587,7 @@ class PG2(object):
         D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
         # Loss
-        loss_value_G2 = self.G2.PoseMaskloss2(D_neg_refined_result, I_PT2, It, Ic, Mt, Mc)
+        loss_value_G2 = self.G2.adv_loss(D_neg_refined_result, I_PT2, It, Ic, Mt)
         loss_value_D, loss_fake, loss_real = self.D.Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
         # Metrics
@@ -678,15 +679,12 @@ class PG2(object):
             # plt.close(fig)
 
     # Valutazione metrice IS e FID
-    def evaluate_G1(self, generator, analysis="test", bool_save_image=True, batch_size=10):
+    def evaluate_G1(self, analysis="test", bool_save_image=True, batch_size=10):
 
-        #CHECK
-        assert generator != None
-        if generator == "G2":
-           assert self.config.G1_NAME_WEIGHTS_FILE != None
+        path = "evaluation/G1"
+        os.makedirs(path, exist_ok=False)
 
-        name_dataset = None
-        dataset_len = None
+        name_dataset, dataset_len = None, None
         if analysis == "test":
             name_dataset = self.config.name_tfrecord_test
             dataset_len = self.config.dataset_test_len
@@ -703,7 +701,7 @@ class PG2(object):
             num_epoch = weight_G1.split('-')[0].split('_')[3]
 
             # Directory
-            path_evaluation = analysis + '_score_epoch' + num_epoch  # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(path, analysis+'_score_epoch'+num_epoch) # directory dove salvare i risultati degli score
             path_imgs = os.path.join(path_evaluation, "imgs")
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
 
@@ -715,10 +713,51 @@ class PG2(object):
             self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, weight_G1))
 
             # Pipiline score
-            evaluation_G1.start(self.G1.model, iter(dataset), dataset_len, batch_size,
+            evaluation_G1.start(self.G1, iter(dataset), dataset_len, batch_size,
                                 dataset_module=self.dataset_module, bool_save_img=bool_save_image,
                                 path_evaluation=path_evaluation, path_imgs=path_imgs,
                                 path_embeddings=path_embeddings)
 
+    def evaluate_GAN(self, analysis="test", bool_save_image=True, batch_size=10):
+
+        # controllo che G1 abbia i pesi settati
+        assert self.config.G1_weigths_file_path != None
+
+        path = "evaluation/G2"
+        os.makedirs(path, exist_ok=False)
+
+        name_dataset, dataset_len = None, None
+        if analysis == "test":
+            name_dataset = self.config.name_tfrecord_test
+            dataset_len = self.config.dataset_test_len
+        elif analysis == "valid":
+            name_dataset = self.config.name_tfrecord_valid
+            dataset_len = self.config.dataset_valid_len
+
+        # Dataset
+        dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
+        dataset = self.dataset_module.preprocess_dataset(dataset_unp)
+        dataset = dataset.batch(1)
+
+        for weight_G2 in os.listdir(self.config.GAN_weigths_dir_path):
+            num_epoch = weight_G2.split('-')[0].split('_')[3]
+
+            # Directory
+            path_evaluation = os.path.join(path, analysis + '_score_epoch' + num_epoch)  # directory dove salvare i risultati degli score
+            path_imgs = os.path.join(path_evaluation, "imgs")
+            path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
+
+            os.makedirs(path_evaluation, exist_ok=True)
+            os.makedirs(path_imgs, exist_ok=True)
+            os.makedirs(path_embeddings, exist_ok=True)
+
+            # Model
+            self.G2.model.load_weights(os.path.join(self.config.GAN_weigths_dir_path, weight_G2))
+
+            # Pipiline score
+            evaluation_GAN.start(self.G1, self.G2, iter(dataset), dataset_len, batch_size,
+                                dataset_module=self.dataset_module, bool_save_img=bool_save_image,
+                                path_evaluation=path_evaluation, path_imgs=path_imgs,
+                                path_embeddings=path_embeddings)
 
 
