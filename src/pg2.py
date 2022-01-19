@@ -7,9 +7,9 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from utils.augumentation import apply_augumentation
-from utils.utils_methods import import_module, save_grid
+from utils.augumentation.augumentation import apply_augumentation
 from utils.evaluation import evaluation_G1, evaluation_GAN
+from utils.utils_methods import import_module, save_grid
 
 class PG2(object):
 
