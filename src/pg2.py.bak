@@ -498,7 +498,7 @@ class PG2(object):
             print("#######")
 
     def _train_on_batch_cDCGAN(self, id_batch, batch):
-        # TOdo: CONTROLLARE LOSS DEL dISCRIMINATORE
+        # TOdo: CONTROLLARE LOSS
         def _tape(loss_function, type):
             with tf.GradientTape() as tape:
                 I_D = self.G2.prediction(I_PT1, Ic)
