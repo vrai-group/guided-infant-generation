@@ -498,8 +498,8 @@ class PG2(object):
             print("#######")
 
     def _train_on_batch_cDCGAN(self, id_batch, batch):
-        # TOdo: CONTROLLARE LOSS DEL dISCRIMINATORE
-        def _tape(loss_function, type):
+
+        def _tape(loss_function_G2, loss_function_D):
             with tf.GradientTape() as tape:
                 I_D = self.G2.prediction(I_PT1, Ic)
                 I_D = tf.cast(I_D, dtype=tf.float16)
@@ -509,12 +509,10 @@ class PG2(object):
                 output_D = tf.cast(output_D, dtype=tf.float16)
                 D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
 
-                if type == "G2":
-                    loss_function(D_neg_refined_result, I_PT2, It, Mt)
-                elif type == "D":
-                    loss_function(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
+                loss_value_G2 = loss_function_G2(D_neg_refined_result, I_PT2, It, Mt)
+                loss_value_D = loss_function_D(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
 
-            return tape, I_PT2, I_D, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0
+            return tape, loss_value_G2, loss_value_D, I_PT2, I_D, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0
 
 
         Ic = batch[0]  # [batch, 96, 128, 1]
@@ -530,15 +528,19 @@ class PG2(object):
         I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
         # BACKPROP G2
+        I_PT2 = None
+        D_neg_refined_result, D_neg_image_raw_0, D_pos_image_raw_1 = None, None, None
+        loss_value_G2, loss_value_D, loss_fake, loss_real = None, None, None, None
         if (id_batch + 1) % 3 == 0:
-            g2_tape, loss_value_G2, I_PT2, I_D, \
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.G2.adv_loss, "G2")
+            g2_tape, loss_value_G2, loss_value_D, I_PT2, I_D, \
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.G2.adv_loss, self.D.adv_loss)
+            loss_value_D, loss_fake, loss_real = loss_value_D
             self.G2.optimizer.minimize(loss_value_G2, var_list=self.G2.optimizer.trainable_weights, tape=g2_tape)
 
         # BACKPROP D
         if not (id_batch + 1) % 3 == 0:
-            d_tape, loss_value_D, I_PT2, I_D, \
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.D.adv_loss, "D")
+            d_tape, loss_value_G2, loss_value_D, I_PT2, I_D, \
+            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.G2.adv_loss, self.D.adv_loss)
             loss_value_D, loss_fake, loss_real = loss_value_D
             self.D.optimizer.minimize(loss_value_D, var_list=self.D.optimizer.trainable_weights, tape=d_tape)
 
@@ -759,5 +761,3 @@ class PG2(object):
                                 dataset_module=self.dataset_module, bool_save_img=bool_save_image,
                                 path_evaluation=path_evaluation, path_imgs=path_imgs,
                                 path_embeddings=path_embeddings)
-
-

@@ -80,4 +80,4 @@ class D(Model_Template):
 
         loss = fake + real
 
-        return loss, fake, real
+        return [loss, fake, real]
