@@ -43,8 +43,8 @@ class Config:
         assert os.path.exists(self.dataset_module_dir_path)
         assert os.path.exists(self.data_tfrecord_path)
 
-        assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0]))
-        assert os.path.exists(os.path.join(self.data_tfrecord_path, self.DATASET_type))
+        assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0]+".py"))
+        assert os.path.exists(os.path.join(self.data_tfrecord_path))
 
     def _load_dataset_info(self):
         # - Dataset
