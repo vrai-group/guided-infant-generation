@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 
 import utils
 
+from utils.evaluation.tsne import vgg16_pca_tsne_features_real
+
 class PG2(object):
 
     def __init__(self, config):
@@ -759,3 +761,13 @@ class PG2(object):
                                 dataset_module=self.dataset_module, bool_save_img=bool_save_image,
                                 path_evaluation=path_evaluation, path_imgs=path_imgs,
                                 path_embeddings=path_embeddings)
+
+    def tsne(self):
+
+        list_sets = [[self.config.name_tfrecord_train, self.config.dataset_train_len],
+                     [self.config.name_tfrecord_valid, self.config.dataset_valid_len],
+                     [self.config.name_tfrecord_test, self.config.dataset_test_len]]
+        list_perplexity = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 100, 200, 300]
+
+        # Features real
+        vgg16_pca_tsne_features_real.start(list_sets, list_perplexity, self.dataset_module)
