@@ -770,6 +770,6 @@ class PG2(object):
         list_perplexity = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 100, 200, 300]
 
         # Features real
-        vgg16_pca_tsne_features_real.start(list_sets, list_perplexity, self.dataset_module, self.config)
+        vgg16_pca_tsne_features_real.start(list_sets, list_perplexity, self.dataset_module, dir_to_save=self.config.logs_dir_path)
 
 

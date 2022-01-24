@@ -1,7 +1,8 @@
 """
 Questo codice calcola:
--features di vgg16 sulla distribuzione reali di tutt e tre i set --> 512 features per immagine
--calcola la pca sulle features al punto sopra  --> 50 features per immagine
+1. embedded features di vgg16 sulla distribuzione delle immagini reali --> 512 features per immagine
+2. calcola la PCA sulle features al punto sopra. Da 512 embedding features abbiamo un passaggio a 50 features per immagine
+3. Andiamo a calcolare il TSNE sulle features del punto 2. Da 50 features passiamo a 2 features per la rappresentazione sul piano cartesiano
 """
 import os
 import sys
@@ -82,8 +83,7 @@ def _obtain_pca_real(dict_data):
 
 def _obtain_tsne_real(dict_data, perplexity):
     pca_features_real = np.array([dict_data[k]['features_pca_real'] for k, v in dict_data.items()])
-    tsne_features = TSNE(n_components=2, perplexity=perplexity, n_iter=6000).fit_transform(
-        pca_features_real)  # TSNE
+    tsne_features = TSNE(n_components=2, perplexity=perplexity, n_iter=6000).fit_transform(pca_features_real)  # TSNE
 
     # Normalizzo min-max
     tx, ty = tsne_features[:, 0], tsne_features[:, 1]
@@ -94,7 +94,7 @@ def _obtain_tsne_real(dict_data, perplexity):
         key, _ = elem
         dict_data[key]['features_tsne_real_'+str(perplexity)] = np.array([tx[i],ty[i]])
 
-def start(list_sets, list_perplexity, dataset_module, config):
+def start(list_sets, list_perplexity, dataset_module, dir_to_save):
     print("Calcolo del tsne sulle reali\n")
 
     dict_vgg_features_real = _extract_features_real(list_sets, dataset_module)
@@ -104,6 +104,6 @@ def start(list_sets, list_perplexity, dataset_module, config):
         print("\n- Perplexity: ", str(perplexity))
         _obtain_tsne_real(dict_vgg_pca_features_real,perplexity)
 
-    name_file = os.path.join(config.logs_dir_path, "dict_vgg_pca_tsne_features_real.npy")
+    name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real.npy")
     np.save(name_file, dict_vgg_pca_features_real)
     print("- Salvataggio di", name_file)
