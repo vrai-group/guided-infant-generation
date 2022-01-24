@@ -3,6 +3,7 @@ Questo codice calcola:
 -features di vgg16 sulla distribuzione reali di tutt e tre i set --> 512 features per immagine
 -calcola la pca sulle features al punto sopra  --> 50 features per immagine
 """
+import os
 import sys
 import cv2
 import numpy as np
@@ -41,9 +42,9 @@ def _extract_features_real(list_sets, dataset_module):
         dataset = dataset_module.get_preprocess_G1_dataset(dataset)
         dataset = dataset.batch(1)
         dataset = iter(dataset)
-
+        print("\n")
         for cnt_img in range(dataset_len):
-            sys.stdout.write("\rProcessamento {type_dataset} immagine {cnt} / {tot}".format(cnt=cnt_img + 1,
+            sys.stdout.write("\r-Processamento {type_dataset} immagine {cnt} / {tot}".format(cnt=cnt_img + 1,
                                                                                             tot=dataset_len,
                                                                                             type_dataset=type_dataset))
             sys.stdout.flush()
@@ -65,9 +66,6 @@ def _extract_features_real(list_sets, dataset_module):
             dict_data[key] = {}
             dict_data[key]['path_target'] = pz_1 + '/' + name_1  # path della target o meglio della reale
             dict_data[key]['features_vgg_real'] = features_real
-
-        sys.stdout.write("\n#######\n")
-        sys.stdout.flush()
 
     return dict_data
 
@@ -96,13 +94,16 @@ def _obtain_tsne_real(dict_data, perplexity):
         key, _ = elem
         dict_data[key]['features_tsne_real_'+str(perplexity)] = np.array([tx[i],ty[i]])
 
-def start(list_sets, list_perplexity, dataset_module):
+def start(list_sets, list_perplexity, dataset_module, config):
+    print("Calcolo del tsne sulle reali\n")
 
     dict_vgg_features_real = _extract_features_real(list_sets, dataset_module)
     dict_vgg_pca_features_real = _obtain_pca_real(dict_vgg_features_real)
 
     for perplexity in list_perplexity:
+        print("\n- Perplexity: ", str(perplexity))
         _obtain_tsne_real(dict_vgg_pca_features_real,perplexity)
 
-    #TODO definire il salvataggio
-    #np.save("dict_vgg_pca_tsne_features_real.npy", dict_vgg_pca_features_real)
+    name_file = os.path.join(config.logs_dir_path, "dict_vgg_pca_tsne_features_real.npy")
+    np.save(name_file, dict_vgg_pca_features_real)
+    print("- Salvataggio di", name_file)
