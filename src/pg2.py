@@ -23,7 +23,7 @@ class PG2(object):
         self.G2 = utils.import_module(name_module="G2", path=config.models_dir_path).G2()
         self.D = utils.import_module(name_module="D", path=config.models_dir_path).D()
 
-    def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, type, architecture):
+    def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, grid_path, type_dataset):
         pz_0 = batch[5]  # [batch, 1]
         pz_1 = batch[6]  # [batch, 1]
         name_0 = batch[7]  # [batch, 1]
@@ -31,12 +31,10 @@ class PG2(object):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
 
         # GRID: Save griglia di immagini predette
-        name_directory = os.path.join(self.config.grid_dir_path, architecture, type, str(epoch + 1))
+        name_directory = os.path.join(grid_path, type_dataset, str(epoch + 1))
         if not os.path.exists(name_directory):
             os.mkdir(name_directory)
-        name_grid = os.path.join(name_directory,
-                                 architecture + '_epoch_{epoch}_batch_{id_batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-                                     epoch=epoch + 1,
+        name_grid = os.path.join(name_directory,'Batch_{id_batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
                                      id_batch=id_batch,
                                      ssim=ssim_value,
                                      mask_ssim=mask_ssim_value))
@@ -49,16 +47,20 @@ class PG2(object):
             [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
              stack_pairs])
         txt_file = 'pz_pair: \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-        file = open(name_directory + '/' + architecture + '_epoch_{epoch}_batch_{batch}.txt'.format(epoch=epoch + 1,
-                                                                                                    batch=id_batch),
-                    "w")
+        file = open(name_directory + '/' + 'Batch_{id_batch}.txt'.format(id_batch=id_batch), "w")
         file.write(txt_file)
         file.close()
 
     def train_G1(self):
+        logs_dir_path = os.path.join(self.config.OUTPUTS_DIR, "logs")
+        os.makedirs(logs_dir_path, exist_ok=False)
+        G1_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
+        os.makedirs(G1_weights_path, exist_ok=False)
+        grid_path = os.path.join(self.config.OUTPUTS_DIR, "grid", "G1")
+        os.makedirs(grid_path, exist_ok=False)
 
         # - LOGS
-        path_history_G1 = os.path.join(self.config.logs_dir_path, 'history_G1.npy')
+        path_history_G1 = os.path.join(logs_dir_path, 'history_G1.npy')
         history_G1 = {'epoch': 0,
                       'loss_train': np.empty((self.config.G1_epochs)),
                       'ssim_train': np.empty((self.config.G1_epochs)),
@@ -146,7 +148,7 @@ class PG2(object):
                 # Grid
                 if epoch % self.config.G1_save_grid_ssim_epoch_train == self.config.G1_save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], type="valid", architecture="G1")
+                                    logs_to_print['mask_ssim_train'][id_batch], grid_path, type_dataset="train")
 
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> \
@@ -170,7 +172,7 @@ class PG2(object):
 
                 if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], type="valid", architecture="G1")
+                                    logs_to_print['mask_ssim_valid'][id_batch], grid_path, type_dataset="valid")
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
@@ -198,7 +200,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid']),
                 val_m_ssim=np.mean(logs_to_print['ssim_valid']),
                 val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
-            filepath = os.path.join(self.config.G1_weigths_path, name_model)
+            filepath = os.path.join(G1_weights_path, name_model)
             self.G1.save_weights(filepath)
 
             # --Update learning rate
@@ -260,9 +262,15 @@ class PG2(object):
 
     def train_cDCGAN(self):
         # Note: G1 è preaddestrato
+        logs_dir_path = os.path.join(self.config.OUTPUTS_DIR, "logs")
+        os.makedirs(logs_dir_path, exist_ok=False)
+        GAN_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
+        os.makedirs(GAN_weights_path, exist_ok=False)
+        grid_path = os.path.join(self.config.OUTPUTS_DIR, "grid", "GAN")
+        os.makedirs(grid_path, exist_ok=False)
 
         # -History del training
-        path_history_GAN = os.path.join(self.config.logs_dir_path, 'history_GAN.npy')
+        path_history_GAN = os.path.join(logs_dir_path, 'history_GAN.npy')
         history_GAN = {'epoch': 0,
                        'loss_train_G2': np.empty((self.config.GAN_epochs)),
                        'loss_train_D': np.empty((self.config.GAN_epochs)),
@@ -312,7 +320,7 @@ class PG2(object):
         num_batches_valid = self.config.dataset_valid_len // self.config.GAN_batch_size_valid
 
         # Carico il modello preaddestrato G1
-        self.G1.model.load_weights(self.config.G1_weigths_file_path)
+        self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
         #self.model_G1.summary()
 
         # TRAIN: epoch
@@ -355,7 +363,7 @@ class PG2(object):
                 # GRID
                 if epoch % self.config.GAN_save_grid_ssim_epoch_train == self.config.GAN_save_grid_ssim_epoch_train.save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], type="train", architecture="GAN")
+                                    logs_to_print['mask_ssim_train'][id_batch], grid_path, type_dataset="train")
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2f}, '
                                  'loss_D: {loss_D:2f}, loss_D_fake: {loss_D_fake:2f}, loss_D_real: {loss_D_real:2f}, '
@@ -442,7 +450,7 @@ class PG2(object):
                 val_im_0=int(np.sum(logs_to_print['img_0_valid'])),
                 val_im_1=int(np.sum(logs_to_print['img_1_valid'])),
             )
-            filepath = os.path.join(self.config.GAN_weigths_path, name_model)
+            filepath = os.path.join(GAN_weights_path, name_model)
             self.G2.models.save_weights(filepath)
 
             # D
@@ -460,7 +468,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid_D']),
                 val_loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
                 val_loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']))
-            filepath = os.path.join(self.config.GAN_weigths_path, name_model)
+            filepath = os.path.join(GAN_weights_path, name_model)
             self.D.model.save_weights(filepath)
 
             # --Save logs
@@ -611,15 +619,77 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
-    def inference_on_test(self):
+    def inference_on_test_G1(self):
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
         dataset_iterator = iter(dataset)
 
         # Model
-        self.G1.model.load_weights(self.config.G1_weigths_file_path)
-        self.G2.model.load_weights(self.config.G2_weigths_file_path)
+        self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
+
+        for i in range(self.config.dataset_test_len):
+            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))
+            sys.stdout.flush()
+            batch = next(dataset_iterator)
+            Ic = batch[0]  # [batch, 96, 128, 1]
+            It = batch[1]  # [batch, 96,128, 1]
+            Pt = batch[2]  # [batch, 96,128, 14]
+            Mt = batch[3]  # [batch, 96,128, 1]
+            mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
+            mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
+
+            # Predizione
+            I_PT1 = self.G1.prediction(Ic, Pt)
+
+            # Unprocess
+            Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+
+            Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
+
+            I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+
+            # Plot Figure
+            fig = plt.figure(figsize=(10, 2))
+            columns, rows = 4, 1
+            imgs = [I_PT1, Ic, It, It, Mt]
+            labels = ["I_PT1", "Ic", "It", "Pt", "Mt"]
+            for j in range(1, columns * rows + 1):
+                sub = fig.add_subplot(rows, columns, j)
+                sub.set_title(labels[j - 1])
+                plt.imshow(imgs[j - 1], cmap='gray')
+            plt.show()
+
+            #Save figure
+            # pz_0 = batch[5]  # [batch, 1]
+            # pz_1 = batch[6]  # [batch, 1]
+            # name_0 = batch[7]  # [batch, 1]
+            # name_1 = batch[8]  # [batch, 1]
+            # pz_0 = pz_0.numpy()[0].decode("utf-8")
+            # pz_1 = pz_1.numpy()[0].decode("utf-8")
+            # id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
+            # id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
+            # name_img = os.path.join(name_dir_to_save_img,
+            #                         "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+            #                             id=i,
+            #                             pz_0=pz_0,
+            #                             pz_1=pz_1,
+            #                             id_0=id_0,
+            #                             id_1=id_1))
+            #
+            # plt.savefig(name_img)
+            # plt.close(fig)
+
+    def inference_on_test_G2(self):
+        dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
+        dataset = self.dataset_module.preprocess_dataset(dataset_unp)
+        dataset = dataset.batch(1)
+        dataset_iterator = iter(dataset)
+
+        # Model
+        self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
+        self.G2.model.load_weights(self.config.G2_NAME_WEIGHTS_FILE)
 
         for i in range(self.config.dataset_test_len):
             sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))
@@ -680,9 +750,10 @@ class PG2(object):
 
     # Valutazione metrice IS e FID
     def evaluate_G1(self, analysis="test", bool_save_image=True, batch_size=10):
-
-        path = "evaluation/G1"
-        os.makedirs(path, exist_ok=False)
+        assert os.path.exists(self.config.G1_NAME_WEIGHTS_FILE)
+        G1_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
+        evaluation_path = os.path.join("evaluation", "G1")
+        os.makedirs(evaluation_path, exist_ok=False)
 
         name_dataset, dataset_len = None, None
         if analysis == "test":
@@ -697,11 +768,11 @@ class PG2(object):
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
-        for weight_G1 in os.listdir(self.config.G1_weigths_dir_path):
+        for weight_G1 in os.listdir(G1_weights_path):
             num_epoch = weight_G1.split('-')[0].split('_')[3]
 
             # Directory
-            path_evaluation = os.path.join(path, analysis+'_score_epoch'+num_epoch) # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(evaluation_path, analysis+'_score_epoch'+num_epoch) # directory dove salvare i risultati degli score
             path_imgs = os.path.join(path_evaluation, "imgs")
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
 
@@ -710,7 +781,7 @@ class PG2(object):
             os.makedirs(path_embeddings, exist_ok=True)
 
             # Model
-            self.G1.model.load_weights(os.path.join(self.config.G1_weigths_dir_path, weight_G1))
+            self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
 
             # Pipiline score
             utils.evaluation_G1.start(self.G1, iter(dataset), dataset_len, batch_size,
@@ -719,12 +790,12 @@ class PG2(object):
                                 path_embeddings=path_embeddings)
 
     def evaluate_GAN(self, analysis="test", bool_save_image=True, batch_size=10):
+        assert os.path.exists(self.config.G1_NAME_WEIGHTS_FILE)
+        assert os.path.exists(self.config.G2_NAME_WEIGHTS_FILE)
 
-        # controllo che G1 abbia i pesi settati
-        assert self.config.G1_weigths_file_path != None
-
-        path = "evaluation/G2"
-        os.makedirs(path, exist_ok=False)
+        evaluation_path = os.path.join("evaluation", "GAN")
+        GAN_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
+        os.makedirs(evaluation_path, exist_ok=False)
 
         name_dataset, dataset_len = None, None
         if analysis == "test":
@@ -739,11 +810,11 @@ class PG2(object):
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
-        for weight_G2 in os.listdir(self.config.GAN_weigths_dir_path):
+        for weight_G2 in os.listdir(GAN_weights_path):
             num_epoch = weight_G2.split('-')[0].split('_')[3]
 
             # Directory
-            path_evaluation = os.path.join(path, analysis + '_score_epoch' + num_epoch)  # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(evaluation_path, analysis + '_score_epoch' + num_epoch)  # directory dove salvare i risultati degli score
             path_imgs = os.path.join(path_evaluation, "imgs")
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
 
@@ -761,6 +832,8 @@ class PG2(object):
                                 path_embeddings=path_embeddings)
 
     def tsne(self):
+        tsne_path = os.path.join(self.config.OUTPUTS, "evaluation", "tsne")
+        os.makedirs(tsne_path, exist_ok=False)
 
         list_sets = [[self.config.name_tfrecord_train, self.config.dataset_train_len],
                      [self.config.name_tfrecord_valid, self.config.dataset_valid_len],
@@ -770,7 +843,6 @@ class PG2(object):
         # Obtain features
         utils.vgg16_pca_tsne_features.start(list_sets, list_perplexity,
                                             self.G1, self.G2, self.dataset_module,
-                                            architecture=self.config.ARCHITETURE,
-                                            dir_to_save=self.config.logs_dir_path, plotting=True)
+                                            dir_to_save=tsne_path, save_fig_plot=True)
 
 

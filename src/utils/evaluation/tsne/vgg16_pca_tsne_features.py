@@ -210,10 +210,7 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module):
 
     return dict_data_generated
 
-def start(list_sets, list_perplexity, G1, G2, dataset_module, architecture, dir_to_save, plotting=True):
-    name_dir_tsne = os.path.join(dir_to_save, "tsne_"+architecture)
-    assert not os.path.exists(name_dir_tsne)  # verifichiamo che non ci sia già un tsne
-    os.mkdir(name_dir_tsne)
+def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, save_fig_plot=True):
 
     dict_data_real = _start_real(list_sets, list_perplexity, dataset_module)
     dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module)
@@ -226,9 +223,10 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, architecture, dir_
         dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
 
     # Salvataggio del file
-    name_file = os.path.join(name_dir_tsne, "dict_vgg_pca_tsne_features_real_and_generated.npy")
+    name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
     print("\n- Salvo il dict contenetente le featuress. Nome: ", name_file)
     np.save(name_file, dict)
 
-    if plotting:
-        plot_tsne._plot(dict_features_tot, list_perplexity, name_dir_tsne, key_image_interested='test_20')
+    if save_fig_plot:
+        print("-\n Plotto i grafici. La Key_image_interested è: test_20")
+        plot_tsne._plot(dict_features_tot, list_perplexity, dir_to_save, key_image_interested='test_20')
