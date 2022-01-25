@@ -17,6 +17,8 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import vgg16
 from tensorflow.keras.applications.vgg16 import VGG16
 
+import plot_tsne
+
 def _vgg_preprocess_image(image):
 
     image = tf.concat([image, image, image], axis=-1)
@@ -208,17 +210,25 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module):
 
     return dict_data_generated
 
-def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save):
+def start(list_sets, list_perplexity, G1, G2, dataset_module, architecture, dir_to_save, plotting=True):
+    name_dir_tsne = os.path.join(dir_to_save, "tsne_"+architecture)
+    assert not os.path.exists(name_dir_tsne)  # verifichiamo che non ci sia già un tsne
+    os.mkdir(name_dir_tsne)
 
     dict_data_real = _start_real(list_sets, list_perplexity, dataset_module)
     dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module)
 
     # Unione dei due dizionari
-    dict_tot = {}
+    print("\n- Unisco i dizionari")
+    dict_features_tot = {}
     for key in list(dict_data_real.keys()):
         # TODO verificare se l unione è ok
-        dict_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
+        dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
 
-    name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
+    # Salvataggio del file
+    name_file = os.path.join(name_dir_tsne, "dict_vgg_pca_tsne_features_real_and_generated.npy")
+    print("\n- Salvo il dict contenetente le featuress. Nome: ", name_file)
     np.save(name_file, dict)
-    print("- Salvataggio di", name_file)
+
+    if plotting:
+        plot_tsne.plot(dict_features_tot, list_perplexity, name_dir_tsne, key_image_interested='test_20')
