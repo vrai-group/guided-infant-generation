@@ -231,4 +231,4 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, architecture, dir_
     np.save(name_file, dict)
 
     if plotting:
-        plot_tsne.plot(dict_features_tot, list_perplexity, name_dir_tsne, key_image_interested='test_20')
+        plot_tsne._plot(dict_features_tot, list_perplexity, name_dir_tsne, key_image_interested='test_20')

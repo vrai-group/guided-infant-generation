@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot(dict_features, list_perplexity, dir_to_save, key_image_interested):
+def _plot(dict_features, list_perplexity, dir_to_save, key_image_interested):
     name_dir_plots = os.path.join(dir_to_save, "plots")
     print("\n- Avvio il plot")
     print("\n- Immagine di interesse scelta: ", dict_features[key_image_interested]['path_target'])
