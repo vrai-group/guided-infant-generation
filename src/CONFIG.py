@@ -6,13 +6,14 @@ from datetime import datetime
 class Config:
     def __init__(self):
         self._load_enviroment_variable()
+        self._load_path()
         self._load_dataset_info()
         self._load_G1_info()
         self._load_GAN_info()
 
     def _load_enviroment_variable(self):
 
-        self.MODE = "evaluate"  # ['train_G1', 'train_cDCGAN' 'inference_G1', 'inference_G2' 'evaluate']
+        self.MODE = "train_G1"  # ['train_G1', 'train_cDCGAN' 'inference_G1', 'inference_G2' 'evaluate']
         self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
         self.ARCHITETURE = "mono"
@@ -91,7 +92,7 @@ class Config:
     """
     def save_config(self):
         list = self.__dict__
-        name_file = os.path.join(self.logs_dir_path, datetime.now().strftime('%d_%m_%Y_%H,%M')+".npy")
+        name_file = os.path.join(self.OUTPUTS_DIR, "config_"+datetime.now().strftime('%d_%m_%Y_%H,%M')+".npy")
         np.save(name_file, list)
 
 
