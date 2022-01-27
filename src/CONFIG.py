@@ -43,6 +43,7 @@ class Config:
         assert os.path.exists(self.dataset_module_dir_path)
         assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0] + ".py"))
         #-OUTPUTS
+        # TODO: milgiorare
         os.makedirs(self.OUTPUTS_DIR, exist_ok=False)
 
     def _load_dataset_info(self):
