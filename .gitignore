@@ -15,6 +15,7 @@ logs/*.npy
 *.csv
 *.pyc
 *.pkl
+*.bak
 
-!web_page/*.png
+!web_page/**/*.png
 
