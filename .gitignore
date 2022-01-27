@@ -16,3 +16,5 @@ logs/*.npy
 *.pyc
 *.pkl
 
+!web_page/*.png
+
