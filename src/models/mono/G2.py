@@ -5,11 +5,12 @@ from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.optimizers import Adam
 
-from models.Model_template import Model_Template
+from src.models.Model_template import Model_Template
 
 class G2(Model_Template):
 
     def __init__(self):
+        self.architecture = "mono"
         self.input_shape = [96, 128, 2]
         self.output_channels = 1
         self.conv_hidden_num = 128

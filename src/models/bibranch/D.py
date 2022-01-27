@@ -3,12 +3,13 @@ from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.optimizers import Adam
 
-from models.Model_template import Model_Template
+from src.models.Model_template import Model_Template
 
 
 class D(Model_Template):
 
     def __init__(self):
+        self.architecture = "bi"
         self.input_shape = [96, 128, 1]
         self.activation_fn = 'relu'
         self.data_format = 'channels_last'
