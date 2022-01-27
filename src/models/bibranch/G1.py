@@ -199,10 +199,12 @@ class G1(Model_Template):
     def prediction(self, Ic, Pt):
         input_G1 = tf.concat([Ic, Pt], axis=-1)
         output_G1 = self.model(input_G1)  # [batch, 96, 128, 1] dtype=float32
+        output_G1 = tf.cast(output_G1, dtype=tf.float16)
         return output_G1
 
     # LOSS
     def PoseMaskloss(self, I_PT1, It, Mt):
+        I_PT1 = tf.cast(I_PT1, dtype=tf.float32)
         It = tf.cast(It, dtype=tf.float32)
         Mt = tf.cast(Mt, dtype=tf.float32)
 

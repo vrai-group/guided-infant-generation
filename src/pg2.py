@@ -508,7 +508,6 @@ class PG2(object):
         def _tape(loss_function_G2, loss_function_D):
             with tf.GradientTape() as tape:
                 I_D = self.G2.prediction(I_PT1, Ic)
-                I_D = tf.cast(I_D, dtype=tf.float16)
                 I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
 
                 output_D = self.D.prediction(It, I_PT2, Ic)
@@ -531,7 +530,6 @@ class PG2(object):
 
         # G1
         I_PT1 = self.G1.prediction(Ic, Pt)
-        I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
         # BACKPROP G2
         I_PT2 = None
@@ -582,11 +580,9 @@ class PG2(object):
 
         # G1
         I_PT1 = self.G1.prediction(Ic, Pt)
-        I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
         # G2
         I_D = self.G2.prediction(I_PT1, Ic)
-        I_D = tf.cast(I_D, dtype=tf.float16)
         I_PT2 = I_PT1 + I_D  # [batch, 96, 128, 1]
 
         # D
@@ -634,7 +630,7 @@ class PG2(object):
             batch = next(dataset_iterator)
             Ic = batch[0]  # [batch, 96, 128, 1]
             It = batch[1]  # [batch, 96,128, 1]
-            Pt = batch[2]  # [batch, 96,128, 14]
+            Pt = batch[2] # [batch, 96,128, 14]
             Mt = batch[3]  # [batch, 96,128, 1]
             mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
             mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
@@ -645,6 +641,9 @@ class PG2(object):
             # Unprocess
             Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
             It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+            Pt = tf.math.reduce_sum(tf.reshape(tf.math.add(Pt[0], 1, name=None) // 2, [96, 128, 14]),
+                                    axis=-1).numpy().reshape(96, 128, 1)
+            Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
 
             Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
@@ -652,8 +651,8 @@ class PG2(object):
 
             # Plot Figure
             fig = plt.figure(figsize=(10, 2))
-            columns, rows = 4, 1
-            imgs = [I_PT1, Ic, It, It, Mt]
+            columns, rows = 5, 1
+            imgs = [I_PT1, Ic, It, Pt, Mt]
             labels = ["I_PT1", "Ic", "It", "Pt", "Mt"]
             for j in range(1, columns * rows + 1):
                 sub = fig.add_subplot(rows, columns, j)
@@ -706,24 +705,26 @@ class PG2(object):
 
             # Predizione
             I_PT1 = self.G1.prediction(Ic, Pt)
-            I_D = self.G2.prediction(I_PT1, Ic)
+            I_D = self.G2.prediction(I_PT1, Ic, None)
             I_PT2 = I_D + I_PT1
 
             # Unprocess
             Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
             It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+            Pt = tf.math.reduce_sum(tf.reshape(tf.math.add(Pt[0], 1, name=None), [96, 128, 14]), axis=-1).numpy().reshape(96, 128, 1)# rescale tra [0, 1]
+            Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
 
             Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
             I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            I_D = tf.cast(self.dataset_module.unprocess_image(I_D, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
             I_PT2 = tf.cast(self.dataset_module.unprocess_image(I_PT2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
 
             # Plot Figure
             fig = plt.figure(figsize=(10, 2))
-            columns = 5
-            rows = 1
-            imgs = [I_PT2, I_PT1, Ic, It, It, Mt]
-            labels = ["I_PT2", "I_PT1", "Ic", "It", "Pt", "Mt"]
+            columns, rows = 7, 1
+            imgs = [I_PT2, I_PT1, I_D, Ic, It, Pt, Mt]
+            labels = ["I_PT2", "I_PT1", "I_D", "Ic", "It", "Pt", "Mt"]
             for j in range(1, columns * rows + 1):
                 sub = fig.add_subplot(rows, columns, j)
                 sub.set_title(labels[j - 1])

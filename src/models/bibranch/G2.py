@@ -10,7 +10,7 @@ from src.models.Model_template import Model_Template
 class G2(Model_Template):
 
     def __init__(self):
-        self.architecture = "bi"
+        self.architecture = "bibranch"
         self.input_shape = [96, 128, 2]
         self.output_channels = 1
         self.conv_hidden_num = 128
@@ -25,53 +25,99 @@ class G2(Model_Template):
         # Encoder
         inputs = Input(shape=self.input_shape)
 
-        conv1 = Conv2D(self.conv_hidden_num, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(inputs)
-        conv1 = Conv2D(self.conv_hidden_num, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv1)
-        conv1 = Conv2D(self.conv_hidden_num, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv1)
+        Enc_1 = Conv2D(128, 3, (1, 1), padding='same', activation=self.activation_fn, data_format=self.data_format)(inputs)
 
-        pool1 = Conv2D(self.conv_hidden_num * 2, 2, (2, 2), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv1)
-        conv2 = Conv2D(self.conv_hidden_num * 2, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(pool1)
-        conv2 = Conv2D(self.conv_hidden_num * 2, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv2)  # 256
+        branch_1_Enc_1 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(Enc_1)
+        branch_1_Enc_1 = Activation('relu')(branch_1_Enc_1)
+
+        branch_1_Enc_1 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(branch_1_Enc_1)
+        branch_1_Enc_1 = Activation('relu')(branch_1_Enc_1)
+
+        branch_2_Enc_1 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(Enc_1)
+        branch_2_Enc_1 = Activation('relu')(branch_2_Enc_1)
+
+        branch_2_Enc_1 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(branch_2_Enc_1)
+        branch_2_Enc_1 = Activation('relu')(branch_2_Enc_1)
+
+        concat_1 = concatenate([branch_1_Enc_1, branch_2_Enc_1])  # 128
+
+        Enc_2 = Conv2D(filters=256, kernel_size=2, strides=2)(concat_1)
+        Enc_2 = Activation('relu')(Enc_2)
+
+        branch_1_Enc_2 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(Enc_2)
+        branch_1_Enc_2 = Activation('relu')(branch_1_Enc_2)
+
+        branch_1_Enc_2 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(branch_1_Enc_2)
+        branch_1_Enc_2 = Activation('relu')(branch_1_Enc_2)
+
+        branch_2_Enc_2 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(Enc_2)
+        branch_2_Enc_2 = Activation('relu')(branch_2_Enc_2)
+
+        branch_2_Enc_2 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(branch_2_Enc_2)
+        branch_2_Enc_2 = Activation('relu')(branch_2_Enc_2)
+
+        concat_2 = concatenate([branch_1_Enc_2, branch_2_Enc_2])
 
         # Bridge
-        pool3 = Conv2D(self.conv_hidden_num * 3, 2, (2, 2), activation=self.activation_fn,
-                       data_format=self.data_format)(conv2)  # pool
-        conv3 = Conv2D(self.conv_hidden_num * 3, 3, (1, 1), padding='same', activation=self.activation_fn,
+        pool3 = Conv2D(384, 2, (2, 2), activation=self.activation_fn,
+                       data_format=self.data_format)(concat_2)  # pool
+        conv3 = Conv2D(384, 3, (1, 1), padding='same', activation=self.activation_fn,
                        data_format=self.data_format)(pool3)
-        conv3 = Conv2D(self.conv_hidden_num * 3, 3, (1, 1), padding='same', activation=self.activation_fn,
+        conv3 = Conv2D(384, 3, (1, 1), padding='same', activation=self.activation_fn,
                        data_format=self.data_format)(conv3)  # 384
         up4 = UpSampling2D(size=(2, 2), data_format=self.data_format, interpolation="nearest")(conv3)
         up4 = Conv2D(self.conv_hidden_num, 2, 1, padding="same", activation=self.activation_fn,
                      data_format=self.data_format)(up4)  # 128
 
-        # Decoder
-        merge4 = Concatenate(axis=-1)([up4, conv2])  # Long Skip connestion 128+256 =384
-        conv4 = Conv2D(384, 3, 1, padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(merge4)
-        conv4 = Conv2D(384, 3, 1, padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv4)
+        #####Decoder
 
-        up5 = UpSampling2D(size=(2, 2), data_format=self.data_format, interpolation="nearest")(conv4)
-        up5 = Conv2D(self.conv_hidden_num, 2, 1, padding="same", activation=self.activation_fn,
-                     data_format=self.data_format)(up5)
-        merge5 = Concatenate(axis=-1)([up5, conv1])  # Long Skip connestion 128+128
-        conv5 = Conv2D(256, 3, 1, padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(merge5)
-        conv5 = Conv2D(256, 3, 1, padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv5)
+        # Blocco1
+        long_connection_1 = Concatenate(axis=-1)([up4, concat_2])  # 128+256=384
 
-        outputs = Conv2D(self.output_channels, 1, 1, padding='same', activation=None,
-                         data_format=self.data_format)(conv5)
+        branch_1_Dec_1 = Conv2D(filters=192, kernel_size=3, strides=1, padding='same')(long_connection_1)
+        branch_1_Dec_1 = Activation('relu')(branch_1_Dec_1)
+
+        branch_1_Dec_1 = Conv2D(filters=192, kernel_size=3, strides=1, padding='same')(
+            branch_1_Dec_1)
+        branch_1_Dec_1 = Activation('relu')(branch_1_Dec_1)
+
+        branch_2_Dec_1 = Conv2D(filters=192, kernel_size=3, strides=1, padding='same')(long_connection_1)
+        branch_2_Dec_1 = Activation('relu')(branch_2_Dec_1)
+
+        branch_2_Dec_1 = Conv2D(filters=192, kernel_size=3, strides=1, padding='same')(
+            branch_2_Dec_1)
+        branch_2_Dec_1 = Activation('relu')(branch_2_Dec_1)
+
+        Dec_1 = concatenate([branch_1_Dec_1, branch_2_Dec_1])
+        Dec_1 = UpSampling2D(size=(2, 2), interpolation="nearest")(Dec_1)
+        Dec_1 = Conv2D(filters=128, kernel_size=1, strides=1, padding='same')(Dec_1)
+
+        # Blocco2
+        long_connection_4 = Concatenate(axis=-1)([Dec_1, concat_1])  # 128+128=256
+
+        branch_1_Dec_4 = Conv2D(filters=128, kernel_size=3, strides=1, padding="same")(long_connection_4)
+        branch_1_Dec_4 = Activation('relu')(branch_1_Dec_4)
+
+        branch_1_Dec_4 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(
+            branch_1_Dec_4)
+        branch_1_Dec_4 = Activation('relu')(branch_1_Dec_4)
+
+        branch_2_Dec_4 = Conv2D(filters=128, kernel_size=3, strides=1, padding="same")(long_connection_4)
+        branch_2_Dec_4 = Activation('relu')(branch_2_Dec_4)
+
+        branch_2_Dec_4 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(
+            branch_2_Dec_4)
+        branch_2_Dec_4 = Activation('relu')(branch_2_Dec_4)
+
+        Dec_4 = concatenate([branch_1_Dec_4, branch_2_Dec_4])  # 256
+
+        outputs = Conv2D(1, 1, 1, padding='same', activation=None)(Dec_4)
 
         model = keras.Model(inputs, outputs)
 
         return model
+
+
 
     # Optimizer
     def _optimizer(self):
@@ -82,6 +128,7 @@ class G2(Model_Template):
         # I_PT1 = tf.add(I_PT1, noise)
         input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
         output_G2 = self.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
+        output_G2 = tf.cast(output_G2, dtype=tf.float16)
         return output_G2
 
     # Loss

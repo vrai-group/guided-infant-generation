@@ -13,14 +13,14 @@ class Config:
 
     def _load_enviroment_variable(self):
 
-        self.MODE = "train_G1"  # ['train_G1', 'train_cDCGAN' 'inference_G1', 'inference_G2' 'evaluate']
+        self.MODE = "inference_G1"  # ['train_G1', 'train_cDCGAN' 'inference_G1', 'inference_G2' 'evaluate']
         self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
-        self.ARCHITETURE = "mono"
+        self.ARCHITETURE = "bibranch"
         self.OUTPUTS_DIR = "output_mono" # directory in cui salvare tutti gli output durante il training
 
-        # self.G1_NAME_WEIGHTS_FILE = '/weights/G1/Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
-        # self.G2_NAME_WEIGHTS_FILE = '/weights/GAN/Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
+        self.G1_NAME_WEIGHTS_FILE = '../weights/Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
+        self.G2_NAME_WEIGHTS_FILE = '../weights/Model_G2_Bibranch_epoch_184-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5499-im_0_5484-im_1_5464-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
 
     def _load_path(self):
         # - Path

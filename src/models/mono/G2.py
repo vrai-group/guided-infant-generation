@@ -76,6 +76,7 @@ class G2(Model_Template):
     def prediction(self, I_PT1, Ic):
         input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
         output_G2 = self.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
+        output_G2 = tf.cast(output_G2, dtype=tf.float16)
         return output_G2
 
     # Optimizer
