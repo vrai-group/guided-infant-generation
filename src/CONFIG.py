@@ -19,12 +19,13 @@ class Config:
         self.OUTPUTS_DIR = "output_mono" # directory in cui salvare tutti gli output durante il training
 
         self.G1_NAME_WEIGHTS_FILE = './output/weights/G1/Model_G1_epoch_008-loss_0.000301-ssim_0.929784-mask_ssim_0.979453-val_loss_0.000808-val_ssim_0.911077-val_mask_ssim_0.972699.hdf5'
-        # self.G2_NAME_WEIGHTS_FILE = './output/weights/GAN/Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
+        self.G2_NAME_WEIGHTS_FILE = './output/weights/GAN/Model_G2_epoch_162-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5949-im_0_5940-im_1_5948-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98.hdf5'
 
     def _load_path(self):
         # - Path
         self.ROOT = '..'
         self.SRC = '.'
+        self.OUTPUTS_DIR = os.path.join(self.ROOT, self.OUTPUTS_DIR)
 
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
         self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
@@ -41,6 +42,8 @@ class Config:
         assert os.path.exists(self.models_dir_path)
         assert os.path.exists(self.dataset_module_dir_path)
         assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0] + ".py"))
+
+        os.makedirs(self.OUTPUTS_DIR, exist_ok=False)
 
     def _load_dataset_info(self):
         # - Dataset
