@@ -17,7 +17,8 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import vgg16
 from tensorflow.keras.applications.vgg16 import VGG16
 
-import plot_tsne
+#TODO trovare una soluzione migliore
+import src.utils.evaluation.tsne.plot_tsne as plot_tsne
 
 def _vgg_preprocess_image(image):
 
