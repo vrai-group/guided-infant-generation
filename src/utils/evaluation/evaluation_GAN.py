@@ -4,7 +4,6 @@ import sys
 import numpy as np
 from scipy.linalg import sqrtm
 import tensorflow as tf
-import matplotlib.pyplot as plt
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input
 
@@ -106,10 +105,6 @@ def start(G1, G2, dataset, len_dataset, batch_size, dataset_module, path_evaluat
         Mt = batch[3]  # [batch, 96,128, 1]
         Mc = batch[4]  # [batch, 96,128, 1]
 
-        pz_0 = batch[5].numpy()[0].decode("utf-8")
-        pz_1 = batch[6].numpy()[0].decode("utf-8")
-        id_0 = batch[7].numpy()[0].decode("utf-8").split('_')[0]
-        id_1 = batch[8].numpy()[0].decode("utf-8").split('_')[0]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
         mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
         mask_It = It * Mt
@@ -124,7 +119,7 @@ def start(G1, G2, dataset, len_dataset, batch_size, dataset_module, path_evaluat
 
         ### Ottengo embeddings
         input_inception_real[cnt_img % batch_size] = _inception_preprocess_image(It, mean_1, unprocess_function=dataset_module.unprocess_image)
-        input_inception_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(I_PT2, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
+        input_inception_fake[cnt_img % batch_size] = _inception_preprocess_image(I_PT2, mean_0, unprocess_function=dataset_module.unprocess_image)
 
         input_inception_mask_real[cnt_img % batch_size] = _inception_preprocess_image(mask_It, mean_1, unprocess_function=dataset_module.unprocess_image)
         input_inception_mask_fake[cnt_img % batch_size] = _inception_preprocess_image(

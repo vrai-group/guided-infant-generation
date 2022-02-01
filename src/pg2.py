@@ -782,9 +782,8 @@ class PG2(object):
             print("--Valutazione epoca: ", num_epoch)
 
             # Directory
-            path_evaluation = os.path.join(evaluation_path, analysis_set+'_score_epoch'+num_epoch) # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(evaluation_path, analysis_set+'_score_epoch_'+num_epoch) # directory dove salvare i risultati degli score
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
-
             os.makedirs(path_evaluation, exist_ok=True)
             os.makedirs(path_embeddings, exist_ok=True)
 
@@ -824,9 +823,8 @@ class PG2(object):
             print("--Valutazione epoca: ", num_epoch)
 
             # Directory
-            path_evaluation = os.path.join(evaluation_path, analysis_set + '_score_epoch' + num_epoch)  # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(evaluation_path, analysis_set + '_score_epoch_' + num_epoch)  # directory dove salvare i risultati degli score
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
-
             os.makedirs(path_evaluation, exist_ok=True)
             os.makedirs(path_embeddings, exist_ok=True)
 
