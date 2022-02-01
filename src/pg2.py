@@ -754,17 +754,21 @@ class PG2(object):
                 plt.close(fig)
 
     # Valutazione metrice IS e FID
-    def evaluate_G1(self, analysis="test", bool_save_image=True, batch_size=10):
-        assert os.path.exists(self.config.G1_NAME_WEIGHTS_FILE)
-        G1_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
-        evaluation_path = os.path.join("evaluation", "G1")
+    def evaluate_G1(self, analysis_set="test_set", batch_size=10):
+        G1_weights_dir = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
+        evaluation_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "G1")
         os.makedirs(evaluation_path, exist_ok=False)
 
+        print("\nEVALUATE di G1")
+        print("-Procedo alla valutazione di G1")
+        print("-I file saranno salvati in: ", evaluation_path)
+        print("-La cartella in cui cerco i pesi di G1 è: ", G1_weights_dir)
+
         name_dataset, dataset_len = None, None
-        if analysis == "test":
+        if analysis_set == "test_set":
             name_dataset = self.config.name_tfrecord_test
             dataset_len = self.config.dataset_test_len
-        elif analysis == "valid":
+        elif analysis_set == "valid_set":
             name_dataset = self.config.name_tfrecord_valid
             dataset_len = self.config.dataset_valid_len
 
@@ -773,40 +777,40 @@ class PG2(object):
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
-        for weight_G1 in os.listdir(G1_weights_path):
-            num_epoch = weight_G1.split('-')[0].split('_')[3]
+        for weight_G1 in os.listdir(G1_weights_dir):
+            num_epoch = weight_G1.split('-')[0].split('_')[-1]
+            print("--Valutazione epoca: ", num_epoch)
 
             # Directory
-            path_evaluation = os.path.join(evaluation_path, analysis+'_score_epoch'+num_epoch) # directory dove salvare i risultati degli score
-            path_imgs = os.path.join(path_evaluation, "imgs")
+            path_evaluation = os.path.join(evaluation_path, analysis_set+'_score_epoch'+num_epoch) # directory dove salvare i risultati degli score
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
 
             os.makedirs(path_evaluation, exist_ok=True)
-            os.makedirs(path_imgs, exist_ok=True)
             os.makedirs(path_embeddings, exist_ok=True)
 
             # Model
-            self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
+            self.G1.model.load_weights(os.path.join(G1_weights_dir, weight_G1))
 
             # Pipiline score
             utils.evaluation_G1.start(self.G1, iter(dataset), dataset_len, batch_size,
-                                dataset_module=self.dataset_module, bool_save_img=bool_save_image,
-                                path_evaluation=path_evaluation, path_imgs=path_imgs,
+                                dataset_module=self.dataset_module, path_evaluation=path_evaluation,
                                 path_embeddings=path_embeddings)
 
-    def evaluate_GAN(self, analysis="test", bool_save_image=True, batch_size=10):
-        assert os.path.exists(self.config.G1_NAME_WEIGHTS_FILE)
-        assert os.path.exists(self.config.G2_NAME_WEIGHTS_FILE)
-
-        evaluation_path = os.path.join("evaluation", "GAN")
-        GAN_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
+    def evaluate_GAN(self, analysis_set="test_set", batch_size=10):
+        GAN_weights_dir = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
+        evaluation_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "GAN")
         os.makedirs(evaluation_path, exist_ok=False)
 
+        print("\nEVALUATE di GAN")
+        print("-Procedo alla valutazione di GAN")
+        print("-I file saranno salvati in: ", evaluation_path)
+        print("-La cartella in cui cerco i pesi di G1 è: ", GAN_weights_dir)
+
         name_dataset, dataset_len = None, None
-        if analysis == "test":
+        if analysis_set == "test_set":
             name_dataset = self.config.name_tfrecord_test
             dataset_len = self.config.dataset_test_len
-        elif analysis == "valid":
+        elif analysis_set == "valid_set":
             name_dataset = self.config.name_tfrecord_valid
             dataset_len = self.config.dataset_valid_len
 
@@ -815,29 +819,27 @@ class PG2(object):
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
-        for weight_G2 in os.listdir(GAN_weights_path):
-            num_epoch = weight_G2.split('-')[0].split('_')[3]
+        for weight_G2 in os.listdir(GAN_weights_dir):
+            num_epoch = weight_G2.split('-')[0].split('_')[-1]
+            print("--Valutazione epoca: ", num_epoch)
 
             # Directory
-            path_evaluation = os.path.join(evaluation_path, analysis + '_score_epoch' + num_epoch)  # directory dove salvare i risultati degli score
-            path_imgs = os.path.join(path_evaluation, "imgs")
+            path_evaluation = os.path.join(evaluation_path, analysis_set + '_score_epoch' + num_epoch)  # directory dove salvare i risultati degli score
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
 
             os.makedirs(path_evaluation, exist_ok=True)
-            os.makedirs(path_imgs, exist_ok=True)
             os.makedirs(path_embeddings, exist_ok=True)
 
             # Model
-            self.G2.model.load_weights(os.path.join(self.config.GAN_weigths_dir_path, weight_G2))
+            self.G2.model.load_weights(os.path.join(GAN_weights_dir, weight_G2))
 
             # Pipiline score
             utils.evaluation_GAN.start(self.G1, self.G2, iter(dataset), dataset_len, batch_size,
-                                dataset_module=self.dataset_module, bool_save_img=bool_save_image,
-                                path_evaluation=path_evaluation, path_imgs=path_imgs,
+                                dataset_module=self.dataset_module,  path_evaluation=path_evaluation,
                                 path_embeddings=path_embeddings)
 
-    def tsne(self):
-        tsne_path = os.path.join(self.config.OUTPUTS, "evaluation", "tsne")
+    def tsne(self, key_image_interested="test_20"):
+        tsne_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "tsne")
         os.makedirs(tsne_path, exist_ok=False)
 
         list_sets = [[self.config.name_tfrecord_train, self.config.dataset_train_len],
@@ -848,6 +850,6 @@ class PG2(object):
         # Obtain features
         utils.vgg16_pca_tsne_features.start(list_sets, list_perplexity,
                                             self.G1, self.G2, self.dataset_module,
-                                            dir_to_save=tsne_path, save_fig_plot=True)
+                                            dir_to_save=tsne_path, save_fig_plot=True, key_image_interested=key_image_interested)
 
 

@@ -59,42 +59,6 @@ def _inception_preprocess_image(image, mean, unprocess_function):
 
     return image_3channel_p
 
-
-def _save_img(cnt_img, name_dir_to_save_img, Ic, It, Pt, Mt, mean_0, mean_1, I_PT1, pz_0, pz_1, id_0, id_1,
-              dataset_module):
-    # Unprocess
-    Ic = tf.cast(dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-    It = tf.cast(dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
-
-    Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
-
-    I_PT1 = tf.cast(dataset_module.unprocess_image(I_PT1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-
-    Pt = Pt[0]
-    Pt = tf.math.add(Pt, 1, name=None) / 2  # rescale tra [0, 1]
-    Pt = tf.reshape(Pt, [96, 128, 14]) * 255
-    Pt = tf.math.reduce_sum(Pt, axis=-1).numpy().reshape(96, 128, 1)
-    Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
-
-    # Save Figure
-    fig = plt.figure(figsize=(10, 2))
-    columns, rows = 5, 1
-    imgs = [I_PT1, Ic, Pt, It, Mt]
-    labels = ["I_PT1", "Ic", "Pt", "It", "Mt"]
-    for j in range(1, columns * rows + 1):
-        sub = fig.add_subplot(rows, columns, j)
-        sub.set_title(labels[j - 1])
-        plt.imshow(imgs[j - 1], cmap='gray')
-    name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
-        id=cnt_img,
-        pz_0=pz_0,
-        pz_1=pz_1,
-        id_0=id_0,
-        id_1=id_1))
-    plt.savefig(name_img)
-    plt.close(fig)
-
-
 def _compute_embeddings_inception(cnt_embeddings, inception_model, batch_size,
                                   input_inception_real, input_inception_mask_real,
                                   input_inception_fake, input_inception_mask_fake,
@@ -107,8 +71,7 @@ def _compute_embeddings_inception(cnt_embeddings, inception_model, batch_size,
     vettore_embeddings_mask_real[start:end] = inception_model.predict(input_inception_mask_real)
     vettore_embeddings_mask_fake[start:end] = inception_model.predict(input_inception_mask_fake)
 
-def start(G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, path_evaluation, path_imgs,
-          path_embeddings):
+def start(G1, dataset, len_dataset, batch_size, dataset_module, path_evaluation, path_embeddings):
 
     # Modello Inception
     inception_model = tf.keras.applications.InceptionV3(include_top=False, weights="imagenet", pooling='avg',
@@ -157,11 +120,6 @@ def start(G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, p
         I_PT1 = G1.prediction(Ic, Pt)
         mask_I_PT1 = I_PT1 * Mt
 
-        # Salvataggio immagine
-        if bool_save_img:
-            _save_img(cnt_img, path_imgs, Ic, It, Pt, Mt, mean_0, mean_1, I_PT1, pz_0, pz_1, id_0, id_1,
-                      dataset_module)
-
         # Preprocesso immagini per Inception model
         input_inception_real[cnt_img % batch_size] = _inception_preprocess_image(It, mean_1, unprocess_function=dataset_module.unprocess_image)
         input_inception_fake[cnt_img % batch_size] = _inception_preprocess_image(tf.cast(I_PT1, dtype=tf.float16), mean_0, unprocess_function=dataset_module.unprocess_image)
@@ -182,9 +140,9 @@ def start(G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, p
             input_inception_mask_fake.fill(0)
 
         # Calcolo metriche
-        ssim_scores[cnt_img] = G1.ssim(I_PT1, It, mean_0, mean_1)
-        mask_ssim_scores[cnt_img] = G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
-        loss_scores[cnt_img] = G1.PoseMaskLoss(I_PT1, Mt, Ic, Mt)
+        ssim_scores[cnt_img] = G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=dataset_module.unprocess_image)
+        mask_ssim_scores[cnt_img] = G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=dataset_module.unprocess_image)
+        loss_scores[cnt_img] = G1.PoseMaskloss(I_PT1, It, Mt)
 
     del batch
 
@@ -220,7 +178,7 @@ def start(G1, dataset, len_dataset, batch_size, dataset_module, bool_save_img, p
            "\nFID: {fid_value} " \
            "\nIS: {is_value} " \
            "\nIS_real: {is_value_real}" \
-           "\n\n" \
+           "\n" \
            "\nMASK_SSIM:{mask_ssim_value} " \
            "\nMASK_FID: {mask_fid_value} " \
            "\nMASK_IS: {mask_is_value} " \

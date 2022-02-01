@@ -49,11 +49,11 @@ def _extract_features_vgg_real(list_sets, dataset_module, dict_data):
 
     for dataset in list_sets:
         name_dataset, dataset_len = dataset[0], dataset[1]
-        type_dataset = name_dataset.split('_')[1].split('.tfrecord')[0]  # ['train', 'valid', 'test']
+        type_dataset = name_dataset.split(os.path.sep)[-1]  # ['train', 'valid', 'test']
 
         # Dataset
         dataset = dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
-        dataset = dataset_module.get_preprocess_G1_dataset(dataset)
+        dataset = dataset_module.preprocess_dataset(dataset)
         dataset = dataset.batch(1)
         dataset = iter(dataset)
         print("\n")
@@ -211,7 +211,7 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module):
 
     return dict_data_generated
 
-def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, save_fig_plot=True):
+def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_image_interested, save_fig_plot=True):
 
     dict_data_real = _start_real(list_sets, list_perplexity, dataset_module)
     dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module)
@@ -230,4 +230,4 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, save_
 
     if save_fig_plot:
         print("-\n Plotto i grafici. La Key_image_interested è: test_20")
-        plot_tsne._plot(dict_features_tot, list_perplexity, dir_to_save, key_image_interested='test_20')
+        plot_tsne._plot(dict_features_tot, list_perplexity, dir_to_save, key_image_interested=key_image_interested)
