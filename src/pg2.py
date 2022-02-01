@@ -624,8 +624,8 @@ class PG2(object):
         # Model
         self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
 
-        for i in range(self.config.dataset_test_len):
-            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))
+        for cnt_img in range(self.config.dataset_test_len):
+            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=cnt_img + 1, tot=self.config.dataset_test_len))
             sys.stdout.flush()
             batch = next(dataset_iterator)
             Ic = batch[0]  # [batch, 96, 128, 1]
@@ -673,12 +673,11 @@ class PG2(object):
                 id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
                 id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
                 name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
-                                            id=i,
+                                            id=cnt_img,
                                             pz_0=pz_0,
                                             pz_1=pz_1,
                                             id_0=id_0,
                                             id_1=id_1))
-
                 plt.savefig(name_img)
                 plt.close(fig)
 
@@ -754,7 +753,7 @@ class PG2(object):
                 plt.close(fig)
 
     # Valutazione metrice IS e FID
-    def evaluate_G1(self, analysis_set="test_set", batch_size=10):
+    def evaluate_G1(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
         G1_weights_dir = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
         evaluation_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "G1")
         os.makedirs(evaluation_path, exist_ok=False)
@@ -763,14 +762,6 @@ class PG2(object):
         print("-Procedo alla valutazione di G1")
         print("-I file saranno salvati in: ", evaluation_path)
         print("-La cartella in cui cerco i pesi di G1 è: ", G1_weights_dir)
-
-        name_dataset, dataset_len = None, None
-        if analysis_set == "test_set":
-            name_dataset = self.config.name_tfrecord_test
-            dataset_len = self.config.dataset_test_len
-        elif analysis_set == "valid_set":
-            name_dataset = self.config.name_tfrecord_valid
-            dataset_len = self.config.dataset_valid_len
 
         # Dataset
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
@@ -791,11 +782,11 @@ class PG2(object):
             self.G1.model.load_weights(os.path.join(G1_weights_dir, weight_G1))
 
             # Pipiline score
-            utils.evaluation_G1.start(self.G1, iter(dataset), dataset_len, batch_size,
+            utils.evaluation.start([self.G1], iter(dataset), dataset_len, batch_size,
                                 dataset_module=self.dataset_module, path_evaluation=path_evaluation,
                                 path_embeddings=path_embeddings)
 
-    def evaluate_GAN(self, analysis_set="test_set", batch_size=10):
+    def evaluate_GAN(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
         GAN_weights_dir = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
         evaluation_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "GAN")
         os.makedirs(evaluation_path, exist_ok=False)
@@ -804,14 +795,6 @@ class PG2(object):
         print("-Procedo alla valutazione di GAN")
         print("-I file saranno salvati in: ", evaluation_path)
         print("-La cartella in cui cerco i pesi di G1 è: ", GAN_weights_dir)
-
-        name_dataset, dataset_len = None, None
-        if analysis_set == "test_set":
-            name_dataset = self.config.name_tfrecord_test
-            dataset_len = self.config.dataset_test_len
-        elif analysis_set == "valid_set":
-            name_dataset = self.config.name_tfrecord_valid
-            dataset_len = self.config.dataset_valid_len
 
         # Dataset
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
@@ -832,7 +815,7 @@ class PG2(object):
             self.G2.model.load_weights(os.path.join(GAN_weights_dir, weight_G2))
 
             # Pipiline score
-            utils.evaluation_GAN.start(self.G1, self.G2, iter(dataset), dataset_len, batch_size,
+            utils.evaluation.start([self.G1, self.G2], iter(dataset), dataset_len, batch_size,
                                 dataset_module=self.dataset_module,  path_evaluation=path_evaluation,
                                 path_embeddings=path_embeddings)
 

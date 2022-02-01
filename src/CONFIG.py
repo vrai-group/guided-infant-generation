@@ -31,7 +31,6 @@ class Config:
 
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
         self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
-
         self.models_dir_path = os.path.join(self.SRC, "models", self.ARCHITETURE)  # dove sono presenti le architetture
         self.dataset_module_dir_path = os.path.join(self.SRC, "datasets")  # dov è presente il modulo per processare il dataset
 
