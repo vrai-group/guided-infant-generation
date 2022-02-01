@@ -615,7 +615,7 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
-    def inference_on_test_set_G1(self, save_figure=True):
+    def inference_on_test_set_G1(self, G1_NAME_WEIGHTS_FILE, save_figure=True):
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
@@ -681,15 +681,15 @@ class PG2(object):
                 plt.savefig(name_img)
                 plt.close(fig)
 
-    def inference_on_test_set_G2(self, save_figure=True):
+    def inference_on_test_set_G2(self, G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE, save_figure=True):
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
         dataset_iterator = iter(dataset)
 
         # Model
-        self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
-        self.G2.model.load_weights(self.config.G2_NAME_WEIGHTS_FILE)
+        self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
+        self.G2.model.load_weights(G2_NAME_WEIGHTS_FILE)
 
         for i in range(self.config.dataset_test_len):
             sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))

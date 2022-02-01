@@ -13,18 +13,13 @@ class Config:
         self._load_GAN_info()
 
     def _load_enviroment_variable(self):
-
-        self.MODE = "evaluate"  # ['train_G1', 'train_cDCGAN' 'inference_G1', 'inference_G2' 'evaluate']
+        self.MODE = "evaluate"  # ['train_G1', 'train_cDCGAN' 'evaluate_G1', 'evaluate_G2' 'tsne' 'inference']
         self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
         self.ARCHITETURE = "bibranch"
-        self.OUTPUTS_DIR = "output_bibranch" # directory in cui salvare tutti gli output durante il training
-
-        self.G1_NAME_WEIGHTS_FILE = '..\\weights\\Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
-        self.G2_NAME_WEIGHTS_FILE = '..\\weights\\Model_G2_Bibranch_epoch_184-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5499-im_0_5484-im_1_5464-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
+        self.OUTPUTS_DIR = "output_bibranch" # nome directory in cui salvare tutti gli output durante il training
 
     def _load_path(self):
-        # - Path
         self.ROOT = '..'
         self.SRC = '.'
         self.OUTPUTS_DIR = os.path.join(self.ROOT, self.OUTPUTS_DIR)
@@ -43,12 +38,12 @@ class Config:
         assert os.path.exists(self.dataset_module_dir_path)
         assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0] + ".py"))
         #-OUTPUTS
-        r_v = None
         if os.path.exists(self.OUTPUTS_DIR):
             r_v = input("La cartella di output esiste già. Sovrascriverla? Yes[Y] No[N]")
             assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
-        if not os.path.exists(self.OUTPUTS_DIR) or r_v == "Y" or r_v == "y":
-            shutil.rmtree(self.OUTPUTS_DIR)
+            if r_v == "Y" or r_v == "y":
+                shutil.rmtree(self.OUTPUTS_DIR)
+        if not os.path.exists(self.OUTPUTS_DIR):
             os.mkdir(self.OUTPUTS_DIR)
 
     def _load_dataset_info(self):
