@@ -22,8 +22,8 @@ def _plot(dict_features, list_perplexity, dir_to_save, key_image_interested):
         tsne_interested_real = dict_features[key_image_interested]['features_tsne_real_'+str(perplexity)]
         tsne_interested_generated = dict_features[key_image_interested]['features_tsne_generated_'+str(perplexity)]
 
-        ax.scatter(x=tsne_interested_real[0], y=tsne_interested_real[1], color='orange', label="INTERESTED_real")
-        ax.scatter(x=tsne_interested_generated[0], y=tsne_interested_generated[1], color='black', label="INTERESTED_generated")
+        ax.scatter(x=tsne_interested_real[0], y=tsne_interested_real[1], color='orange', label="$I_{T}$ embeddings")
+        ax.scatter(x=tsne_interested_generated[0], y=tsne_interested_generated[1], color='black', label="$I_{P_{T1}}$ embeddings")
 
         # Calcolo distanza euclidea
         distance = np.linalg.norm(tsne_interested_real - tsne_interested_generated)
