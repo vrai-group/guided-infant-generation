@@ -99,7 +99,7 @@ class G2(Model_Template):
         gen_cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_neg_refined_result, labels=tf.ones_like(D_neg_refined_result)))
         gen_cost = tf.cast(gen_cost, dtype=tf.float32)
 
-        poseMaskLoss = self.PoseMaskloss2(I_PT2, It, Mt)
+        poseMaskLoss = self.PoseMaskloss(I_PT2, It, Mt)
 
         loss = gen_cost + poseMaskLoss*10
 

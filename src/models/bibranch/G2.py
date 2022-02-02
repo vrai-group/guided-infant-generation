@@ -123,9 +123,7 @@ class G2(Model_Template):
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
-    def prediction(self, I_PT1, Ic, Pt):
-        # noise = (np.random.normal(0, 1, I_PT1.shape) * 0.0010) * tf.math.reduce_sum((Pt + 1) / 2, axis=-1).numpy().reshape(I_PT1.shape)
-        # I_PT1 = tf.add(I_PT1, noise)
+    def prediction(self, I_PT1, Ic):
         input_G2 = tf.concat([I_PT1, Ic], axis=-1)  # [batch, 96, 128, 2]
         output_G2 = self.model(input_G2)  # [batch, 96, 128, 1] dtype=float32
         output_G2 = tf.cast(output_G2, dtype=tf.float16)
@@ -149,7 +147,7 @@ class G2(Model_Template):
                                                                               D_neg_refined_result)))
         gen_cost = tf.cast(gen_cost, dtype=tf.float32)
 
-        poseMaskLoss = self.PoseMaskloss2(I_PT2, It, Mt)
+        poseMaskLoss = self.PoseMaskloss(I_PT2, It, Mt)
 
         loss = gen_cost + poseMaskLoss * 10
 

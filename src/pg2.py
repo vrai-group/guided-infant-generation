@@ -530,6 +530,10 @@ class PG2(object):
 
         # G1
         I_PT1 = self.G1.prediction(Ic, Pt)
+        # Noise da aggiungere all allenamento del bibranch
+        if self.config.ARCHITETURE == "bibranch":
+            noise = (np.random.normal(0, 1, I_PT1.shape) * 0.0010) * tf.math.reduce_sum((Pt + 1) / 2, axis=-1).numpy().reshape(I_PT1.shape)
+            I_PT1 = tf.add(I_PT1, noise)
 
         # BACKPROP G2
         I_PT2 = None
@@ -832,5 +836,7 @@ class PG2(object):
         utils.vgg16_pca_tsne_features.start(list_sets, list_perplexity,
                                             self.G1, self.G2, self.dataset_module,
                                             dir_to_save=tsne_path, save_fig_plot=True, key_image_interested=key_image_interested)
+
+
 
 

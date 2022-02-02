@@ -151,9 +151,9 @@ def start(models, dataset, len_dataset, batch_size, dataset_module, path_evaluat
             input_inception_mask_fake.fill(0)
 
         # Calcolo metriche
-        ssim_scores[cnt_img] = G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=dataset_module.unprocess_image)
-        mask_ssim_scores[cnt_img] = G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=dataset_module.unprocess_image)
-        loss_scores[cnt_img] = G1.PoseMaskloss(I_PT1, It, Mt)
+        ssim_scores[cnt_img] = G1.ssim(pred_generated, It, mean_0, mean_1, unprocess_function=dataset_module.unprocess_image)
+        mask_ssim_scores[cnt_img] = G1.mask_ssim(pred_generated, It, Mt, mean_0, mean_1, unprocess_function=dataset_module.unprocess_image)
+        loss_scores[cnt_img] = G1.PoseMaskloss(pred_generated, It, Mt)
 
     del batch
 
