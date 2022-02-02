@@ -5,7 +5,6 @@ from CONFIG import Config
 
 if __name__ == "__main__":
     config = Config()
-    config.save_config()
 
     pg2 = PG2(config)  # Pose Guided ^2 network
 

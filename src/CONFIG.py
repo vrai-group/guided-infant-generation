@@ -89,15 +89,3 @@ class Config:
         self.GAN_D_drop_rate_D = 0.5
         self.GAN_save_grid_ssim_epoch_train = 1
         self.GAN_save_grid_ssim_epoch_valid = 1
-
-    """
-    Salvataggio configurazione utilizzate per il training
-    """
-    def save_config(self):
-        list = self.__dict__
-        name_file = os.path.join(self.OUTPUTS_DIR, "config_"+self.MODE+datetime.now().strftime('%d_%m_%Y_%H,%M')+".npy")
-        np.save(name_file, list)
-
-
-
-
