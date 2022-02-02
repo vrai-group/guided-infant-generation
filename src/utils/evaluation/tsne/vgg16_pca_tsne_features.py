@@ -17,8 +17,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import vgg16
 from tensorflow.keras.applications.vgg16 import VGG16
 
-#TODO trovare una soluzione migliore
-import src.utils.evaluation.tsne.plot_tsne as plot_tsne
+from src.utils.evaluation.tsne.plot_tsne import _plot
 
 def _vgg_preprocess_image(image):
 
@@ -230,4 +229,4 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_i
 
     if save_fig_plot:
         print("-\n Plotto i grafici. La Key_image_interested è: test_20")
-        plot_tsne._plot(dict_features_tot, list_perplexity, dir_to_save, key_image_interested=key_image_interested)
+        _plot(dict_features_tot, list_perplexity, dir_to_save, key_image_interested=key_image_interested)

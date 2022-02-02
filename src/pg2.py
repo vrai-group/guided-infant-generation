@@ -401,7 +401,7 @@ class PG2(object):
 
                 if epoch % self.config.GAN_save_grid_ssim_epoch_valid == self.config.GAN_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], type="valid", architecture="GAN")
+                                    logs_to_print['mask_ssim_valid'][id_batch],grid_path, type_dataset="train")
 
             sys.stdout.write('')
             sys.stdout.write('\r\r'
@@ -619,14 +619,21 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
-    def inference_on_test_set_G1(self, G1_NAME_WEIGHTS_FILE, save_figure=True):
+    def inference_on_test_set_G1(self, G1_NAME_WEIGHTS_FILE):
+        name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G1")
+        os.makedirs(name_dir_to_save_img, exist_ok=False)
+
+        print("\nINFERENZA DI G1 SU TEST SET")
+        print("-Procedo alla valutazione di G1")
+        print("-I file saranno salvati in: ", name_dir_to_save_img)
+
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
         dataset_iterator = iter(dataset)
 
         # Model
-        self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
+        self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
 
         for cnt_img in range(self.config.dataset_test_len):
             sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=cnt_img + 1, tot=self.config.dataset_test_len))
@@ -662,30 +669,33 @@ class PG2(object):
                 sub = fig.add_subplot(rows, columns, j)
                 sub.set_title(labels[j - 1])
                 plt.imshow(imgs[j - 1], cmap='gray')
-            plt.show()
+            #plt.show()
 
             #Save figure
-            if save_figure:
-                name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G1")
-                os.makedirs(name_dir_to_save_img)
-                pz_0 = batch[5]  # [batch, 1]
-                pz_1 = batch[6]  # [batch, 1]
-                name_0 = batch[7]  # [batch, 1]
-                name_1 = batch[8]  # [batch, 1]
-                pz_0 = pz_0.numpy()[0].decode("utf-8")
-                pz_1 = pz_1.numpy()[0].decode("utf-8")
-                id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
-                id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
-                name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
-                                            id=cnt_img,
-                                            pz_0=pz_0,
-                                            pz_1=pz_1,
-                                            id_0=id_0,
-                                            id_1=id_1))
-                plt.savefig(name_img)
-                plt.close(fig)
+            pz_0 = batch[5]  # [batch, 1]
+            pz_1 = batch[6]  # [batch, 1]
+            name_0 = batch[7]  # [batch, 1]
+            name_1 = batch[8]  # [batch, 1]
+            pz_0 = pz_0.numpy()[0].decode("utf-8")
+            pz_1 = pz_1.numpy()[0].decode("utf-8")
+            id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
+            id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
+            name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+                                        id=cnt_img,
+                                        pz_0=pz_0,
+                                        pz_1=pz_1,
+                                        id_0=id_0,
+                                        id_1=id_1))
+            plt.savefig(name_img)
+            plt.close(fig)
 
-    def inference_on_test_set_G2(self, G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE, save_figure=True):
+    def inference_on_test_set_G2(self, G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE):
+        name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G2")
+        os.makedirs(name_dir_to_save_img, exist_ok=False)
+
+        print("\nINFERENZA DI G2 SU TEST SET")
+        print("-I file saranno salvati in: ", name_dir_to_save_img)
+
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
@@ -708,7 +718,7 @@ class PG2(object):
 
             # Predizione
             I_PT1 = self.G1.prediction(Ic, Pt)
-            I_D = self.G2.prediction(I_PT1, Ic, None)
+            I_D = self.G2.prediction(I_PT1, Ic)
             I_PT2 = I_D + I_PT1
 
             # Unprocess
@@ -732,29 +742,26 @@ class PG2(object):
                 sub = fig.add_subplot(rows, columns, j)
                 sub.set_title(labels[j - 1])
                 plt.imshow(imgs[j - 1], cmap='gray')
-            plt.show()
+            #plt.show()
 
             #Save figure
-            if save_figure:
-                name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G2")
-                os.makedirs(name_dir_to_save_img)
-                pz_0 = batch[5]  # [batch, 1]
-                pz_1 = batch[6]  # [batch, 1]
-                name_0 = batch[7]  # [batch, 1]
-                name_1 = batch[8]  # [batch, 1]
-                pz_0 = pz_0.numpy()[0].decode("utf-8")
-                pz_1 = pz_1.numpy()[0].decode("utf-8")
-                id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
-                id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
-                name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
-                                            id=i,
-                                            pz_0=pz_0,
-                                            pz_1=pz_1,
-                                            id_0=id_0,
-                                            id_1=id_1))
+            pz_0 = batch[5]  # [batch, 1]
+            pz_1 = batch[6]  # [batch, 1]
+            name_0 = batch[7]  # [batch, 1]
+            name_1 = batch[8]  # [batch, 1]
+            pz_0 = pz_0.numpy()[0].decode("utf-8")
+            pz_1 = pz_1.numpy()[0].decode("utf-8")
+            id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
+            id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
+            name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+                                        id=i,
+                                        pz_0=pz_0,
+                                        pz_1=pz_1,
+                                        id_0=id_0,
+                                        id_1=id_1))
 
-                plt.savefig(name_img)
-                plt.close(fig)
+            plt.savefig(name_img)
+            plt.close(fig)
 
     # Valutazione metrice IS e FID
     def evaluate_G1(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):

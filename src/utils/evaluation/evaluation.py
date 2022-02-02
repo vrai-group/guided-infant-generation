@@ -10,8 +10,8 @@ from tensorflow.keras.layers import Input
 from tensorflow.keras.applications.inception_v3 import preprocess_input as preprocess_input_for_inception
 from skimage.transform import resize
 
-INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH = 299, 299, 3
-TOP_FEATURES_DIM = 2048
+# INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH = 299, 299, 3
+# 2048 = 2048
 
 def _inception_preprocess_image(image, mean, unprocess_function):
     def scale_images(images, new_shape):
@@ -25,7 +25,7 @@ def _inception_preprocess_image(image, mean, unprocess_function):
     image = tf.cast(tf.cast(unprocess_function(image, mean, 32765.5), dtype=tf.uint8), dtype=tf.float32)
 
     image_3channel = tf.concat([image, image, image], axis=-1)
-    image_3channel = scale_images(image_3channel, (INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))
+    image_3channel = scale_images(image_3channel, (299, 299, 3))
     image_3channel_p = preprocess_input_for_inception(image_3channel)
 
     return image_3channel_p
@@ -82,19 +82,19 @@ def start(models, dataset, len_dataset, batch_size, dataset_module, path_evaluat
 
     # Modello Inception
     inception_model = tf.keras.applications.InceptionV3(include_top=False, weights="imagenet", pooling='avg',
-                                                        input_shape=(INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))
+                                                        input_shape=(299, 299, 3))
 
     # Vettori immagini
-    input_inception_real = np.empty((batch_size, INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))  # conterrà le immagini It da dare in input all inception
-    input_inception_fake = np.empty((batch_size, INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))  # conterrà le immagini I_PT1 da dare in input all inception
-    input_inception_mask_real = np.empty((batch_size, INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))  # conterrà le immagini It * Mt da dare in input all inception
-    input_inception_mask_fake = np.empty((batch_size, INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))  # conterrà le immagini I_PT1 * Mt da dare in input all inception
+    input_inception_real = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini It da dare in input all inception
+    input_inception_fake = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini I_PT1 da dare in input all inception
+    input_inception_mask_real = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini It * Mt da dare in input all inception
+    input_inception_mask_fake = np.empty((batch_size, 299, 299, 3))  # conterrà le immagini I_PT1 * Mt da dare in input all inception
 
     # Vettori embeddings
-    vettore_embeddings_real = np.empty((len_dataset, TOP_FEATURES_DIM))  # conterrà gli embeddings dell'inception per i reali
-    vettore_embeddings_fake = np.empty((len_dataset, TOP_FEATURES_DIM))  # conterrà gli embeddings dell'inception per le generate
-    vettore_embeddings_mask_real = np.empty((len_dataset, TOP_FEATURES_DIM)) # conterrà gli embeddings dell'inception per le maschere dei reali
-    vettore_embeddings_mask_fake = np.empty((len_dataset, TOP_FEATURES_DIM))
+    vettore_embeddings_real = np.empty((len_dataset, 2048))  # conterrà gli embeddings dell'inception per i reali
+    vettore_embeddings_fake = np.empty((len_dataset, 2048))  # conterrà gli embeddings dell'inception per le generate
+    vettore_embeddings_mask_real = np.empty((len_dataset, 2048)) # conterrà gli embeddings dell'inception per le maschere dei reali
+    vettore_embeddings_mask_fake = np.empty((len_dataset, 2048))
     cnt_embeddings = 0
 
     # SSIM SCORE
@@ -169,8 +169,8 @@ def start(models, dataset, len_dataset, batch_size, dataset_module, path_evaluat
 
     # IS
     inception_model = tf.keras.applications.InceptionV3(include_top=True, weights="imagenet", pooling='avg',
-                                                        input_shape=(INCEPTION_IMG_W, INCEPTION_IMG_H, INCEPTION_IMG_CH))
-    inputs = Input([TOP_FEATURES_DIM])
+                                                        input_shape=(299, 299, 3))
+    inputs = Input([2048])
     dense_layer = inception_model.layers[-1]
     dense_layer.set_weights(inception_model.layers[-1].get_weights())
     outputs = dense_layer(inputs)
