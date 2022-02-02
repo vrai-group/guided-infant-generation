@@ -24,4 +24,5 @@ if __name__ == "__main__":
         pg2.inference_on_test_set_G1(G1_NAME_WEIGHTS_FILE, save_figure=False)
     elif config.MODE == 'inference_G2':
         pg2.inference_on_test_set_G2(G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE, save_figure=False)
+    #TODO aggiungere possibilità di di solo plot_tsne avendo già le features
 
