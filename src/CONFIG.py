@@ -7,7 +7,7 @@ import shutil
 class Config:
     def __init__(self):
         self._load_enviroment_variable()
-        self._load_path()
+        self._load_general_path()
         self._load_dataset_info()
         self._load_G1_info()
         self._load_GAN_info()
@@ -22,7 +22,7 @@ class Config:
         self.G1_NAME_WEIGHTS_FILE = 'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
         self.G2_NAME_WEIGHTS_FILE = 'Model_G2_Bibranch_epoch_184-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5499-im_0_5484-im_1_5464-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
 
-    def _load_path(self):
+    def _load_general_path(self):
         self.ROOT = '..'
         self.SRC = '.'
         self.OUTPUTS_DIR = os.path.join(self.ROOT, self.OUTPUTS_DIR)
@@ -48,6 +48,41 @@ class Config:
                 shutil.rmtree(self.OUTPUTS_DIR)
         if not os.path.exists(self.OUTPUTS_DIR):
             os.mkdir(self.OUTPUTS_DIR)
+
+    def load_train_path_G1(self):
+        self.G1_logs_dir_path = os.path.join(self.OUTPUTS_DIR, "logs", "G1")
+        self.G1_weights_path = os.path.join(self.OUTPUTS_DIR, "weights", "G1")
+        self.G1_grid_path = os.path.join(self.OUTPUTS_DIR, "grid", "G1")
+
+        os.makedirs(self.G1_logs_dir_path, exist_ok=True)
+        os.makedirs(self.G1_weights_path, exist_ok=True)
+        os.makedirs(self.G1_grid_path, exist_ok=True)
+        
+    def load_inference_path_G1(self):
+        self.G1_name_dir_test_inference = os.path.join(self.OUTPUTS_DIR, "inference_test_set_G1")
+        os.makedirs(self.G1_name_dir_test_inference, exist_ok=True)
+
+    def load_evaluate_path_G1(self):
+        self.G1_evaluation_path = os.path.join(self.OUTPUTS_DIR, "evaluation_G1")
+        os.makedirs(self.G1_evaluation_path, exist_ok=True)
+
+    def load_train_path_GAN(self):
+        self.GAN_logs_dir_path = os.path.join(self.OUTPUTS_DIR, "logs", "GAN")
+        self.GAN_weights_path = os.path.join(self.OUTPUTS_DIR, "weights", "GAN")
+        self.GAN_grid_path = os.path.join(self.OUTPUTS_DIR, "grid", "GAN")
+
+        os.makedirs(self.GAN_logs_dir_path, exist_ok=True)
+        os.makedirs(self.GAN_weights_path, exist_ok=True)
+        os.makedirs(self.GAN_grid_path, exist_ok=True)
+
+    def load_inference_path_GAN(self):
+        self.GAN_name_dir_test_inference = os.path.join(self.OUTPUTS_DIR, "inference_test_set_GAN")
+        os.makedirs(self.GAN_name_dir_test_inference, exist_ok=True)
+
+    def load_evaluate_path_GAN(self):
+        self.GAN_evaluation_path = os.path.join(self.OUTPUTS_DIR, "evaluation_GAN")
+        os.makedirs(self.GAN_evaluation_path, exist_ok=True)
+
 
     def _load_dataset_info(self):
         # - Dataset

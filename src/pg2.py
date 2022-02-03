@@ -52,15 +52,15 @@ class PG2(object):
         file.close()
 
     def train_G1(self):
-        logs_dir_path = os.path.join(self.config.OUTPUTS_DIR, "logs")
-        os.makedirs(logs_dir_path, exist_ok=False)
-        G1_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
-        os.makedirs(G1_weights_path, exist_ok=False)
-        grid_path = os.path.join(self.config.OUTPUTS_DIR, "grid", "G1")
-        os.makedirs(grid_path, exist_ok=False)
+        self.config.load_train_path_G1()
+
+        print("-TRAINING G1")
+        print("-Salvo i pesi in: ", self.config.G1_weights_path)
+        print("-Salvo le griglie in: ", self.config.G1_grid_path)
+        print("-Salvo i logs in: ", self.config.G1_logs_dir_path)
 
         # - LOGS
-        path_history_G1 = os.path.join(logs_dir_path, 'history_G1.npy')
+        path_history_G1 = os.path.join(self.config.G1_logs_dir_path, 'history_G1.npy')
         history_G1 = {'epoch': 0,
                       'loss_train': np.empty((self.config.G1_epochs)),
                       'ssim_train': np.empty((self.config.G1_epochs)),
@@ -148,7 +148,7 @@ class PG2(object):
                 # Grid
                 if epoch % self.config.G1_save_grid_ssim_epoch_train == self.config.G1_save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], grid_path, type_dataset="train")
+                                    logs_to_print['mask_ssim_train'][id_batch], self.config.G1_grid_path, type_dataset="train")
 
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> \
@@ -172,7 +172,7 @@ class PG2(object):
 
                 if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], grid_path, type_dataset="valid")
+                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.G1_grid_path, type_dataset="valid")
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
@@ -200,7 +200,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid']),
                 val_m_ssim=np.mean(logs_to_print['ssim_valid']),
                 val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
-            filepath = os.path.join(G1_weights_path, name_model)
+            filepath = os.path.join(self.config.G1_weights_path, name_model)
             self.G1.save_weights(filepath)
 
             # --Update learning rate
@@ -262,15 +262,19 @@ class PG2(object):
 
     def train_cDCGAN(self):
         # Note: G1 è preaddestrato
-        logs_dir_path = os.path.join(self.config.OUTPUTS_DIR, "logs")
-        os.makedirs(logs_dir_path, exist_ok=False)
-        GAN_weights_path = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
-        os.makedirs(GAN_weights_path, exist_ok=False)
-        grid_path = os.path.join(self.config.OUTPUTS_DIR, "grid", "GAN")
-        os.makedirs(grid_path, exist_ok=False)
+        self.config.load_train_path_G1()
+        self.config.load_train_path_GAN()
+        G1_NAME_WEIGHTS_FILE = os.path.join(self.config.G1_weights_path, self.config.G1_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G1_NAME_WEIGHTS_FILE)
+
+        print("-TRAINING cDCGAN")
+        print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
+        print("-Salvo i pesi in: ", self.config.GAN_weights_path)
+        print("-Salvo le griglie in: ", self.config.GAN_grid_path)
+        print("-Salvo i logs in: ", self.config.GAN_logs_dir_path)
 
         # -History del training
-        path_history_GAN = os.path.join(logs_dir_path, 'history_GAN.npy')
+        path_history_GAN = os.path.join(self.config.GAN_logs_dir_path, 'history_GAN.npy')
         history_GAN = {'epoch': 0,
                        'loss_train_G2': np.empty((self.config.GAN_epochs)),
                        'loss_train_D': np.empty((self.config.GAN_epochs)),
@@ -320,7 +324,7 @@ class PG2(object):
         num_batches_valid = self.config.dataset_valid_len // self.config.GAN_batch_size_valid
 
         # Carico il modello preaddestrato G1
-        self.G1.model.load_weights(self.config.G1_NAME_WEIGHTS_FILE)
+        self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
         #self.model_G1.summary()
 
         # TRAIN: epoch
@@ -363,7 +367,7 @@ class PG2(object):
                 # GRID
                 if epoch % self.config.GAN_save_grid_ssim_epoch_train == self.config.GAN_save_grid_ssim_epoch_train.save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], grid_path, type_dataset="train")
+                                    logs_to_print['mask_ssim_train'][id_batch], self.config.GAN_grid_path, type_dataset="train")
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2f}, '
                                  'loss_D: {loss_D:2f}, loss_D_fake: {loss_D_fake:2f}, loss_D_real: {loss_D_real:2f}, '
@@ -401,7 +405,7 @@ class PG2(object):
 
                 if epoch % self.config.GAN_save_grid_ssim_epoch_valid == self.config.GAN_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch],grid_path, type_dataset="train")
+                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.GAN_grid_path, type_dataset="train")
 
             sys.stdout.write('')
             sys.stdout.write('\r\r'
@@ -450,7 +454,7 @@ class PG2(object):
                 val_im_0=int(np.sum(logs_to_print['img_0_valid'])),
                 val_im_1=int(np.sum(logs_to_print['img_1_valid'])),
             )
-            filepath = os.path.join(GAN_weights_path, name_model)
+            filepath = os.path.join(self.config.GAN_weights_path, name_model)
             self.G2.models.save_weights(filepath)
 
             # D
@@ -468,7 +472,7 @@ class PG2(object):
                 val_loss=np.mean(logs_to_print['loss_values_valid_D']),
                 val_loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
                 val_loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']))
-            filepath = os.path.join(GAN_weights_path, name_model)
+            filepath = os.path.join(self.config.GAN_weights_path, name_model)
             self.D.model.save_weights(filepath)
 
             # --Save logs
@@ -620,15 +624,15 @@ class PG2(object):
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
     def inference_on_test_set_G1(self):
-        name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G1")
-        os.makedirs(name_dir_to_save_img, exist_ok=False)
+        self.config.load_train_path_G1()
+        self.config.load_inference_path_G1()
         G1_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G1_NAME_WEIGHTS_FILE)
         assert os.path.exists(G1_NAME_WEIGHTS_FILE)
 
         print("\nINFERENZA DI G1 SU TEST SET")
         print("-Procedo alla predizione su G1")
         print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
-        print("-Le predizioni saranno salvate in: ", name_dir_to_save_img)
+        print("-Le predizioni saranno salvate in: ", self.config.G1_name_dir_test_inference)
 
 
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
@@ -684,7 +688,7 @@ class PG2(object):
             pz_1 = pz_1.numpy()[0].decode("utf-8")
             id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
             id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
-            name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+            name_img = os.path.join(self.config.G1_name_dir_test_inference, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
                                         id=cnt_img,
                                         pz_0=pz_0,
                                         pz_1=pz_1,
@@ -694,9 +698,9 @@ class PG2(object):
             plt.close(fig)
 
     def inference_on_test_set_G2(self):
-        name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G2")
-        os.makedirs(name_dir_to_save_img, exist_ok=False)
-
+        self.config.load_train_path_G1()
+        self.config.load_train_path_GAN()
+        self.config.load_inference_path_GAN()
         G1_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G1_NAME_WEIGHTS_FILE)
         G2_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G2_NAME_WEIGHTS_FILE)
         assert os.path.exists(G1_NAME_WEIGHTS_FILE)
@@ -706,7 +710,7 @@ class PG2(object):
         print("-Procedo alla predizione su G2")
         print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
         print("-Pesi di G2 caricati: ", G2_NAME_WEIGHTS_FILE)
-        print("-Le predizioni saranno salvate in: ", name_dir_to_save_img)
+        print("-Le predizioni saranno salvate in: ", self.config.GAN_name_dir_test_inference)
 
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
@@ -765,7 +769,7 @@ class PG2(object):
             pz_1 = pz_1.numpy()[0].decode("utf-8")
             id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
             id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
-            name_img = os.path.join(name_dir_to_save_img, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+            name_img = os.path.join(self.config.GAN_name_dir_test_inference, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
                                         id=i,
                                         pz_0=pz_0,
                                         pz_1=pz_1,
@@ -775,34 +779,33 @@ class PG2(object):
             plt.savefig(name_img)
             plt.close(fig)
 
-    # Valutazione metrice IS e FID
+    # Valutazione metrice IS e FID su tutti i weights
     def evaluate_G1(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
-        G1_weights_dir = os.path.join(self.config.OUTPUTS_DIR, "weights", "G1")
-        evaluation_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "G1")
-        os.makedirs(evaluation_path, exist_ok=False)
+        self.config.load_train_path_G1()
+        self.config.load_evaluate_path_G1()
 
         print("\nEVALUATE di G1")
         print("-Procedo alla valutazione di G1")
-        print("-I file saranno salvati in: ", evaluation_path)
-        print("-La cartella in cui cerco i pesi di G1 è: ", G1_weights_dir)
+        print("-I file saranno salvati in: ", self.config.G1_evaluation_path)
+        print("-La cartella in cui cerco i pesi di G1 è: ", self.config.G1_weights_path)
 
         # Dataset
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
-        for weight_G1 in os.listdir(G1_weights_dir):
+        for weight_G1 in os.listdir(self.config.G1_weights_path):
             num_epoch = weight_G1.split('-')[0].split('_')[-1]
             print("--Valutazione epoca: ", num_epoch)
 
             # Directory
-            path_evaluation = os.path.join(evaluation_path, analysis_set+'_score_epoch_'+num_epoch) # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(self.config.G1_evaluation_path, analysis_set+'_score_epoch_'+num_epoch) # directory dove salvare i risultati degli score
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
             os.makedirs(path_evaluation, exist_ok=True)
             os.makedirs(path_embeddings, exist_ok=True)
 
             # Model
-            self.G1.model.load_weights(os.path.join(G1_weights_dir, weight_G1))
+            self.G1.model.load_weights(os.path.join(self.config.G1_weights_path, weight_G1))
 
             # Pipiline score
             utils.evaluation.start([self.G1], iter(dataset), dataset_len, batch_size,
@@ -810,32 +813,36 @@ class PG2(object):
                                 path_embeddings=path_embeddings)
 
     def evaluate_GAN(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
-        GAN_weights_dir = os.path.join(self.config.OUTPUTS_DIR, "weights", "GAN")
-        evaluation_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "GAN")
-        os.makedirs(evaluation_path, exist_ok=False)
+        self.config.load_train_path_G1()
+        self.config.load_train_path_GAN()
+        self.config.load_evaluate_path_GAN()
+        G1_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G1_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G1_NAME_WEIGHTS_FILE)
 
         print("\nEVALUATE di GAN")
         print("-Procedo alla valutazione di GAN")
-        print("-I file saranno salvati in: ", evaluation_path)
-        print("-La cartella in cui cerco i pesi di G1 è: ", GAN_weights_dir)
+        print("-I file saranno salvati in: ", self.config.GAN_evaluation_path)
+        print("-La cartella in cui cerco i pesi di G1 è: ", self.config.GAN_weights_path)
 
         # Dataset
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
-        for weight_G2 in os.listdir(GAN_weights_dir):
+        self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
+
+        for weight_G2 in os.listdir(self.config.GAN_weights_path):
             num_epoch = weight_G2.split('-')[0].split('_')[-1]
             print("--Valutazione epoca: ", num_epoch)
 
             # Directory
-            path_evaluation = os.path.join(evaluation_path, analysis_set + '_score_epoch_' + num_epoch)  # directory dove salvare i risultati degli score
+            path_evaluation = os.path.join(self.config.GAN_evaluation_path, analysis_set + '_score_epoch_' + num_epoch)  # directory dove salvare i risultati degli score
             path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
             os.makedirs(path_evaluation, exist_ok=True)
             os.makedirs(path_embeddings, exist_ok=True)
 
             # Model
-            self.G2.model.load_weights(os.path.join(GAN_weights_dir, weight_G2))
+            self.G2.model.load_weights(os.path.join(self.config.GAN_weights_path, weight_G2))
 
             # Pipiline score
             utils.evaluation.start([self.G1, self.G2], iter(dataset), dataset_len, batch_size,
