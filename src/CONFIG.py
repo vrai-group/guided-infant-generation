@@ -6,13 +6,13 @@ import shutil
 
 class Config:
     def __init__(self):
-        self._load_enviroment_variable()
-        self._load_general_path()
-        self._load_dataset_info()
-        self._load_G1_info()
-        self._load_GAN_info()
+        self.__load_enviroment_variable()
+        self.__load_general_path()
+        self.__load_dataset_info()
+        self.__load_G1_info()
+        self.__load_GAN_info()
 
-    def _load_enviroment_variable(self):
+    def __load_enviroment_variable(self):
         self.MODE = "inference_G2"  # ['train_G1', 'train_cDCGAN' 'evaluate_G1', 'evaluate_G2', 'inference_G1', 'inference_G2]
         self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "negative_no_flip_camp_5_keypoints_2_mask_1"
@@ -22,7 +22,7 @@ class Config:
         self.G1_NAME_WEIGHTS_FILE = 'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
         self.G2_NAME_WEIGHTS_FILE = 'Model_G2_Bibranch_epoch_184-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5499-im_0_5484-im_1_5464-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
 
-    def _load_general_path(self):
+    def __load_general_path(self):
         self.ROOT = '..'
         self.SRC = '.'
         self.OUTPUTS_DIR = os.path.join(self.ROOT, self.OUTPUTS_DIR)
@@ -42,7 +42,7 @@ class Config:
         assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0] + ".py"))
         #-OUTPUTS
         if os.path.exists(self.OUTPUTS_DIR):
-            r_v = input("La cartella di output esiste già. Sovrascriverla? Yes[Y] No[N]")
+            r_v = input("La cartella di output esiste già. Sovrascriverla? Questo comporterà la perdita di tutti i dati Yes[Y] No[N]")
             assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
             if r_v == "Y" or r_v == "y":
                 shutil.rmtree(self.OUTPUTS_DIR)
@@ -57,7 +57,7 @@ class Config:
         os.makedirs(self.G1_logs_dir_path, exist_ok=True)
         os.makedirs(self.G1_weights_path, exist_ok=True)
         os.makedirs(self.G1_grid_path, exist_ok=True)
-        
+
     def load_inference_path_G1(self):
         self.G1_name_dir_test_inference = os.path.join(self.OUTPUTS_DIR, "inference_test_set_G1")
         os.makedirs(self.G1_name_dir_test_inference, exist_ok=True)
@@ -83,8 +83,7 @@ class Config:
         self.GAN_evaluation_path = os.path.join(self.OUTPUTS_DIR, "evaluation_GAN")
         os.makedirs(self.GAN_evaluation_path, exist_ok=True)
 
-
-    def _load_dataset_info(self):
+    def __load_dataset_info(self):
         # - Dataset
         self.img_H = 96  # 'input image height'
         self.img_W = 128  # 'input image width'
@@ -106,7 +105,7 @@ class Config:
             self.dataset_valid_list = dic['valid']['list_pz']
             self.dataset_test_list = dic['test']['list_pz']
 
-    def _load_G1_info(self):
+    def __load_G1_info(self):
         self.G1_epochs = 100
         self.G1_batch_size_train = 16  # grandezza del batch_size
         self.G1_batch_size_valid = 16  # grandezza del batch_size
@@ -115,7 +114,7 @@ class Config:
         self.G1_save_grid_ssim_epoch_train = 1
         self.G1_save_grid_ssim_epoch_valid = 1
 
-    def _load_GAN_info(self):
+    def __load_GAN_info(self):
         self.GAN_epochs = 200
         self.GAN_batch_size_train = 16  # grandezza del batch_size
         self.GAN_batch_size_valid = 16

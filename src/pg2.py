@@ -143,7 +143,7 @@ class PG2(object):
             for id_batch in range(num_batches_train):
                 batch = next(train_aug_iterator)
                 logs_to_print['loss_values_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
-                logs_to_print['mask_ssim_train'][id_batch], I_PT1 = self._train_on_batch_G1(batch)
+                logs_to_print['mask_ssim_train'][id_batch], I_PT1 = self.__train_on_batch_G1(batch)
 
                 # Grid
                 if epoch % self.config.G1_save_grid_ssim_epoch_train == self.config.G1_save_grid_ssim_epoch_train - 1:
@@ -168,7 +168,7 @@ class PG2(object):
             for id_batch in range(num_batches_valid):
                 batch = next(valid_aug_iterator)
                 logs_to_print['loss_values_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
-                logs_to_print['mask_ssim_valid'][id_batch], I_PT1 = self._valid_on_batch_G1(batch)
+                logs_to_print['mask_ssim_valid'][id_batch], I_PT1 = self.__valid_on_batch_G1(batch)
 
                 if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
@@ -221,7 +221,7 @@ class PG2(object):
 
         print("#############\n\n")
 
-    def _train_on_batch_G1(self, batch):
+    def __train_on_batch_G1(self, batch):
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
         Pt = batch[2]  # [batch, 96,128, 14]
@@ -241,7 +241,7 @@ class PG2(object):
 
         return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
-    def _valid_on_batch_G1(self, batch):
+    def __valid_on_batch_G1(self, batch):
 
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
@@ -362,7 +362,7 @@ class PG2(object):
                 logs_to_print['r_r_train'][id_batch], logs_to_print['img_0_train'][id_batch], \
                 logs_to_print['img_1_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
                 logs_to_print['mask_ssim_train'][id_batch], I_PT2 = \
-                    self._train_on_batch_cDCGAN(id_batch, batch)
+                    self.__train_on_batch_cDCGAN(id_batch, batch)
 
                 # GRID
                 if epoch % self.config.GAN_save_grid_ssim_epoch_train == self.config.GAN_save_grid_ssim_epoch_train.save_grid_ssim_epoch_train - 1:
@@ -398,7 +398,7 @@ class PG2(object):
                 logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][id_batch], \
                 logs_to_print['r_r_valid'][id_batch], logs_to_print['img_0_valid'][id_batch], \
                 logs_to_print['img_1_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
-                logs_to_print['mask_ssim_valid'][id_batch], I_PT2 = self._valid_on_batch_cDCGAN(batch)
+                logs_to_print['mask_ssim_valid'][id_batch], I_PT2 = self.__valid_on_batch_cDCGAN(batch)
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
@@ -507,7 +507,7 @@ class PG2(object):
 
             print("#######")
 
-    def _train_on_batch_cDCGAN(self, id_batch, batch):
+    def __train_on_batch_cDCGAN(self, id_batch, batch):
 
         def _tape(loss_function_G2, loss_function_D):
             with tf.GradientTape() as tape:
@@ -577,7 +577,7 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
-    def _valid_on_batch_cDCGAN(self, batch):
+    def __valid_on_batch_cDCGAN(self, batch):
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
         Pt = batch[2]  # [batch, 96,128, 14]
@@ -812,6 +812,7 @@ class PG2(object):
                                 dataset_module=self.dataset_module, path_evaluation=path_evaluation,
                                 path_embeddings=path_embeddings)
 
+    # Valutazione metrice IS e FID su tutti i weights
     def evaluate_GAN(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
         self.config.load_train_path_G1()
         self.config.load_train_path_GAN()
