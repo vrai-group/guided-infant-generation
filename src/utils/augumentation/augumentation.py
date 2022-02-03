@@ -217,7 +217,7 @@ def _aug_flip(dic_data):
 
     return dic_data
 
-
+#TODO: uniformare con dict in 0_Pose_Mask
 ###################################################################
 """
 name_tfrecord: path relativo al tfrecord
@@ -252,8 +252,8 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
 
         dic_data = {
 
-            'pz_0': pz_0.numpy()[0].decode('utf-8'),  # nome del pz
-            'pz_1': pz_1.numpy()[0].decode('utf-8'),
+            'pz_condition': pz_0.numpy()[0].decode('utf-8'),  # nome del pz
+            'pz_target': pz_1.numpy()[0].decode('utf-8'),
 
             'image_name_0': name_0.numpy()[0].decode('utf-8'),  # nome dell immagine 0
             'image_name_1': name_1.numpy()[0].decode('utf-8'),  # nome dell immagine 1

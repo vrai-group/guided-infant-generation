@@ -48,7 +48,6 @@ def bytes_feature(values):
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
 
-
 ####################################
 # Utils pda utilizzare nel training
 ####################################

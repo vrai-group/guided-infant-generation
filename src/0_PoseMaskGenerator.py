@@ -13,7 +13,7 @@ import pandas as pd
 import tensorflow as tf
 from skimage.morphology import square, dilation, erosion
 
-from utils import dataset_utils
+from utils.utils_methods import int64_feature, float_feature, bytes_feature
 
 """
 # Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
@@ -108,7 +108,7 @@ Maschera con shape [height, width, 1]
 """
 
 
-def _getPoseMask(peaks, height, width, radius_head=60, radius=4, dilatation=10):
+def _getSegmentationMask(peaks, height, width, radius_head=60, radius=4, dilatation=10):
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
                [1, 2], [2, 3],  # braccio dx
                [3, 4], [4, 5],  # collo
@@ -196,39 +196,37 @@ Crezione dell example da aggiungere al TF Record
 def _format_example(dic):
     example = tf.train.Example(features=tf.train.Features(feature={
 
-        'pz_0': dataset_utils.bytes_feature(dic["pz_0"].encode('utf-8')),  # nome del pz
-        'pz_1': dataset_utils.bytes_feature(dic["pz_1"].encode('utf-8')),
+        'pz_condition': bytes_feature(dic["pz_condition"].encode('utf-8')),  # nome del pz di condizione
+        'pz_target': bytes_feature(dic["pz_target"].encode('utf-8')), # nome del pz di target
 
-        'image_name_0': dataset_utils.bytes_feature(dic["image_name_0"].encode('utf-8')),  # nome dell immagine 0
-        'image_name_1': dataset_utils.bytes_feature(dic["image_name_1"].encode('utf-8')),  # nome dell immagine 1
-        'image_raw_0': dataset_utils.bytes_feature(dic["image_raw_0"].tostring()),  # immagine 0 in bytes
-        'image_raw_1': dataset_utils.bytes_feature(dic["image_raw_1"].tostring()),  # immagine 1 in bytes
+        'Ic_image_name': bytes_feature(dic["Ic_image_name"].encode('utf-8')),  # nome dell immagine di condizione
+        'It_image_name': bytes_feature(dic["It_image_name"].encode('utf-8')),  # nome dell immagine di target
+        'Ic': bytes_feature(dic["Ic"].tostring()),  # immagine di condizione
+        'It': bytes_feature(dic["It"].tostring()),  # immagine target
 
-        'image_format': dataset_utils.bytes_feature('PNG'.encode('utf-8')),
-        'image_height': dataset_utils.int64_feature(96),
-        'image_width': dataset_utils.int64_feature(128),
+        'image_format': bytes_feature('PNG'.encode('utf-8')),
+        'image_height': int64_feature(96),
+        'image_width': int64_feature(128),
 
-        "original_peaks_0": dataset_utils.bytes_feature(np.array(dic["original_peaks_0"]).astype(np.int64).tostring()),
-        "original_peaks_1": dataset_utils.bytes_feature(np.array(dic["original_peaks_1"]).astype(np.int64).tostring()),
-        'shape_len_original_peaks_0': dataset_utils.int64_feature(np.array(dic["original_peaks_0"]).shape[0]),
-        'shape_len_original_peaks_1': dataset_utils.int64_feature(np.array(dic["original_peaks_1"]).shape[0]),
+        # valori delle coordinate originali della posa ridimensionati a 96x128
+        'Ic_original_keypoints': bytes_feature(np.array(dic["Ic_original_keypoints"]).astype(np.int64).tostring()),
+        'It_original_keypoints': bytes_feature(np.array(dic["It_original_keypoints"]).astype(np.int64).tostring()),
+        'shape_len_Ic_original_keypoints': int64_feature(np.array(dic["Ic_original_keypoints"]).shape[0]),
+        'shape_len_It_original_keypoints': int64_feature(np.array(dic["It_original_keypoints"]).shape[0]),
 
-        'pose_mask_r4_0': dataset_utils.int64_feature(dic["pose_mask_r4_0"].astype(np.uint8).flatten().tolist()),
-        # maschera binaria a radius 4 con shape [96, 128, 1]
-        'pose_mask_r4_1': dataset_utils.int64_feature(dic["pose_mask_r4_1"].astype(np.uint8).flatten().tolist()),
-        # maschera binaria a radius 4 con shape [96, 128, 1]
+        # maschera binaria a radius (r_k) con shape [96, 128, 1]
+        'Mc': int64_feature(dic["Mc"].astype(np.uint8).flatten().tolist()),
+        'Mt': int64_feature(dic["Mt"].astype(np.uint8).flatten().tolist()),
 
-        'indices_r4_0': dataset_utils.bytes_feature(np.array(dic["indices_r4_0"]).astype(np.int64).tostring()),
-        # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
-        'values_r4_0': dataset_utils.bytes_feature(np.array(dic["values_r4_0"]).astype(np.int64).tostring()),
-        # coordinate a radius 4 dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
-        'indices_r4_1': dataset_utils.bytes_feature(np.array(dic["indices_r4_1"]).astype(np.int64).tostring()),
-        # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
-        'values_r4_1': dataset_utils.bytes_feature(np.array(dic["values_r4_1"]).astype(np.int64).tostring()),
-        'shape_len_indices_0': dataset_utils.int64_feature(np.array(dic["indices_r4_0"]).shape[0]),
-        'shape_len_indices_1': dataset_utils.int64_feature(np.array(dic["indices_r4_1"]).shape[0]),
+        # Sparse tensor per la posa. Gli indici e i valori considerano il riempimento (ingrandimento) del Keypoints di raggio r_k
+        'Ic_indices': bytes_feature(np.array(dic["Ic_indices"]).astype(np.int64).tostring()),
+        'Ic_values': bytes_feature(np.array(dic["Ic_values"]).astype(np.int64).tostring()),
+        'It_indices': bytes_feature(np.array(dic["It_indices"]).astype(np.int64).tostring()),
+        'It_values': bytes_feature(np.array(dic["It_values"]).astype(np.int64).tostring()),
+        'shape_len_Ic_indices': int64_feature(np.array(dic["Ic_indices"]).shape[0]),
+        'shape_len_It_indices': int64_feature(np.array(dic["It_indices"]).shape[0]),
 
-        'radius_keypoints': dataset_utils.int64_feature(radius_keypoints_pose),
+        'radius_keypoints': int64_feature(radius_keypoints_pose), # valore del raggio (r_k) della posa
 
     }))
 
@@ -241,93 +239,87 @@ Crezione dei dati
 """
 
 
-def _format_data(id_pz_0, id_pz_1, annotations_0, annotations_1,
-                 radius_keypoints_pose, radius_keypoints_mask,
+def _format_data(id_pz_0, id_pz_1, Ic_annotations, It_annotations, radius_keypoints_pose, radius_keypoints_mask,
                  radius_head_mask, dilatation):
-    pz_0 = 'pz' + str(id_pz_0)
-    pz_1 = 'pz' + str(id_pz_1)
+
+    pz_condition = 'pz' + str(id_pz_0)
+    pz_target = 'pz' + str(id_pz_1)
 
     # Read the image info:
-    name_img_0_16_bit = annotations_0['image'].split('_')[0] + '_16bit.png'
-    name_img_1_16_bit = annotations_1['image'].split('_')[0] + '_16bit.png'
-    img_path_0 = os.path.join(dir_data, pz_0, name_img_0_16_bit)
-    img_path_1 = os.path.join(dir_data, pz_1, name_img_1_16_bit)
+    name_img_condition_16_bit = Ic_annotations['image'].split('_')[0] + '_16bit.png'
+    name_img_target_16_bit = It_annotations['image'].split('_')[0] + '_16bit.png'
+    img_path_condition = os.path.join(dir_data, pz_condition, name_img_condition_16_bit)
+    img_path_target = os.path.join(dir_data, pz_target, name_img_target_16_bit)
 
     # Read immagine
-    image_0 = cv2.imread(img_path_0, cv2.IMREAD_UNCHANGED)  # [480,640]
-    image_1 = cv2.imread(img_path_1, cv2.IMREAD_UNCHANGED)  # [480,640]
-    height, width = image_0.shape[0], image_0.shape[1]
+    Ic = cv2.imread(img_path_condition, cv2.IMREAD_UNCHANGED)  # [480,640]
+    It = cv2.imread(img_path_target, cv2.IMREAD_UNCHANGED)  # [480,640]
+    height, width = Ic.shape[0], Ic.shape[1]
 
-    ### Pose coodinate
+    #### Image Ic
+    keypoints_condition = Ic_annotations[1:]  # annotation_0[1:] --> poichè tolgo il campo image
+    Mc = _getSegmentationMask(keypoints_condition, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation)  # [480,640,1]
 
-    ### Pose image 0 a radius 4
-    peaks = annotations_0[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_0 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation)  # [480,640,1]
-
-    ### Resize a 96x128 pose 0
-    image_0 = cv2.resize(image_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
-    peaks_resized_0 = []
-    # resize dei peaks
-    for k in range(len(peaks)):
-        p = peaks[k]  # coordinate peak ex: "300,200" type string
-        x = int(p.split(',')[0])  # column
-        y = int(p.split(',')[1])  # row
+    #### Resize a 96x128
+    Ic = cv2.resize(Ic, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
+    keypoints_resized_condition = []
+    # Resize dei peaks a 96x128
+    for i in range(len(keypoints_condition)):
+        kp = keypoints_condition[i]  # coordinate peak ex: "300,200" type string
+        x = int(kp.split(',')[0])  # column
+        y = int(kp.split(',')[1])  # row
         if x != -1 and y != -1:
-            peaks_resized_0.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
+            keypoints_resized_condition.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
-            peaks_resized_0.append([x, y])
-    indices_r4_0, values_r4_0 = _getSparsePose(peaks_resized_0, height, width,
-                                               radius_keypoints_pose, mode='Solid')  # shape
-    pose_mask_r4_0 = cv2.resize(pose_mask_r4_0, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,
-                                                                                                          1)  # [96, 128, 1]
+            keypoints_resized_condition.append([x, y])
+    Ic_indices, Ic_values = _getSparsePose(keypoints_resized_condition, height, width,  radius_keypoints_pose, mode='Solid')
+    # Resize della maschera
+    Mc = cv2.resize(Mc, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,1)  # [96, 128, 1]
 
-    #### Pose 1 radius 4
-    peaks = annotations_1[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    pose_mask_r4_1 = _getPoseMask(peaks, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,
-                                  dilatation=dilatation)
+    #### Pose image It
+    keypoints_target = It_annotations[1:]  # annotation_0[1:] --> poichè tolgo il campo image
+    Mt = _getSegmentationMask(keypoints_target, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,
+                              dilatation=dilatation)
 
-    ## Reshape a 96x128 pose 1
-    image_1 = cv2.resize(image_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
-    peaks_resized_1 = []
+    ## Resizea 96x128
+    It = cv2.resize(It, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
+    keypoints_resized_target = []
     # resize dei peaks
-    for k in range(len(peaks)):
-        p = peaks[k]  # coordinate peak ex: "300,200" type string
-        x = int(p.split(',')[0])  # column
-        y = int(p.split(',')[1])  # row
+    for i in range(len(keypoints_target)):
+        kp = keypoints_target[i]  # coordinate peak ex: "300,200" type string
+        x = int(kp.split(',')[0])  # column
+        y = int(kp.split(',')[1])  # row
         if y != -1 and x != -1:
-            peaks_resized_1.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
+            keypoints_resized_target.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
-            peaks_resized_1.append([x, y])
-    indices_r4_1, values_r4_1 = _getSparsePose(peaks_resized_1, height, width, radius_keypoints_pose,
-                                               mode='Solid')  # shape
-    pose_mask_r4_1 = cv2.resize(pose_mask_r4_1, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,
-                                                                                                          1)  # [96, 128, 1]
+            keypoints_resized_target.append([x, y])
+    It_indices, It_values = _getSparsePose(keypoints_resized_target, height, width, radius_keypoints_pose, mode='Solid')
+    # Resize mask
+    Mt = cv2.resize(Mt, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
 
     dic_data = {
 
-        'pz_0': pz_0,  # nome del pz
-        'pz_1': pz_1,
+        'pz_condition': pz_condition,  # nome del pz di condizione
+        'pz_target': pz_target, # nome del pz di target
 
-        'image_name_0': name_img_0_16_bit,  # nome dell immagine 0
-        'image_name_1': name_img_1_16_bit,  # nome dell immagine 1
-        'image_raw_0': image_0,  # immagine 0 in bytes
-        'image_raw_1': image_1,  # immagine 1 in bytes
+        'Ic_image_name': name_img_condition_16_bit,  # nome dell immagine di condizione
+        'It_image_name': name_img_target_16_bit,  # nome dell immagine di target
+        'Ic': Ic,  # immagine di condizione in bytes
+        'It': It,  # immagine target in bytes
 
-        'original_peaks_0': peaks_resized_0,  # peaks ridimensionati a 96x128
-        'original_peaks_1': peaks_resized_1,
+        'Ic_original_keypoints': keypoints_resized_condition,  # valori delle coordinate originali della posa ridimensionati a 96x128
+        'It_original_keypoints': keypoints_resized_target,
 
-        'pose_mask_r4_0': pose_mask_r4_0,
-        # maschera binaria a radius 4 con shape [96, 128, 1]
-        'pose_mask_r4_1': pose_mask_r4_1,
-        # maschera binaria a radius 4 con shape [96, 128, 1]
+        'Mc': Mc, # maschera binaria a radius con shape [96, 128, 1]
+        'Mt': Mt,  # maschera binaria a radius 4 con shape [96, 128, 1]
 
-        'indices_r4_0': indices_r4_0,
-        # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
-        'values_r4_0': values_r4_0,
-        # coordinate a radius 4 dei keypoints dell'immagine 0, servono per ricostruire il vettore di sparse, [num_indices, 3]
-        'indices_r4_1': indices_r4_1,
-        # coordinate a radius 4 (quindi anche con gli indici del riempimento del keypoint) dei keypoints dell'immagine 1, servono per ricostruire il vettore di sparse [num_indices, 3]
-        'values_r4_1': values_r4_1
+        # Sparse tensors
+        # Definizione delle coordinate (quindi anche con gli indici del riempimento del keypoint in base al raggio)
+        # dei keypoints dell'immagine di condizione, servono per ricostruire il vettore di sparse, [num_indices, 3]
+        'Ic_indices': Ic_indices,
+        'Ic_values': Ic_values,
+        'It_indices': It_indices,
+        'It_values': It_values
 
     }
 
@@ -461,9 +453,9 @@ if __name__ == '__main__':
     lista_pz_test = [104, 108]
 
     # General information
-    radius_keypoints_pose = 1
-    radius_keypoints_mask = 1
-    radius_head_mask = 30
+    radius_keypoints_pose = 2 # r_k
+    radius_keypoints_mask = 2
+    radius_head_mask = 30 # r_h
     dilatation = 25
     campionamento = 5
     flip = False  # Aggiunta dell example con flip verticale
@@ -483,13 +475,8 @@ if __name__ == '__main__':
     output_filename_valid = os.path.join(dir_save_tfrecord, name_tfrecord_valid)
     output_filename_test = os.path.join(dir_save_tfrecord, name_tfrecord_test)
 
-    r_tr = None
-    r_v = None
-    r_te = None
-
-    tot_train = None
-    tot_valid = None
-    tot_test = None
+    r_tr, r_v, r_te = None, None, None
+    tot_train, tot_valid, tot_test = None, None, None
 
     if os.path.exists(output_filename_train):
         r_tr = input("Il tf record di train esiste già. Sovrascriverlo? Yes[Y] No[N]")

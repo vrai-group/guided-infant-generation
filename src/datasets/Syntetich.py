@@ -21,31 +21,34 @@ def unprocess_image(image, mean_pixel, norm):
 ##########################
 example_description = {
 
-    'pz_0': tf.io.FixedLenFeature([], tf.string),  # nome del pz
-    'pz_1': tf.io.FixedLenFeature([], tf.string),
+    'pz_condition': tf.io.FixedLenFeature([], tf.string),  # nome del pz condition
+    'pz_target': tf.io.FixedLenFeature([], tf.string),  # nome del pz target
 
-    'image_name_0': tf.io.FixedLenFeature([], tf.string),  # nome img
-    'image_name_1': tf.io.FixedLenFeature([], tf.string),
-    'image_raw_0': tf.io.FixedLenFeature([], tf.string),  # Condizione
-    'image_raw_1': tf.io.FixedLenFeature([], tf.string),  # Target
+    'Ic_image_name': tf.io.FixedLenFeature([], tf.string),  # nome img condition
+    'It_image_name': tf.io.FixedLenFeature([], tf.string),  # nome img target
+    'Ic': tf.io.FixedLenFeature([], tf.string),  # Immagine di condizione Ic
+    'It': tf.io.FixedLenFeature([], tf.string),  # Immagine target It
 
     'image_height': tf.io.FixedLenFeature([], tf.int64, default_value=96),
     'image_width': tf.io.FixedLenFeature([], tf.int64, default_value=128),
 
-    "original_peaks_0": tf.io.FixedLenFeature((), dtype=tf.string),
-    "original_peaks_1": tf.io.FixedLenFeature((), dtype=tf.string),
-    'shape_len_original_peaks_0': tf.io.FixedLenFeature([], tf.int64),
-    'shape_len_original_peaks_1': tf.io.FixedLenFeature([], tf.int64),
+    # valori delle coordinate originali della posa ridimensionati a 96x128
+    'Ic_original_keypoints': tf.io.FixedLenFeature((), dtype=tf.string),
+    'It_original_keypoints': tf.io.FixedLenFeature((), dtype=tf.string),
+    'shape_len_Ic_original_keypoints': tf.io.FixedLenFeature([], tf.int64),
+    'shape_len_It_original_keypoints': tf.io.FixedLenFeature([], tf.int64),
 
-    'pose_mask_r4_0': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
-    'pose_mask_r4_1': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
+    # maschera binaria a radius (r_k) con shape [96, 128, 1]
+    'Mc': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
+    'Mt': tf.io.FixedLenFeature([96 * 128 * 1], tf.int64),
 
-    'indices_r4_0': tf.io.FixedLenFeature((), dtype=tf.string),
-    'values_r4_0': tf.io.FixedLenFeature((), dtype=tf.string),
-    'indices_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
-    'values_r4_1': tf.io.FixedLenFeature((), dtype=tf.string),
-    'shape_len_indices_0': tf.io.FixedLenFeature([], tf.int64),
-    'shape_len_indices_1': tf.io.FixedLenFeature([], tf.int64),
+     # Sparse tensor per la posa. Gli indici e i valori considerano il riempimento (ingrandimento) del Keypoints di raggio r_k
+    'Ic_indices': tf.io.FixedLenFeature((), dtype=tf.string),
+    'Ic_values': tf.io.FixedLenFeature((), dtype=tf.string),
+    'It_indices': tf.io.FixedLenFeature((), dtype=tf.string),
+    'It_values': tf.io.FixedLenFeature((), dtype=tf.string),
+    'shape_len_Ic_indices': tf.io.FixedLenFeature([], tf.int64),
+    'shape_len_It_indices': tf.io.FixedLenFeature([], tf.int64),
 
     'radius_keypoints': tf.io.FixedLenFeature([], tf.int64),
 }
@@ -56,48 +59,48 @@ def get_unprocess_dataset(name_tfrecord):
         example = tf.io.parse_single_example(example_proto, example_description)
 
         # NAME
-        name_0 = example['image_name_0']
-        name_1 = example['image_name_1']
+        name_condition = example['Ic_image_name']
+        name_target = example['It_image_name']
 
         # PZ
-        pz_0 = example['pz_0']
-        pz_1 = example['pz_1']
+        pz_condition = example['pz_condition']
+        pz_target = example['pz_target']
 
         # ORIGINAL_PEAKS
-        shape_len_original_peaks_0 = example['shape_len_original_peaks_0']
-        original_peaks_0 = tf.reshape(tf.io.decode_raw(example['original_peaks_0'], tf.int64),
-                                      [shape_len_original_peaks_0, 2])
+        shape_len_Ic_original_keypoints = example['shape_len_Ic_original_keypoints']
+        Ic_original_keypoints = tf.reshape(tf.io.decode_raw(example['Ic_original_keypoints'], tf.int64),
+                                      [shape_len_Ic_original_keypoints, 2])
 
-        shape_len_original_peaks_1 = example['shape_len_original_peaks_1']
-        original_peaks_1 = tf.reshape(tf.io.decode_raw(example['original_peaks_1'], tf.int64),
-                                      [shape_len_original_peaks_1, 2])
+        shape_len_It_original_keypoints = example['shape_len_It_original_keypoints']
+        It_original_keypoints = tf.reshape(tf.io.decode_raw(example['It_original_keypoints'], tf.int64),
+                                      [shape_len_It_original_keypoints, 2])
 
         # INDICES E VALUES
-        shape_len_indices_0 = example['shape_len_indices_0']
-        indices_0 = tf.reshape(tf.io.decode_raw(example['indices_r4_0'], tf.int64), [shape_len_indices_0, 3])
-        values_0 = tf.io.decode_raw(example['values_r4_0'], tf.int64)
+        shape_len_Ic_indices = example['shape_len_Ic_indices']
+        Ic_indices = tf.reshape(tf.io.decode_raw(example['Ic_indices'], tf.int64), [shape_len_Ic_indices, 3])
+        Ic_values = tf.io.decode_raw(example['Ic_values'], tf.int64)
 
-        shape_len_indices_1 = example['shape_len_indices_1']
-        indices_1 = tf.reshape(tf.io.decode_raw(example['indices_r4_1'], tf.int64), [shape_len_indices_1, 3])
-        values_1 = tf.io.decode_raw(example['values_r4_1'], tf.int64)
+        shape_len_It_indices = example['shape_len_It_indices']
+        indices_1 = tf.reshape(tf.io.decode_raw(example['It_indices'], tf.int64), [shape_len_It_indices, 3])
+        values_1 = tf.io.decode_raw(example['It_values'], tf.int64)
 
         # IMAGE
-        image_raw_0 = tf.reshape(tf.io.decode_raw(example['image_raw_0'], tf.uint16), [96, 128, 1])
-        image_raw_1 = tf.reshape(tf.io.decode_raw(example['image_raw_1'], tf.uint16), [96, 128, 1])
+        Ic = tf.reshape(tf.io.decode_raw(example['Ic'], tf.uint16), [96, 128, 1])
+        It = tf.reshape(tf.io.decode_raw(example['It'], tf.uint16), [96, 128, 1])
 
         # POSE
-        pose_0 = tf.sparse.SparseTensor(indices=indices_0, values=values_0, dense_shape=[96, 128, 14])
-        pose_1 = tf.sparse.SparseTensor(indices=indices_1, values=values_1, dense_shape=[96, 128, 14])
+        Pc = tf.sparse.SparseTensor(indices=Ic_indices, values=Ic_values, dense_shape=[96, 128, 14])
+        Pt = tf.sparse.SparseTensor(indices=indices_1, values=values_1, dense_shape=[96, 128, 14])
 
         # POSE_MASK
-        mask_0 = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
-        mask_1 = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
+        Mc = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
+        Mt = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
 
         # RADIUS KEY
         radius_keypoints = example['radius_keypoints']
 
-        return image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1, indices_0, \
-               indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints
+        return Ic, It, Pc, Pt, Mc, Mt, pz_condition, pz_target, name_condition, name_target, Ic_indices, \
+               indices_1, Ic_values, values_1, Ic_original_keypoints, It_original_keypoints, radius_keypoints
 
     reader = tf.data.TFRecordDataset(name_tfrecord)
     dataset = reader.map(_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
@@ -106,22 +109,22 @@ def get_unprocess_dataset(name_tfrecord):
 
 
 def preprocess_dataset(unprocess_dataset):
-    def _preprocess(image_raw_0, image_raw_1, pose_0, pose_1, mask_0, mask_1, pz_0, pz_1, name_0, name_1,
-                       indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
+    def _preprocess(Ic, It, Pc, Pt, Mc, Mt, pz_condition, pz_target, name_condition, name_target,
+                    indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 
-        mean_0 = tf.cast(tf.reduce_mean(image_raw_0), dtype=tf.float16)
-        mean_1 = tf.cast(tf.reduce_mean(image_raw_1), dtype=tf.float16)
-        image_raw_0 = process_image(tf.cast(image_raw_0, dtype=tf.float16), mean_0, 32765.5)
-        image_raw_1 = process_image(tf.cast(image_raw_1, dtype=tf.float16), mean_1, 32765.5)
+        mean_condition = tf.cast(tf.reduce_mean(Ic), dtype=tf.float16)
+        mean_target = tf.cast(tf.reduce_mean(It), dtype=tf.float16)
+        Ic = process_image(tf.cast(Ic, dtype=tf.float16), mean_condition, 32765.5)
+        It = process_image(tf.cast(It, dtype=tf.float16), mean_target, 32765.5)
 
-        pose_1 = tf.cast(tf.sparse.to_dense(pose_1, default_value=0, validate_indices=False), dtype=tf.float16)
-        pose_1 = pose_1 * 2
-        pose_1 = tf.math.subtract(pose_1, 1, name=None)  # rescale tra [-1, 1]
+        Pt = tf.cast(tf.sparse.to_dense(Pt, default_value=0, validate_indices=False), dtype=tf.float16)
+        Pt = Pt * 2
+        Pt = tf.math.subtract(Pt, 1, name=None)  # rescale tra [-1, 1]
 
-        mask_1 = tf.cast(tf.reshape(mask_1, (96, 128, 1)), dtype=tf.float16)
-        mask_0 = tf.cast(tf.reshape(mask_0, (96, 128, 1)), dtype=tf.float16)
+        Mt = tf.cast(tf.reshape(Mt, (96, 128, 1)), dtype=tf.float16)
+        Mc = tf.cast(tf.reshape(Mc, (96, 128, 1)), dtype=tf.float16)
 
-        return image_raw_0, image_raw_1, pose_1, mask_1, mask_0, pz_0, pz_1, name_0, name_1, mean_0, mean_1
+        return Ic, It, Pt, Mt, Mc, pz_condition, pz_target, name_condition, name_target, mean_condition, mean_target
 
 
     return unprocess_dataset.map(_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
