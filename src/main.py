@@ -17,6 +17,6 @@ if __name__ == "__main__":
         pg2.evaluate_GAN(analysis_set="test_set", name_dataset=config.name_tfrecord_test, dataset_len=config.dataset_test_len)
         pg2.tsne(key_image_interested="test_20")  # id immagine ottenuto dalla inference
     elif config.MODE == 'inference_G1':
-        pg2.inference_on_test_set_G1(config.G1_NAME_WEIGHTS_FILE)
+        pg2.inference_on_test_set_G1()
     elif config.MODE == 'inference_G2':
-        pg2.inference_on_test_set_G2(config.G1_NAME_WEIGHTS_FILE, config.G2_NAME_WEIGHTS_FILE)
+        pg2.inference_on_test_set_G2()

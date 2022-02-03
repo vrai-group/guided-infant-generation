@@ -619,13 +619,17 @@ class PG2(object):
                real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
                real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
-    def inference_on_test_set_G1(self, G1_NAME_WEIGHTS_FILE):
+    def inference_on_test_set_G1(self):
         name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G1")
         os.makedirs(name_dir_to_save_img, exist_ok=False)
+        G1_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G1_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G1_NAME_WEIGHTS_FILE)
 
         print("\nINFERENZA DI G1 SU TEST SET")
-        print("-Procedo alla valutazione di G1")
-        print("-I file saranno salvati in: ", name_dir_to_save_img)
+        print("-Procedo alla predizione su G1")
+        print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
+        print("-Le predizioni saranno salvate in: ", name_dir_to_save_img)
+
 
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
@@ -689,12 +693,20 @@ class PG2(object):
             plt.savefig(name_img)
             plt.close(fig)
 
-    def inference_on_test_set_G2(self, G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE):
+    def inference_on_test_set_G2(self):
         name_dir_to_save_img = os.path.join(self.config.OUTPUTS_DIR, "inference_test_set_G2")
         os.makedirs(name_dir_to_save_img, exist_ok=False)
 
+        G1_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G1_NAME_WEIGHTS_FILE)
+        G2_NAME_WEIGHTS_FILE = os.path.join(self.config.OUTPUTS_DIR, self.config.G2_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G1_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G2_NAME_WEIGHTS_FILE)
+
         print("\nINFERENZA DI G2 SU TEST SET")
-        print("-I file saranno salvati in: ", name_dir_to_save_img)
+        print("-Procedo alla predizione su G2")
+        print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
+        print("-Pesi di G2 caricati: ", G2_NAME_WEIGHTS_FILE)
+        print("-Le predizioni saranno salvate in: ", name_dir_to_save_img)
 
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)

@@ -19,8 +19,8 @@ class Config:
         self.ARCHITETURE = "bibranch"
         self.OUTPUTS_DIR = "output_bibranch" # nome directory in cui salvare tutti gli output durante il training
 
-        self.G1_NAME_WEIGHTS_FILE = '..\\weights\\Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
-        self.G2_NAME_WEIGHTS_FILE = '..\\weights\\Model_G2_Bibranch_epoch_184-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5499-im_0_5484-im_1_5464-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
+        self.G1_NAME_WEIGHTS_FILE = 'Model_G1_Bibranch_epoch_005-loss_0.000-ssim_0.943-mask_ssim_0.984-val_loss_0.001-val_ssim_0.917-val_mask_ssim_0.979.hdf5'
+        self.G2_NAME_WEIGHTS_FILE = 'Model_G2_Bibranch_epoch_184-loss_0.69-ssmi_0.93-mask_ssmi_1.00-r_r_5499-im_0_5484-im_1_5464-val_loss_0.70-val_ssim_0.77-val_mask_ssim_0.98-val_r_r_400-val_im_0_400-val_im_1_400.hdf5'
 
     def _load_path(self):
         self.ROOT = '..'
