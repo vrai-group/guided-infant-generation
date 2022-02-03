@@ -151,8 +151,8 @@ class PG2(object):
                                     logs_to_print['mask_ssim_train'][id_batch], self.config.G1_grid_path, type_dataset="train")
 
                 # Logs a schermo
-                sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> \
-                                  loss_G1: {loss_G1:.4f}, ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
+                sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} -->' \
+                                  'loss_G1: {loss_G1:.4f}, ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
                     epoch=epoch + 1,
                     id_batch=id_batch + 1,
                     num_batches=num_batches_train,
@@ -170,7 +170,7 @@ class PG2(object):
                 logs_to_print['loss_values_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
                 logs_to_print['mask_ssim_valid'][id_batch], I_PT1 = self.__valid_on_batch_G1(batch)
 
-                if epoch % self.config.save_grid_ssim_epoch_valid == self.config.save_grid_ssim_epoch_valid - 1:
+                if epoch % self.config.G1_save_grid_ssim_epoch_valid == self.config.G1_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
                                     logs_to_print['mask_ssim_valid'][id_batch], self.config.G1_grid_path, type_dataset="valid")
 
@@ -201,7 +201,7 @@ class PG2(object):
                 val_m_ssim=np.mean(logs_to_print['ssim_valid']),
                 val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']))
             filepath = os.path.join(self.config.G1_weights_path, name_model)
-            self.G1.save_weights(filepath)
+            self.G1.model.save_weights(filepath)
 
             # --Update learning rate
             if epoch % self.config.G1_lr_update_epoch == self.config.G1_lr_update_epoch - 1:
@@ -255,8 +255,8 @@ class PG2(object):
         loss_value_G1 = self.G1.PoseMaskloss(I_PT1, It, Mt)
 
         # METRICS
-        ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1)
-        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1)
+        ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
 
         return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
@@ -455,7 +455,7 @@ class PG2(object):
                 val_It=int(np.sum(logs_to_print['It_valid'])),
             )
             filepath = os.path.join(self.config.GAN_weights_path, name_model)
-            self.G2.models.save_weights(filepath)
+            self.G2.model.save_weights(filepath)
 
             # D
             name_model = "Model_D_epoch_{epoch:03d}-" \

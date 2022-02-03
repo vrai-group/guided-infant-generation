@@ -4,9 +4,8 @@ import sys
 import math
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
-from utils.utils_methods import bytes_feature, int64_feature, float_feature
+from src.utils.utils_methods import bytes_feature, int64_feature, float_feature
 
 
 def _getSparseKeypoint(y, x, k, height, width, radius=4, mode='Solid'):
