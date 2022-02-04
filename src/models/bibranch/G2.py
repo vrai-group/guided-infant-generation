@@ -5,7 +5,7 @@ from tensorflow import keras
 from tensorflow.keras.layers import *
 from tensorflow.keras.optimizers import Adam
 
-from src.models.Model_template import Model_Template
+from models.Model_template import Model_Template
 
 class G2(Model_Template):
 

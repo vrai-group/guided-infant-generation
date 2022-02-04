@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from utils.utils_methods import format_example
-from methods import aug_shift, aug_flip, random_brightness, random_contrast, aug_rotation_angle
+from utils.augumentation.methods import aug_shift, aug_flip, random_brightness, random_contrast, aug_rotation_angle
 
 """
 name_tfrecord: path relativo al tfrecord

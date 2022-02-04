@@ -61,7 +61,7 @@ def aug_shift(dic_data, type, indx_img, tx=0, ty=0):
 
     keypoints_shifted = []
     values_shifted = []
-    for coordinates in dic_data["I"+indx_img+"indices"]:
+    for coordinates in dic_data["I"+indx_img+"_indices"]:
         y, x, id = coordinates
 
         if type == "or":

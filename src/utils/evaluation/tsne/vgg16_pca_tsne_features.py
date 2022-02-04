@@ -17,7 +17,7 @@ from tensorflow.keras import Model
 from tensorflow.keras.applications import vgg16
 from tensorflow.keras.applications.vgg16 import VGG16
 
-from plot_tsne import _plot
+from utils.evaluation.tsne.plot_tsne import _plot
 
 def _vgg_preprocess_image(image):
 
@@ -221,6 +221,7 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_i
     for key in list(dict_data_real.keys()):
         # TODO verificare se l unione è ok
         dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
+    print(dict_features_tot)
 
     # Salvataggio del file
     name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
