@@ -3,8 +3,8 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from src.utils.utils_methods import format_example
-from src.utils.augumentation.methods import aug_shift, aug_flip, random_brightness, random_contrast, aug_rotation_angle
+from utils.utils_methods import format_example
+from methods import aug_shift, aug_flip, random_brightness, random_contrast, aug_rotation_angle
 
 """
 name_tfrecord: path relativo al tfrecord
@@ -17,7 +17,7 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
 
     cnt_dataset = 0
     sys.stdout.write("\nApplico augumentazione {name}..\n".format(name=name_dataset))
-    for id_example in range(len_dataset):  # num example
+    for id_example in range(1):  # len_dataset
         sys.stdout.write('\rExample: {id} / {tot}'.format(id=id_example + 1, tot=len_dataset))
 
         batch = next(unprocess_dataset_iterator)

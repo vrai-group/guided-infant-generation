@@ -342,9 +342,9 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
 if __name__ == '__main__':
 
     #### CONFIG ##########
-    dir_data = './data/Syntetich_complete'
-    dir_annotations = './data/Syntetich_complete/annotations'
-    dir_save_tfrecord = './data/Syntetich_complete/tfrecord/negative_no_flip_camp5_key_1_mask_1'
+    dir_data = '../data/Syntetich_complete'
+    dir_annotations = '../data/Syntetich_complete/annotations'
+    dir_save_tfrecord = '../data/Syntetich_complete/tfrecord/dataset_di_testing'
     keypoint_num = 14
 
     name_tfrecord_train = 'BabyPose_train.tfrecord'
@@ -358,9 +358,9 @@ if __name__ == '__main__':
 
     # General information
     radius_keypoints_pose = 2 # r_k
-    radius_keypoints_mask = 2
-    radius_head_mask = 30 # r_h
-    dilatation = 25
+    radius_keypoints_mask = 1
+    radius_head_mask = 40 # r_h
+    dilatation = 35
     campionamento = 5
     flip = False  # Aggiunta dell example con flip verticale
     mode = "negative"

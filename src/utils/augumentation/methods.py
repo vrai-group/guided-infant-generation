@@ -3,7 +3,7 @@ import math
 import numpy as np
 import tensorflow as tf
 
-from src.utils.utils_methods import getSparsePose
+from utils.utils_methods import getSparsePose
 
 # STRUCTURAL
 # luminoità tra max//3 e -max//3

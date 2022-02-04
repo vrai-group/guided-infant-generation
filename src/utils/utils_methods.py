@@ -50,7 +50,7 @@ def getSparsePose(peaks, height, width, radius, mode='Solid'):
         x = p[0]
         y = p[1]
         if x != -1 and y != -1:  # non considero le occlusioni indicate con -1
-            ind, val = _getSparseKeypoint(y, x, k, height, width, radius, mode)
+            ind, val = getSparseKeypoint(y, x, k, height, width, radius, mode)
             indices.extend(ind)
             values.extend(val)
     return indices, values
@@ -112,7 +112,7 @@ def format_example(dic):
         'Ic': bytes_feature(dic["Ic"].tostring()),  # immagine di condizione
         'It': bytes_feature(dic["It"].tostring()),  # immagine target
 
-        'image_format': bytes_feature(dic['image_format'].encode('utf-8')),
+        'image_format': bytes_feature(dic['image_format']),
         'image_height': int64_feature(dic['image_height']),
         'image_width': int64_feature(dic['image_width']),
 

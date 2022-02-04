@@ -93,8 +93,8 @@ def get_unprocess_dataset(name_tfrecord):
         Pt = tf.sparse.SparseTensor(indices=indices_1, values=values_1, dense_shape=[96, 128, 14])
 
         # POSE_MASK
-        Mc = tf.reshape(example['pose_mask_r4_0'], (96, 128, 1))
-        Mt = tf.reshape(example['pose_mask_r4_1'], (96, 128, 1))
+        Mc = tf.reshape(example['Mc'], (96, 128, 1))
+        Mt = tf.reshape(example['Mt'], (96, 128, 1))
 
         # RADIUS KEY
         radius_keypoints = example['radius_keypoints']
