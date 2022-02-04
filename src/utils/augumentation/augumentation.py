@@ -17,7 +17,7 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
 
     cnt_dataset = 0
     sys.stdout.write("\nApplico augumentazione {name}..\n".format(name=name_dataset))
-    for id_example in range(1):  # len_dataset
+    for id_example in range(len_dataset):  # len_dataset
         sys.stdout.write('\rExample: {id} / {tot}'.format(id=id_example + 1, tot=len_dataset))
 
         batch = next(unprocess_dataset_iterator)
