@@ -206,7 +206,7 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module):
 
     for perplexity in list_perplexity:
         print("\n- Perplexity: ", str(perplexity))
-        dict_data_generated = _obtain_tsne_real(dict_data_generated, perplexity)
+        dict_data_generated = _obtain_tsne_generated(dict_data_generated, perplexity)
 
     return dict_data_generated
 

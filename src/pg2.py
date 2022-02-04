@@ -836,7 +836,9 @@ class PG2(object):
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
 
+        # Model
         self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
+        self.G2.model.load_weights(G2_NAME_WEIGHTS_FILE)
 
         num_epoch_G1 = G1_NAME_WEIGHTS_FILE.split('-')[0].split('_')[-1]
         num_epoch_G2 = G2_NAME_WEIGHTS_FILE.split('-')[0].split('_')[-1]
@@ -850,28 +852,38 @@ class PG2(object):
         os.makedirs(path_evaluation, exist_ok=True)
         os.makedirs(path_embeddings, exist_ok=True)
 
-        # Model
-        self.G2.model.load_weights(os.path.join(self.config.GAN_weights_path, G2_NAME_WEIGHTS_FILE))
-
         # Pipiline score
         utils.evaluation.start([self.G1, self.G2], iter(dataset), dataset_len, batch_size,
                             dataset_module=self.dataset_module,  path_evaluation=path_evaluation,
                             path_embeddings=path_embeddings)
 
     def tsne(self, key_image_interested="test_20"):
+        self.config.load_train_path_G1()
+        self.config.load_train_path_GAN()
         tsne_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "tsne")
         os.makedirs(tsne_path, exist_ok=False)
+        G1_NAME_WEIGHTS_FILE = os.path.join(self.config.G1_weights_path, self.config.G1_NAME_WEIGHTS_FILE)
+        G2_NAME_WEIGHTS_FILE = os.path.join(self.config.GAN_weights_path, self.config.G2_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G2_NAME_WEIGHTS_FILE)
+        assert os.path.exists(G1_NAME_WEIGHTS_FILE)
 
         list_sets = [[self.config.name_tfrecord_train, self.config.dataset_train_len],
                      [self.config.name_tfrecord_valid, self.config.dataset_valid_len],
                      [self.config.name_tfrecord_test, self.config.dataset_test_len]]
         list_perplexity = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 100, 200, 300]
 
+        print("\nEVALUATE di GAN")
+        print("-Procedo al calcolo del tsne")
+        print("-I file saranno salvati in: ", tsne_path)
+        print("-I pesi di G1 sono ", G1_NAME_WEIGHTS_FILE)
+        print("-I pesi di G2 sono: ", G2_NAME_WEIGHTS_FILE)
+        print("-Le perplexity sono: ", list_perplexity)
+
+        # Model
+        self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
+        self.G2.model.load_weights(G2_NAME_WEIGHTS_FILE)
+
         # Obtain features
         utils.vgg16_pca_tsne_features.start(list_sets, list_perplexity,
                                             self.G1, self.G2, self.dataset_module,
                                             dir_to_save=tsne_path, save_fig_plot=True, key_image_interested=key_image_interested)
-
-
-
-

@@ -13,7 +13,7 @@ class Config:
         self.__load_GAN_info()
 
     def __load_enviroment_variable(self):
-        self.MODE = "evaluate"  # ['train_G1', 'train_cDCGAN' 'evaluate', 'inference_G1', 'inference_G2]
+        self.MODE = "tsne_GAN"  # ['train_G1', 'train_cDCGAN' 'evaluate', 'inference_G1', 'inference_G2]
         self.DATASET = "Syntetich_complete" # <nome_dataset>_[..]_[..]
         self.DATASET_type = "dataset_di_testing"
         self.ARCHITETURE = "bibranch"
