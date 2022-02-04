@@ -42,9 +42,8 @@ def _get_vgg_model():
 """
 Estrae le features da VGG16
 """
-def _extract_features_vgg_real(list_sets, dataset_module, dict_data):
-    # Extractor
-    feature_extractor = _get_vgg_model()
+def _extract_features_vgg_real(list_sets, dataset_module, dict_data, feature_extractor):
+
 
     for dataset in list_sets:
         name_dataset, dataset_len = dataset[0], dataset[1]
@@ -108,11 +107,11 @@ def _obtain_tsne_real(dict_data, perplexity):
 
     return dict_data
 
-def _start_real(list_sets, list_perplexity, dataset_module):
+def _start_real(list_sets, list_perplexity, dataset_module, feature_extractor):
     print("\nCalcolo del tsne sulle real")
 
     dict_data_real = {}
-    dict_data_real = _extract_features_vgg_real(list_sets, dataset_module, dict_data_real)
+    dict_data_real = _extract_features_vgg_real(list_sets, dataset_module, dict_data_real, feature_extractor)
     dict_data_real = _obtain_pca_real(dict_data_real)
 
     for perplexity in list_perplexity:
@@ -124,9 +123,7 @@ def _start_real(list_sets, list_perplexity, dataset_module):
 ##############################
 # GENERATED
 ##############################
-def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data):
-    # Extractor
-    feature_extractor = _get_vgg_model()
+def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data, feature_extractor):
 
     for dataset in list_sets:
         name_dataset, dataset_len = dataset[0], dataset[1]
@@ -197,11 +194,11 @@ def _obtain_tsne_generated(dict_data, perplexity):
 
     return dict_data
 
-def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module):
+def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor):
     print("\nCalcolo del tsne sulle generated")
 
     dict_data_generated = {}
-    dict_data_generated = _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data_generated)
+    dict_data_generated = _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data_generated, feature_extractor)
     dict_data_generated = _obtain_pca_real(dict_data_generated)
 
     for perplexity in list_perplexity:
@@ -211,9 +208,11 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module):
     return dict_data_generated
 
 def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_image_interested, save_fig_plot=True):
+    # Extractor
+    feature_extractor = _get_vgg_model()
 
-    dict_data_real = _start_real(list_sets, list_perplexity, dataset_module)
-    dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module)
+    dict_data_real = _start_real(list_sets, list_perplexity, dataset_module, feature_extractor)
+    dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor)
 
     # Unione dei due dizionari
     print("\n- Unisco i dizionari")
