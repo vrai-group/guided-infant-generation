@@ -4,6 +4,8 @@ Training/*
 data/**/*.txt
 results_ssim/
 logs/*.npy
+output_bibranch
+output_monobranch
 
 
 # estensioni #
@@ -18,4 +20,8 @@ logs/*.npy
 *.bak
 
 !web_page/**/*.png
-
+!data/Syntetich_complete/annotations/*.csv
+!data/Syntetich_complete/tfrecord/**/*.pkl
+!data/Syntetich_complete/*.md
+!data/Syntetich_complete/*.txt
+!data/Syntetich_complete/*.png
