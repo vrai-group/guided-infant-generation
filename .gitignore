@@ -21,6 +21,7 @@ output_monobranch
 
 !web_page/**/*.png
 !data/Syntetich_complete/annotations/*.csv
+!data/Syntetich_complete/annotations/*.png
 !data/Syntetich_complete/tfrecord/**/*.pkl
 !data/Syntetich_complete/*.md
 !data/Syntetich_complete/*.txt

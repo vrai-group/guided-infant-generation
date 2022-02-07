@@ -1,6 +1,6 @@
 Le immagini utilizzate sono prese dal dataset disponibile online: <a href="https://www.iosb.fraunhofer.de/en/competences/image-exploitation/object-recognition/sensor-networks/motion-analysis.html ">MINI-RGBD</a> (7 Gb).
 <br>
-Di seguito è descritto ogni directory e il suo contenuto.
+Di seguito è descritta ogni directory e il suo contenuto.
 
 <h3> 1. Pz[unique] </h3>
 Qui abbiamo denominato ogni cartella con pz[num_unique_infante]. Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\.
@@ -25,8 +25,7 @@ In particolare, le annotazioni sono cosi scritte: [coordinata_x],[coordinata_y].
 <h3> 3. tfrecord </h3>
 Nella cartella tfrecord sono presenti i set di: train, valid e test per la parte di training e validazione.
 Inoltre, il file pair_tot_sets.pkl viene creato in automatico durante la creazione dei tfrecods e contiene le info: radius_head, radius_keypoints utilizzate durante la formazione dei sets.
-
-
+<br><br><br>
 <h3> 4.  Trasformazioni </h3> 
 
 <h4> 4.1 Immagini </h4> 
@@ -45,10 +44,10 @@ Inoltre, abbiamo ridotto le annotazioni originali del MINI-RGBD:
 <ul>
   <li>Semplificazione delle annotazioni dei KP (da 24 a 14)</li>
 </ul>
-<br><br>
-I keypoints considerati sono:
 <br>
-<img src="./annotations.png">
+I keypoints considerati sono:
+<br><br>
+<img src="./annotations/annotations.png">
 <br><br>
 
 
