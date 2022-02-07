@@ -2,22 +2,21 @@ Le immagini utilizzate sono prese dal dataset disponibile online: <a href="https
 Di seguito spieghiamo ogni directory a cosa fa riferimento
 
 <h3> 1. Pz[unique] </h3>
-
 Qui abbiamo denominato ogni cartella con pz[num_unique_infante]. Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\
 Per ognuna delle pz<num_unique_infante> abbiamo:
 - 1000 immagini a 16 bit, già presenti nel MINI-RGBD e visualizzabili scaricando il programma Fiji.
 - 1000 immagini a 8 bit, queste ultime non erano presenti nel MINI-RGBD ma sono state ricavate effettuando una conversione dalle 16 bit
 La dimensione delle immagini è altezza = 480 pixels mentre la larghezza = 640 pixels. Le immagini non sono state pushate in GitHub.
-
+<br>
 <i>Per maggiori dettagli sulle trasformazioni delle immagini fare riferimento alla sezione 3.1</i>
 
 
 <h3> 2. Annotations </h3>
-Nella certella annotazioni, per ogni pz e per ogni immagine abbiamo le relative annotazioni organizzate in un file .csv.
-Aprendo il file, per ogni immagine (il cui nome è riportato nella colonna image) abbiamo le relative annotazioni dei keypoints. 
-In particolare, le annotazioni sono cosi scritte: <coordinata_x>,<coordinata_y>.
-
-<i>Per maggiori dettagli sulle trasformazioni delle immagini fare riferimento alla sezione 3.2</i>
+Nella certella annotazioni, per ogni pz e per ogni immagine abbiamo le relative annotazioni organizzate in un file <i>.csv</i>.
+Aprendo il file, per ogni immagine <i>(il cui nome è riportato nella colonna image)</i> abbiamo le relative annotazioni dei keypoints. 
+In particolare, le annotazioni sono cosi scritte: [coordinata_x],[coordinata_y].
+<br>
+<i>Per maggiori dettagli sulle trasformazioni delle annotazioni, e per visualizzare i keypoints fare riferimento alla sezione 3.2</i>
 
 <h3> 3. tfrecord </h3>
 Nella cartella tfrecord sono presenti i set di: train, valid e test per la parte di training e validazione.
