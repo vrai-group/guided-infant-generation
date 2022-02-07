@@ -61,7 +61,7 @@ def _extract_features_vgg_real(list_sets, dataset_module, dict_data, feature_ext
                                                                                             type_dataset=type_dataset))
             sys.stdout.flush()
             batch = next(dataset)
-            image_raw_1 = batch[1]  # [batch, 96,128, 1]
+            It = batch[1]  # [batch, 96,128, 1]
             pz_1 = batch[6]  # [batch, 1]
             name_1 = batch[8]  # [batch, 1]
             mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
@@ -69,7 +69,7 @@ def _extract_features_vgg_real(list_sets, dataset_module, dict_data, feature_ext
             name_1 = name_1.numpy()[0].decode('utf-8')
 
             # Process for VGG16
-            image_raw_1_unp = tf.cast(dataset_module.unprocess_image(image_raw_1, mean_1, 32765.5), dtype=tf.uint8)
+            image_raw_1_unp = tf.cast(dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint8)
             image_process = _vgg_preprocess_image(image_raw_1_unp)
 
             features_real = feature_extractor.predict(image_process)[0] #[batch, 512]
@@ -131,7 +131,7 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
 
         # Dataset
         dataset = dataset_module.get_unprocess_dataset(name_dataset)
-        dataset = dataset_module.get_preprocess_G1_dataset(dataset)
+        dataset = dataset_module.preprocess_dataset(dataset)
         dataset = dataset.batch(1)
         dataset = iter(dataset)
         print("\n")
@@ -141,7 +141,7 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
                                                                                             type_dataset=type_dataset))
             sys.stdout.flush()
             batch = next(dataset)
-            image_raw_0 = batch[0]  # [batch, 96, 128, 1]
+            Ic = batch[0]  # [batch, 96, 128, 1]
             pose_1 = batch[2]  # [batch, 96,128, 14]
             mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
             pz_1 = batch[6]  # [batch, 1]
@@ -150,8 +150,8 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
             name_1 = name_1.numpy()[0].decode('utf-8')
 
             # Predizione
-            I_PT1 = G1.prediction(image_raw_0, pose_1)
-            I_D = G2.prediction(I_PT1, image_raw_0, None)
+            I_PT1 = G1.prediction(Ic, pose_1)
+            I_D = G2.prediction(I_PT1, Ic, None)
             I_PT2 = I_PT1 + I_D
 
             # Unprocess for VGG16
