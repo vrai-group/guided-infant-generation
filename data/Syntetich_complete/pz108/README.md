@@ -1,0 +1,1 @@
+Si riferisce al MINI-RGBD_web\imgs\08
