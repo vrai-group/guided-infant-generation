@@ -1,8 +1,10 @@
 Le immagini utilizzate sono prese dal dataset disponibile online: <a href="https://www.iosb.fraunhofer.de/en/competences/image-exploitation/object-recognition/sensor-networks/motion-analysis.html ">MINI-RGBD</a> (7 Gb).
+<br>
 Di seguito è descritto ogni directory e il suo contenuto.
 
 <h3> 1. Pz[unique] </h3>
-Qui abbiamo denominato ogni cartella con pz[num_unique_infante]. Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\
+Qui abbiamo denominato ogni cartella con pz[num_unique_infante]. Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\.
+<br>
 Per ognuna delle pz<num_unique_infante> abbiamo:
 <ul>
   <li>1000 immagini a 16 bit, già presenti nel MINI-RGBD e visualizzabili scaricando il programma Fiji.</li>
@@ -29,14 +31,20 @@ Inoltre, il file pair_tot_sets.pkl viene creato in automatico durante la creazio
 
 <h4> 4.1 Immagini </h4> 
 Ognuna delle immagini presenti nelle cartellle pz<num_unique_infante> presenta le seguenti trasformazioni rispetto a quelle del MINI-RGBD:
-- Rotazione di 90 gradi in senso orario delle immagini
+<ul>
+  <li>Rotazione di 90 gradi in senso orario delle immagini</li>
+</ul>
 
 <h4> 4.2 Annotazioni </h4> 
 Per far fronte alle trasformazioni delle immagini, abbiamo applicato anche delle trasformazioni ai Keypoints. In particolare:
-- Rotazione di 90 delle relative annotazioni
+<ul>
+  <li>Rotazione di 90 delle relative annotazioni</li>
+</ul>
 
 Inoltre, abbiamo ridotto le annotazioni originali del MINI-RGBD:
-- Semplificazione delle annotazioni dei KP (da 24 a 14)
+<ul>
+  <li>Semplificazione delle annotazioni dei KP (da 24 a 14)</li>
+</ul>
 <br><br>
 I keypoints considerati sono:
 <br>
