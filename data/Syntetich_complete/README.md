@@ -1,11 +1,13 @@
 Le immagini utilizzate sono prese dal dataset disponibile online: <a href="https://www.iosb.fraunhofer.de/en/competences/image-exploitation/object-recognition/sensor-networks/motion-analysis.html ">MINI-RGBD</a> (7 Gb).
 Di seguito è descritto ogni directory e il suo contenuto.
 
-<h3> 1. Pz"unique" </h3>
-Qui abbiamo denominato ogni cartella con pz"num_unique_infante". Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\
+<h3> 1. Pz[unique] </h3>
+Qui abbiamo denominato ogni cartella con pz[num_unique_infante]. Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\
 Per ognuna delle pz<num_unique_infante> abbiamo:
-- 1000 immagini a 16 bit, già presenti nel MINI-RGBD e visualizzabili scaricando il programma Fiji.
-- 1000 immagini a 8 bit, queste ultime non erano presenti nel MINI-RGBD ma sono state ricavate effettuando una conversione dalle 16 bit
+<ul>
+  <li>1000 immagini a 16 bit, già presenti nel MINI-RGBD e visualizzabili scaricando il programma Fiji.</li>
+  <li>1000 immagini a 8 bit, queste ultime non erano presenti nel MINI-RGBD ma sono state ricavate effettuando una conversione dalle 16 bit</li>
+</ul>
 La dimensione delle immagini è altezza = 480 pixels mentre la larghezza = 640 pixels. Le immagini non sono state pushate in GitHub.
 <br>
 <i>Per maggiori dettagli sulle trasformazioni delle immagini fare riferimento alla sezione 3.1</i>
