@@ -68,18 +68,19 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
         p0 = keypoints[limb[0]]  # ad esempio coordinate per il keypoint corrispondente con id 2
         p1 = keypoints[limb[1]]  # ad esempio coordinate per il keypoint corrispondente con id 3
 
-        c0 = int(p0.split(',')[0])  # coordinata y  per il punto p0   ex: "280,235"
-        r0 = int(p0.split(',')[1])  # coordinata x  per il punto p0
-        c1 = int(p1.split(',')[0])  # coordinata y  per il punto p1
-        r1 = int(p1.split(',')[1])  # coordinata x  per il punto p1
+        x0 = int(p0.split(',')[0])  # coordinata x  per il punto p0   ex: "280,235"
+        y0 = int(p0.split(',')[1])  # coordinata y  per il punto p0
+        x1 = int(p1.split(',')[0])  # coordinata x  per il punto p1
+        y1 = int(p1.split(',')[1])  # coordinata y  per il punto p1
 
-        if r0 != -1 and r1 != -1 and c0 != -1 and c1 != -1:  # non considero le occlusioni che sono indicate con valore -1
+        # non considero le occlusioni che sono indicate con valore -1
+        if y0 != -1 and y1 != -1 and x0 != -1 and x1 != -1:
 
             if limb[0] == 0:  # Per la testa utilizzo un Radius maggiore
-                ind, val = getSparseKeypoint(r0, c0, 0, height, width,
+                ind, val = getSparseKeypoint(y0, x0, 0, height, width,
                                              r_h)  # ingrandisco il punto p0 considerando un raggio di 20
             else:
-                ind, val = getSparseKeypoint(r1, c1, 0, height, width,
+                ind, val = getSparseKeypoint(y1, x1, 0, height, width,
                                              r_k)  # # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
@@ -87,10 +88,10 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
 
             if limb[1] == 0:
                 # Per la testa utilizzo un Radius maggiore
-                ind, val = getSparseKeypoint(r1, c1, 0, height, width,
+                ind, val = getSparseKeypoint(y1, x1, 0, height, width,
                                              r_h)  # ingrandisco il punto p1 considerando un raggio di 20
             else:
-                ind, val = getSparseKeypoint(r1, c1, 0, height, width,
+                ind, val = getSparseKeypoint(y1, x1, 0, height, width,
                                              r_k)  # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
@@ -105,12 +106,12 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
             # Ovviamente per farlo:
             #   1. calcolo la distanza tra p0 e p1
             #   2. poi vedo quanti punti di raggio r_k entrano in questa distanza
-            distance = np.sqrt((r0 - r1) ** 2 + (c0 - c1) ** 2)  # punto 1.
+            distance = np.sqrt((y0 - y1) ** 2 + (x0 - x1) ** 2)  # punto 1.
             sampleN = int(distance / r_k)  # punto 2.
             if sampleN > 1:
                 for i in range(1, sampleN):  # per ognuno dei punti di cui ho bisogno
-                    y = int(r0 + (r1 - r0) * i / sampleN)  # calcolo della coordinata y
-                    x = int(c0 + (c1 - c0) * i / sampleN)  # calcolo della coordinata x
+                    y = int(y0 + (y1 - y0) * i / sampleN)  # calcolo della coordinata y
+                    x = int(x0 + (x1 - x0) * i / sampleN)  # calcolo della coordinata x
                     # ingrandisco il punto considerando un raggio r_k
                     ind, val = getSparseKeypoint(y, x, 0, height, width, r_k)
                     indices.extend(ind)
@@ -321,8 +322,8 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
 
 if __name__ == '__main__':
     """
-    Questo script consente di creare i TFrecord (train/valid/test) che saranno utilizzati per il training del modello.
-    Lo script crea un file sets_config.pkl in cui sono contenute tutte le info sui set creati.
+    Questo script consente di creare i TFrecord (train/valid/test) che saranno utilizzati per il training e testing
+    del modello. Lo script crea un file sets_config.pkl in cui sono contenute tutte le info sul set creato.
     """
 
     #### CONFIG ##########
