@@ -113,8 +113,8 @@ def aug_rotation_angle(dic_data, angle_deegre, indx_img):
     # Rotate keypoints coordinate
     keypoints_rotated = rotate_keypoints(dic_data["I"+indx_img+"_original_keypoints"])
     dic_data["I"+indx_img+"_indices"], dic_data["I"+indx_img+"_values"] = getSparsePose(keypoints_rotated, h, w,
-                                                                                         radius=dic_data['radius_keypoints'],
-                                                                                         mode='Solid')
+                                                                                        r_k=dic_data['radius_keypoints'],
+                                                                                        mode='Solid')
 
     return dic_data
 

@@ -8,49 +8,53 @@ import tensorflow as tf
 ##################################################
 #
 ###################################################
-"""
-# Dato un radius di 4 e un punto p ciò che cerco di fare è di trovare tutti i punti che si trovano 
-# nell'intorno [-4,4] del punto p. Le coordinate di ognuno di questi punti le salvo in indices e setto il valore 1 (visibile).
-# Al termine, ciò che otteniamo è che il punto p viene ingrandito considerando un raggio di 4.
-# Un esempio è mostrato in figura SparseKeypoint.png
-"""
-def getSparseKeypoint(y, x, k, height, width, radius=4, mode='Solid'):
+
+def enlarge_keypoint(y, x, id_keypoint, r_k, height, width, mode='Solid'):
+    """
+    Dato un radius di r_k e un punto p di coordinate (x,y) il metodo trova tutti i punti nell'intorno [-r_k, r_k]
+    di p. Le coordinate di ognuno di questi punti le salvo in indices e setto il valore 1 (visibile).
+    Al termine, ciò che otteniamo è che il punto p viene ingrandito considerando un raggio di r_k.
+    :param y
+    :param x
+    :param id_keypoint
+    :param height
+    :param width
+    :return indices: coordinate dei punti nell'intorno (x,y)
+    :return values: valori di visibilità (1) per ognuna delle coordinate definite in indices
+    """
     indices = []
     values = []
-    for i in range(-radius, radius + 1):
-        for j in range(-radius, radius + 1):
+    for i in range(-r_k, r_k + 1):
+        for j in range(-r_k, r_k + 1):
             distance = np.sqrt(float(i ** 2 + j ** 2))
             if y + i >= 0 and y + i < height and x + j >= 0 and x + j < width:
-                if 'Solid' == mode and distance <= radius:
-                    indices.append([y + i, x + j, k])
+                if 'Solid' == mode and distance <= r_k:
+                    indices.append([y + i, x + j, id_keypoint])
                     values.append(1)
-                    # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
-                    # cv2.imwrite('SparseKeypoint.png', dense * 255)
 
     return indices, values
 
+def getSparsePose(keypoints, height, width, r_k, mode='Solid'):
+    """
+    Andiamo a creare una posa PT sparsa, ingrandendo ogni keypoint di un raggio r_k
+    Salviamo i nuovi punti trovati nell'intorno [-r_k, r_k] in indices.
+    I values sono settati ad 1 (punto visibile) ed indicano la visibilità degli indices
+    I valori di k indicano gli indici di ogni keypoint:
+      0 head; 1 right_hand; 2 right_elbow; 3 right_shoulder; 4 neck; 5 left_shoulder; 6 left_elbow;
+      7 left_hand; 8 right_foot; 9 right_knee; 10 right_hip; 11 left_hip; 12 left_knee; 13 left_foot
 
-"""
-# Andiamo ad ingrandire ogni peaks di un raggio 4 o superiore creando nuovi punti.
-# Salviamo tutti in indices. I Values sono settati ad 1 ed indicano la visibilità degli indices
-# i valori di k indicano gli indici di ogni keypoint:
-  0 head; 1 right_hand; 2 right_elbow; 3 right_shoulder; 4 neck; 5 left_shoulder; 6 left_elbow;
-  7 left_hand; 8 right_foot; 9 right_knee; 10 right_hip; 11 left_hip; 12 left_knee; 13 left_foot
-
-@:return
-indices --> [ [<coordinata>, <coordinata>, <indice keypoint>], ... ]
-values --> [  1,1,1, ... ]
-shape -->  lista [height, width, num keypoints]
-"""
-def getSparsePose(peaks, height, width, radius, mode='Solid'):
+    :return list indices: [ [<coordinata_x>, <coordinata_y>, <indice keypoint>], ... ]
+    :return list values: [  1,1,1, ... ]
+    :return list shape: [height, width, num keypoints]
+    """
     indices = []
     values = []
-    for k in range(len(peaks)):
-        p = peaks[k]  # coordinate peak ex: "300,200"
+    for id_keypoint in range(len(keypoints)):
+        p = keypoints[id_keypoint]  # coordinate peak ex: "300,200"
         x = p[0]
         y = p[1]
         if x != -1 and y != -1:  # non considero le occlusioni indicate con -1
-            ind, val = getSparseKeypoint(y, x, k, height, width, radius, mode)
+            ind, val = enlarge_keypoint(y, x, id_keypoint, r_k, height, width, mode)
             indices.extend(ind)
             values.extend(val)
     return indices, values
@@ -96,11 +100,12 @@ def bytes_feature(values):
   """
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[values]))
 
-"""
-Crezione dell example da aggiungere al TF Record
-@:return example
-"""
+
 def format_example(dic):
+    """
+    Crezione dell example da aggiungere al TF Record
+    :return TFrecord Example
+    """
     example = tf.train.Example(features=tf.train.Features(feature={
 
 

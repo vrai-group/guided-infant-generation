@@ -7,13 +7,12 @@ import pandas as pd
 import tensorflow as tf
 from skimage.morphology import square, dilation, erosion
 
-from utils import format_example, aug_flip, getSparsePose, getSparseKeypoint
-
+from utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
 
 def _sparse2dense(indices, values, shape):
     """
-    # Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
-    # andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
+    Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
+    andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
     """
     dense = np.zeros(shape)
     for i in range(len(indices)):
@@ -23,12 +22,15 @@ def _sparse2dense(indices, values, shape):
     return dense
 
 
-def visualizePeaks(peaks, img):
+def visualizePeaks(keypoints, img):
     """
-    Serve per stamapare i peaks sull immagine in input. Stampo i peaks considerando anche i corrispettivi id
+    Stampa i keypoints sull'immagine pssata in input
+    :param img: immagine
+    :param keypoints: keypoints da stampare sull'immagine
+
     """
-    for k in range(len(peaks)):
-        p = peaks[k]  # coordinate peak ex: "300,200" type string
+    for k in range(len(keypoints)):
+        p = keypoints[k]  # coordinate peak ex: "300,200" type string
         x = int(p.split(',')[0])  # column
         y = int(p.split(',')[1])  # row
         if x != -1 and y != -1:
@@ -36,12 +38,12 @@ def visualizePeaks(peaks, img):
             cv2.putText(img, str(k), (x, y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.4, (255, 0, 0), 1)
             cv2.imwrite('keypoint.png', img)
 
-    print("Log: Immagine salvata Keypoint")
+    print("Log: Immagine salvata")
 
 
 def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
     """
-    Consente di creare la maschera di segmentazione (background 0, foreground 255) del bambino effettuando dapprima
+    Consente di creare la maschera di segmentazione (background 0, foreground 1) del bambino effettuando dapprima
     la connessione tra i keypoints e dopodichè applicando operazioni morfologiche di dilatazione ed erosione
     :param keypoints: lista delle 14 annotazioni
     :param int heights:
@@ -77,22 +79,18 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
         if y0 != -1 and y1 != -1 and x0 != -1 and x1 != -1:
 
             if limb[0] == 0:  # Per la testa utilizzo un Radius maggiore
-                ind, val = getSparseKeypoint(y0, x0, 0, height, width,
-                                             r_h)  # ingrandisco il punto p0 considerando un raggio di 20
+                ind, val = enlarge_keypoint(y0, x0, 0, r_h, height, width)  # ingrandisco il punto p0 considerando un raggio di r_h
             else:
-                ind, val = getSparseKeypoint(y1, x1, 0, height, width,
-                                             r_k)  # # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = enlarge_keypoint(y1, x1, 0, r_k, height, width)  # # ingrandisco il punto p1 considerando un raggio di r_k
 
             indices.extend(ind)
             values.extend(val)
 
             if limb[1] == 0:
                 # Per la testa utilizzo un Radius maggiore
-                ind, val = getSparseKeypoint(y1, x1, 0, height, width,
-                                             r_h)  # ingrandisco il punto p1 considerando un raggio di 20
+                ind, val = enlarge_keypoint(y1, x1, 0, r_h, height, width)  # ingrandisco il punto p1 considerando un raggio di 20
             else:
-                ind, val = getSparseKeypoint(y1, x1, 0, height, width,
-                                             r_k)  # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = enlarge_keypoint(y1, x1, 0, r_k, height, width)  # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
@@ -113,7 +111,7 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
                     y = int(y0 + (y1 - y0) * i / sampleN)  # calcolo della coordinata y
                     x = int(x0 + (x1 - x0) * i / sampleN)  # calcolo della coordinata x
                     # ingrandisco il punto considerando un raggio r_k
-                    ind, val = getSparseKeypoint(y, x, 0, height, width, r_k)
+                    ind, val = enlarge_keypoint(y, x, 0, r_k, height, width)
                     indices.extend(ind)
                     values.extend(val)
                     # per stampare le connessioni tra i keypoints
