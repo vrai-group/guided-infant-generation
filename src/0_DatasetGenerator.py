@@ -1,8 +1,3 @@
-"""
-Questo script consente di creare i TFrecord (train/valid/test) che saranno utilizzati per il training del modello.
-Lo script crea un file pairs.pkl in cui sono contenute tutte le info sui set creati.
-Questo file sarà necessario poi per avviare il training.
-"""
 import os
 import sys
 import cv2
@@ -15,13 +10,11 @@ from skimage.morphology import square, dilation, erosion
 from utils import format_example, aug_flip, getSparsePose, getSparseKeypoint
 
 
-"""
-# Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
-# andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
-"""
-
-
 def _sparse2dense(indices, values, shape):
+    """
+    # Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
+    # andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
+    """
     dense = np.zeros(shape)
     for i in range(len(indices)):
         r = indices[i][0]
@@ -29,10 +22,11 @@ def _sparse2dense(indices, values, shape):
         dense[r, c, 0] = values[i]
     return dense
 
-"""
-## Serve per stamapare i peaks sull immagine in input. Stampo i peaks considerando anche i corrispettivi id
-"""
+
 def visualizePeaks(peaks, img):
+    """
+    Serve per stamapare i peaks sull immagine in input. Stampo i peaks considerando anche i corrispettivi id
+    """
     for k in range(len(peaks)):
         p = peaks[k]  # coordinate peak ex: "300,200" type string
         x = int(p.split(',')[0])  # column
@@ -45,15 +39,19 @@ def visualizePeaks(peaks, img):
     print("Log: Immagine salvata Keypoint")
 
 
-"""
-Creo le maschere binarie
-
-@:return
-Maschera con shape [height, width, 1]
-"""
-
-
-def _getSegmentationMask(peaks, height, width, radius_head=60, radius=4, dilatation=10):
+def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
+    """
+    Consente di creare la maschera di segmentazione (background 0, foreground 255) del bambino effettuando dapprima
+    la connessione tra i keypoints e dopodichè applicando operazioni morfologiche di dilatazione ed erosione
+    :param keypoints: lista delle 14 annotazioni
+    :param int heights:
+    :param int width:
+    :param int r_h: raggio della testa
+    :param int r_k: raggio dei keypoints
+    :param int dilatation: valore dell'operazione morfologica di dilatazione
+    :return  maschera binaria con shape [height, width, 1]
+    """
+    # Qui definisco quali keypoints devono essere connessi tra di loro. I numeri fanno riferimento agli ID
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
                [1, 2], [2, 3],  # braccio dx
                [3, 4], [4, 5],  # collo
@@ -63,13 +61,12 @@ def _getSegmentationMask(peaks, height, width, radius_head=60, radius=4, dilatat
                [11, 10],  # Anche
                # Corpo
                [10, 4], [10, 3], [10, 5], [10, 0],
-               [11, 4], [11, 3], [11, 5], [11, 0],
-               ]
+               [11, 4], [11, 3], [11, 5], [11, 0]]
     indices = []
     values = []
     for limb in limbSeq:  # ad esempio limb = [2, 3]
-        p0 = peaks[limb[0]]  # ad esempio coordinate per il keypoint corrispondente con id 2
-        p1 = peaks[limb[1]]  # ad esempio coordinate per il keypoint corrispondente con id 3
+        p0 = keypoints[limb[0]]  # ad esempio coordinate per il keypoint corrispondente con id 2
+        p1 = keypoints[limb[1]]  # ad esempio coordinate per il keypoint corrispondente con id 3
 
         c0 = int(p0.split(',')[0])  # coordinata y  per il punto p0   ex: "280,235"
         r0 = int(p0.split(',')[1])  # coordinata x  per il punto p0
@@ -79,51 +76,55 @@ def _getSegmentationMask(peaks, height, width, radius_head=60, radius=4, dilatat
         if r0 != -1 and r1 != -1 and c0 != -1 and c1 != -1:  # non considero le occlusioni che sono indicate con valore -1
 
             if limb[0] == 0:  # Per la testa utilizzo un Radius maggiore
-                ind, val = getSparseKeypoint(r0, c0, 0, height, width, radius_head)  # ingrandisco il punto p0 considerando un raggio di 20
+                ind, val = getSparseKeypoint(r0, c0, 0, height, width,
+                                             r_h)  # ingrandisco il punto p0 considerando un raggio di 20
             else:
-                ind, val = getSparseKeypoint(r1, c1, 0, height, width, radius)  # # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = getSparseKeypoint(r1, c1, 0, height, width,
+                                             r_k)  # # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
 
             if limb[1] == 0:
                 # Per la testa utilizzo un Radius maggiore
-                ind, val = getSparseKeypoint(r1, c1, 0, height, width, radius_head)  # ingrandisco il punto p1 considerando un raggio di 20
+                ind, val = getSparseKeypoint(r1, c1, 0, height, width,
+                                             r_h)  # ingrandisco il punto p1 considerando un raggio di 20
             else:
-                ind, val = getSparseKeypoint(r1, c1, 0, height, width, radius)  # # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = getSparseKeypoint(r1, c1, 0, height, width,
+                                             r_k)  # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
 
-            # ## stampo l immagine
+            # Stampo l immagine
             # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
             # cv2.imwrite('Dense{limb}.png'.format(limb=limb), dense * 255)
 
             # Qui vado a riempire il segmento ad esempio [2,3] corrispondenti ai punti p0 e p1.
-            # L idea è quella di riempire questo segmento con altri punti di larghezza radius=4.
-            # Ovviamente per farlo calcolo la distanza tra p0 e p1 e poi vedo quanti punti di raggio 4 entrano in questa distanza.
-            # Un esempio è mostrato nelle varie imamgini di linking
-            distance = np.sqrt((r0 - r1) ** 2 + (c0 - c1) ** 2)  # distanza tra il punto p0 e p1
-            sampleN = int(
-                distance / radius)  # numero di punti, con raggio di 4, di cui ho bisogno per coprire la distanza tra i punti p0 e p1
+            # L idea è quella di riempire questo segmento con altri punti di larghezza r_k.
+            # Ovviamente per farlo:
+            #   1. calcolo la distanza tra p0 e p1
+            #   2. poi vedo quanti punti di raggio r_k entrano in questa distanza
+            distance = np.sqrt((r0 - r1) ** 2 + (c0 - c1) ** 2)  # punto 1.
+            sampleN = int(distance / r_k)  # punto 2.
             if sampleN > 1:
                 for i in range(1, sampleN):  # per ognuno dei punti di cui ho bisogno
-                    r = int(r0 + (r1 - r0) * i / sampleN)  # calcolo della coordinata y
-                    c = int(c0 + (c1 - c0) * i / sampleN)  # calcolo della coordinata x
-                    ind, val = getSparseKeypoint(r, c, 0, height, width, radius)  ## ingrandisco il nuovo punto considerando un raggio di 4
+                    y = int(r0 + (r1 - r0) * i / sampleN)  # calcolo della coordinata y
+                    x = int(c0 + (c1 - c0) * i / sampleN)  # calcolo della coordinata x
+                    # ingrandisco il punto considerando un raggio r_k
+                    ind, val = getSparseKeypoint(y, x, 0, height, width, r_k)
                     indices.extend(ind)
                     values.extend(val)
-
-                    ## per stampare il linking dei lembi
+                    # per stampare le connessioni tra i keypoints
                     # dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
                     # cv2.imwrite('Linking'+str(limb)+'.png', dense * 255)
+
             ## stampo l immagine
             dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
             # cv2.imwrite('Dense{limb}.png'.format(limb=limb), dense * 255)
 
-    shape = [height, width, 1]
     ## Fill body
-    dense = np.squeeze(_sparse2dense(indices, values, shape))
+    dense = np.squeeze(_sparse2dense(indices, values, [height, width, 1]))
     dense = dilation(dense, square(dilatation))
     dense = erosion(dense, square(5))
     dense = np.reshape(dense, [dense.shape[0], dense.shape[1], 1])
@@ -131,37 +132,45 @@ def _getSegmentationMask(peaks, height, width, radius_head=60, radius=4, dilatat
 
     return dense
 
-"""
-Crezione dei dati 
-@:return dic_data --> un dzionario in cui sono contenuti i dati creati img_0, img_1 etc..
-"""
 
+def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, r_k, radius_keypoints_mask,
+                 r_h, dilatation):
+    """
+    Crezione dei dati
+    :param int id_pz_condition: id del pz di condizione
+    :param int id_pz_target: id del pz target
+    :param Ic_annotations: annotazione dei keypoits sull'immagini di condizione
+    :param It_annotations: annotazione dei keypoits sull'immagini target
+    :param int r_k: raggio della posa
+    :param int radius_keypoints_mask: raggio della posa per creare la maschera
+    :param int r_h: raggio della testa utilizzato per creare la maschera
+    :param int dilation: utilizzato per l'operazione morfologica di dilatazione
+    :return dict dic_data: un dizionario in cui sono contenuti i dati creati img_condition, img_target etc..
+    """
 
-def _format_data(id_pz_0, id_pz_1, Ic_annotations, It_annotations, radius_keypoints_pose, radius_keypoints_mask,
-                 radius_head_mask, dilatation):
-
-    pz_condition = 'pz' + str(id_pz_0)
-    pz_target = 'pz' + str(id_pz_1)
+    pz_condition = 'pz' + str(id_pz_condition)
+    pz_target = 'pz' + str(id_pz_target)
 
     # Read the image info:
     name_img_condition_16_bit = Ic_annotations['image'].split('_')[0] + '_16bit.png'
     name_img_target_16_bit = It_annotations['image'].split('_')[0] + '_16bit.png'
-    img_path_condition = os.path.join(dir_data, pz_condition, name_img_condition_16_bit)
-    img_path_target = os.path.join(dir_data, pz_target, name_img_target_16_bit)
+    img_path_condition = os.path.join(dir_dataset, pz_condition, name_img_condition_16_bit)
+    img_path_target = os.path.join(dir_dataset, pz_target, name_img_target_16_bit)
 
     # Read immagine
     Ic = cv2.imread(img_path_condition, cv2.IMREAD_UNCHANGED)  # [480,640]
     It = cv2.imread(img_path_target, cv2.IMREAD_UNCHANGED)  # [480,640]
     height, width = Ic.shape[0], Ic.shape[1]
 
-    #### Image Ic
+    # Processamento Image Ic
     keypoints_condition = Ic_annotations[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    Mc = _getSegmentationMask(keypoints_condition, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask, dilatation=dilatation)  # [480,640,1]
+    Mc = _get_segmentation_mask(keypoints_condition, height, width, r_k=radius_keypoints_mask, r_h=r_h,
+                                dilatation=dilatation)  # [480,640,1]
 
-    #### Resize a 96x128
+    ## Resize a 96x128
     Ic = cv2.resize(Ic, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
     keypoints_resized_condition = []
-    # Resize dei peaks a 96x128
+    ## Resize dei peaks
     for i in range(len(keypoints_condition)):
         kp = keypoints_condition[i]  # coordinate peak ex: "300,200" type string
         x = int(kp.split(',')[0])  # column
@@ -170,19 +179,19 @@ def _format_data(id_pz_0, id_pz_1, Ic_annotations, It_annotations, radius_keypoi
             keypoints_resized_condition.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
             keypoints_resized_condition.append([x, y])
-    Ic_indices, Ic_values = getSparsePose(keypoints_resized_condition, height, width,  radius_keypoints_pose, mode='Solid')
-    # Resize della maschera
-    Mc = cv2.resize(Mc, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128,1)  # [96, 128, 1]
+    Ic_indices, Ic_values = getSparsePose(keypoints_resized_condition, height, width, r_k, mode='Solid')
+    ## Resize della maschera
+    Mc = cv2.resize(Mc, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
 
-    #### Pose image It
+    # Processamento Image It
     keypoints_target = It_annotations[1:]  # annotation_0[1:] --> poichè tolgo il campo image
-    Mt = _getSegmentationMask(keypoints_target, height, width, radius=radius_keypoints_mask, radius_head=radius_head_mask,
-                              dilatation=dilatation)
+    Mt = _get_segmentation_mask(keypoints_target, height, width, r_k=radius_keypoints_mask, r_h=r_h,
+                                dilatation=dilatation)
 
     ## Resizea 96x128
     It = cv2.resize(It, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
     keypoints_resized_target = []
-    # resize dei peaks
+    ## resize dei peaks
     for i in range(len(keypoints_target)):
         kp = keypoints_target[i]  # coordinate peak ex: "300,200" type string
         x = int(kp.split(',')[0])  # column
@@ -191,14 +200,14 @@ def _format_data(id_pz_0, id_pz_1, Ic_annotations, It_annotations, radius_keypoi
             keypoints_resized_target.append([int(x / 5), int(y / 5)])  # 5 è lo scale factor --> 480/96 e 640/128
         else:
             keypoints_resized_target.append([x, y])
-    It_indices, It_values = getSparsePose(keypoints_resized_target, height, width, radius_keypoints_pose, mode='Solid')
-    # Resize mask
+    It_indices, It_values = getSparsePose(keypoints_resized_target, height, width, r_k, mode='Solid')
+    ## Resize mask
     Mt = cv2.resize(Mt, dsize=(128, 96), interpolation=cv2.INTER_NEAREST).reshape(96, 128, 1)  # [96, 128, 1]
 
     dic_data = {
 
         'pz_condition': pz_condition,  # nome del pz di condizione
-        'pz_target': pz_target, # nome del pz di target
+        'pz_target': pz_target,  # nome del pz di target
 
         'Ic_image_name': name_img_condition_16_bit,  # nome dell immagine di condizione
         'It_image_name': name_img_target_16_bit,  # nome dell immagine di target
@@ -209,10 +218,11 @@ def _format_data(id_pz_0, id_pz_1, Ic_annotations, It_annotations, radius_keypoi
         'image_height': 96,
         'image_width': 128,
 
-        'Ic_original_keypoints': keypoints_resized_condition,  # valori delle coordinate originali della posa ridimensionati a 96x128
+        'Ic_original_keypoints': keypoints_resized_condition,
+        # valori delle coordinate originali della posa ridimensionati a 96x128
         'It_original_keypoints': keypoints_resized_target,
 
-        'Mc': Mc, # maschera binaria a radius con shape [96, 128, 1]
+        'Mc': Mc,  # maschera binaria a radius con shape [96, 128, 1]
         'Mt': Mt,  # maschera binaria a radius 4 con shape [96, 128, 1]
 
         # Sparse tensors
@@ -223,42 +233,36 @@ def _format_data(id_pz_0, id_pz_1, Ic_annotations, It_annotations, radius_keypoi
         'It_indices': It_indices,
         'It_values': It_values,
 
-        'radius_keypoints': radius_keypoints_pose,  # valore del raggio (r_k) della posa
+        'radius_keypoints': r_k,  # valore del raggio (r_k) della posa
 
     }
 
     return dic_data
 
 
-def _aug_flip(dic_data):
-    ### Flip vertical pz_0
-    mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
-    dic_data["image_raw_0"] = cv2.flip(dic_data["image_raw_0"], 1)
-    dic_data["indices_r4_0"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["indices_r4_0"]]
-    dic_data["pose_mask_r4_0"] = cv2.flip(dic_data["pose_mask_r4_0"], 1)
-
-    ### Flip vertical pz_1
-    mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
-    dic_data["image_raw_1"] = cv2.flip(dic_data["image_raw_1"], 1)
-    dic_data["indices_r4_1"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["indices_r4_1"]]
-    dic_data["pose_mask_r4_1"] = cv2.flip(dic_data["pose_mask_r4_1"], 1)
-
-    return dic_data
-
-
-"""
-Consente di selezionare la coppia di pair da formare
-"""
-
-
 def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
-                  radius_head_mask, dilatation, campionamento, flip=False, mode="negative", switch=False):
+                  radius_head_mask, dilatation, campionamento, flip=False, mode="negative"):
+    """
+    Consente di selezionare la coppia di pair da formare in base alle mode, creare i dati richiamando altri metodi
+    e riempire il tfrecord.
+    :param list lista: contiene gli id dei pz
+    :param tfrecord_writer: writer del tfrecord
+    :param int radius_keypoints_pose: raggio della posa
+    :param int radius_keypoints_mask: raggio della posa per creare la maschera
+    :param int radius_head_mask: raggio della testa utilizzato per creare la maschera
+    :param int dilation: utilizzato per l'operazione morfologica di dilatazione
+    :param int campionamento: ogni quante immagine devo considerare, utilizzato per diminuire immagini simili
+    :param bool flip: se effettuare l'augumentazione di flip
+    :param str mode: negative o positive, modalità di accoppiamento pz
+    :return int tot_pairs: numero totale di pairs
+    """
+
     tot_pairs = 0  # serve per contare il totale di pair nel tfrecord
 
     # Accoppiamento tra immagini appartenenti allo stesso pz
     if mode == "positive":
         # TODO da scrivere
-        None
+        pass
 
     # Accoppiamento tra immagini appartenenti a pz differenti
     if mode == "negative":
@@ -278,24 +282,7 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                     cnt = 0  # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
 
                     # Creazione del pair
-                    used = []
                     for indx, row_0 in df_annotation_0.iterrows():
-
-                        # row_1=None
-                        # if indx < len(df_annotation_1) - 1:
-                        #     row_1 = df_annotation_1.loc[indx]
-                        # else:
-                        #     # lettura random delle row_1 nel secondo dataframe
-                        #     conteggio_while = 0
-                        #     value = randint(0, len(df_annotation_1) - 1)
-                        #     while value in used:
-                        #         if conteggio_while < 30:
-                        #             value = randint(0, len(df_annotation_1) - 1)
-                        #             conteggio_while += 1
-                        #         else:
-                        #             break
-                        #     row_1 = df_annotation_1.loc[value]
-                        #     used.append(value)
 
                         if indx % campionamento == 0:
                             row_1 = df_annotation_1.loc[indx]
@@ -318,31 +305,28 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                             tot_pairs += 1
 
                         sys.stdout.write(
-                            '\r>> Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
-                                                                                            cnt=cnt,
-                                                                                            tot=df_annotation_0.shape[
-                                                                                                0]))
+                            '\r>Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
+                                                                                          cnt=cnt,
+                                                                                          tot=df_annotation_0.shape[0]))
                         sys.stdout.flush()
 
-                    sys.stdout.write('\n')
-                    sys.stdout.flush()
-
-            sys.stdout.write('\nTerminato {pz_0}'.format(pz_0=pz_0))
-            sys.stdout.write('\n\n')
-            sys.stdout.flush()
+                    print("\n")
+            print('\nTerminato {pz_0} \n\n'.format(pz_0=pz_0))
 
     tfrecord_writer.close()
-    sys.stdout.write('\nSET DATI TERMINATO')
-    sys.stdout.write('\n\n')
-    sys.stdout.flush()
+    print('\nSET DATI TERMINATO\n\n')
 
     return tot_pairs
 
 
 if __name__ == '__main__':
+    """
+    Questo script consente di creare i TFrecord (train/valid/test) che saranno utilizzati per il training del modello.
+    Lo script crea un file sets_config.pkl in cui sono contenute tutte le info sui set creati.
+    """
 
     #### CONFIG ##########
-    dir_data = '../data/Syntetich_complete'
+    dir_dataset = '../data/Syntetich_complete'
     dir_annotations = '../data/Syntetich_complete/annotations'
     dir_save_tfrecord = '../data/Syntetich_complete/tfrecord/dataset_di_testing'
     keypoint_num = 14
@@ -357,22 +341,21 @@ if __name__ == '__main__':
     lista_pz_test = [104, 108]
 
     # General information
-    radius_keypoints_pose = 2 # r_k
+    r_k = 2  # raggio keypoints
     radius_keypoints_mask = 1
-    radius_head_mask = 40 # r_h
+    r_h = 40  # raggio testa nella creazione della maschera
     dilatation = 35
     campionamento = 5
     flip = False  # Aggiunta dell example con flip verticale
     mode = "negative"
-    switch = mode == "positive"  # lo switch è consentito solamente in modalità positive, se è negative va in automatico
-
-    #########################
 
     # Check
-    assert os.path.exists(dir_data)
+    assert os.path.exists(dir_dataset)
     assert os.path.exists(dir_annotations)
     if not os.path.exists(dir_save_tfrecord):
         os.mkdir(dir_save_tfrecord)
+
+    #########################
 
     # Name of tfrecord file
     output_filename_train = os.path.join(dir_save_tfrecord, name_tfrecord_train)
@@ -387,8 +370,8 @@ if __name__ == '__main__':
         assert r_tr == "Y" or r_tr == "N" or r_tr == "y" or r_tr == "n"
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
-        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, campionamento, flip=flip, mode=mode, switch=switch)
+        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, r_k, radius_keypoints_mask,
+                                  r_h, dilatation, campionamento, flip=flip, mode=mode)
         print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
@@ -398,8 +381,8 @@ if __name__ == '__main__':
         assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
     if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
         tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, radius_keypoints_pose, radius_keypoints_mask,
-                                  radius_head_mask, dilatation, campionamento, flip=flip, mode=mode, switch=switch)
+        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, r_k, radius_keypoints_mask,
+                                  r_h, dilatation, campionamento, flip=flip, mode=mode)
         print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
@@ -409,8 +392,8 @@ if __name__ == '__main__':
         assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
     if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
         tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
-        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, radius_keypoints_pose, radius_keypoints_mask,
-                                 radius_head_mask, dilatation, campionamento, flip=flip, mode=mode)
+        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, r_k, radius_keypoints_mask,
+                                 r_h, dilatation, campionamento, flip=flip, mode=mode)
         print("TOT TEST: ", tot_test)
     elif r_te == "N" or r_te == "n":
         print("OK, non farò nulla sul test set")
@@ -418,9 +401,9 @@ if __name__ == '__main__':
     dic = {
 
         "general": {
-            "radius_keypoints_pose": radius_keypoints_pose,
+            "radius_keypoints_pose (r_k)": r_k,
             "radius_keypoints_mask": radius_keypoints_mask,
-            "radius_head_mask": radius_head_mask,
+            "radius_head_mask (r_h)": r_h,
             "dilatation": dilatation,
             "flip": flip,
             "mode": mode
