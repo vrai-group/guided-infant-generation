@@ -118,7 +118,6 @@ class G2(Model_Template):
         return model
 
 
-
     # Optimizer
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)

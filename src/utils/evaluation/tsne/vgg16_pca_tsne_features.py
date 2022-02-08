@@ -151,7 +151,7 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
 
             # Predizione
             I_PT1 = G1.prediction(Ic, pose_1)
-            I_D = G2.prediction(I_PT1, Ic, None)
+            I_D = G2.prediction(I_PT1, Ic)
             I_PT2 = I_PT1 + I_D
 
             # Unprocess for VGG16

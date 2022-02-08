@@ -443,7 +443,7 @@ if __name__ == '__main__':
             "tot": tot_test
         }
     }
-    log_tot_sets = os.path.join(dir_save_tfrecord, 'pair_tot_sets.pkl')
+    log_tot_sets = os.path.join(dir_save_tfrecord, 'sets_config.pkl')
     f = open(log_tot_sets, "wb")
     pickle.dump(dic, f)
     f.close()

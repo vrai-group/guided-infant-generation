@@ -15,8 +15,8 @@ class Config:
     def __load_enviroment_variable(self):
         self.MODE = "tsne_GAN"  # ['train_G1', 'train_cDCGAN', 'evaluate_G1', 'evaluate_GAN', 'tsne_GAN', 'inference_G1', 'inference_G2]
         self.DATA = "Syntetich_complete" # [famiglia]_[..]
-        self.DATASET_family = self.DATA.split('_')[0]
-        self.DATASET_type = "dataset_di_testing"
+        self.DATASET_type = self.DATA.split('_')[0]
+        self.DATASET = "dataset_di_testing"
         self.ARCHITETURE = "bibranch"
         self.OUTPUTS_DIR = "output_bibranch" # nome directory in cui salvare tutti gli output durante il training
 
@@ -29,7 +29,7 @@ class Config:
         self.OUTPUTS_DIR = os.path.join(self.ROOT, self.OUTPUTS_DIR)
 
         self.data_dir_path = os.path.join(self.ROOT, "data", self.DATA)
-        self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_type)  # dove si trova il dataset in tfrecord
+        self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET)  # dove si trova il dataset in tfrecord
         self.models_dir_path = os.path.join(self.SRC, "models", self.ARCHITETURE)  # dove sono presenti le architetture
         self.dataset_module_dir_path = os.path.join(self.SRC, "datasets")  # dov è presente il modulo per processare il dataset
 
@@ -89,9 +89,9 @@ class Config:
         self.img_H = 96  # 'input image height'
         self.img_W = 128  # 'input image width'
         # Se l assert va in errore il dataset non è presente
-        assert os.path.exists(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl')) == True
+        assert os.path.exists(os.path.join(self.data_tfrecord_path, 'sets_config.pkl')) == True
 
-        with open(os.path.join(self.data_tfrecord_path, 'pair_tot_sets.pkl'), 'rb') as f:
+        with open(os.path.join(self.data_tfrecord_path, 'sets_config.pkl'), 'rb') as f:
             dic = pickle.load(f)
             # nome set
             self.name_tfrecord_train = os.path.join(self.data_tfrecord_path, dic['train']['name_file'])

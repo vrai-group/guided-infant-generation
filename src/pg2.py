@@ -15,7 +15,7 @@ class PG2(object):
         self.config = config
 
         # -Import dinamico dell modulo di preprocess dataset Ad esempio: Syntetich
-        self.dataset_module = utils.import_module(path=config.dataset_module_dir_path, name_module=config.DATASET_family)
+        self.dataset_module = utils.import_module(path=config.dataset_module_dir_path, name_module=config.DATASET_type)
 
         # -Import dinamico dell'architettura
         self.G1 = utils.import_module(path=config.models_dir_path, name_module="G1", ).G1()
