@@ -172,13 +172,17 @@ def save_grid(tensor, filename, nrow=8, padding=2, normalize=False, scale_each=F
     im.save(filename)
 
 
+def import_module(path, name_module):
+    """
+    Questo metodo mi consente di caricare in maniera dinamica i vari moduli di riferimento per G1, G2, D, Syntetich.
+    Ad esempio: models/mono/G1.py
+    Ad esempio: dataset/Syntetich.py
 
-"""
-Questo metodo mi consente di caricare in maniera dinamica i vari moduli di riferimento per G1, G2, D, Syntetich.
-Ad esempio: models/mono/G1.py
-Ad esempio: dataset/Syntetich.py
-"""
-def import_module(name_module, path):
+    :param str path: path relativo oassoluto di dove rintracciare name_module
+    :param str name_module: nome del modulo
+    :return python modulo
+    """
+
     spec = importlib.util.spec_from_file_location(name_module, os.path.join(path, name_module + ".py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

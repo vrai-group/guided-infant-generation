@@ -15,13 +15,12 @@ class PG2(object):
         self.config = config
 
         # -Import dinamico dell modulo di preprocess dataset Ad esempio: Syntetich
-        name_module_preprocess_dataset = config.DATASET.split('_')[0]
-        self.dataset_module = utils.import_module(name_module_preprocess_dataset, config.dataset_module_dir_path)
+        self.dataset_module = utils.import_module(path=config.dataset_module_dir_path, name_module=config.DATASET_family)
 
         # -Import dinamico dell'architettura
-        self.G1 = utils.import_module(name_module="G1", path=config.models_dir_path).G1()
-        self.G2 = utils.import_module(name_module="G2", path=config.models_dir_path).G2()
-        self.D = utils.import_module(name_module="D", path=config.models_dir_path).D()
+        self.G1 = utils.import_module(path=config.models_dir_path, name_module="G1", ).G1()
+        self.G2 = utils.import_module(path=config.models_dir_path, name_module="G2").G2()
+        self.D = utils.import_module(path=config.models_dir_path, name_module="D").D()
 
     def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, grid_path, type_dataset):
         pz_0 = batch[5]  # [batch, 1]
