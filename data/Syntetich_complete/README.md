@@ -12,7 +12,7 @@ Per ognuna delle pz<num_unique_infante> abbiamo:
 </ul>
 La dimensione delle immagini è altezza = 480 pixels mentre la larghezza = 640 pixels. Le immagini non sono state pushate in GitHub.
 <br>
-<i>Per maggiori dettagli sulle trasformazioni delle immagini fare riferimento alla sezione 3.1</i>
+<i>Per maggiori dettagli sulle trasformazioni delle immagini fare riferimento alla sezione 4.1</i>
 
 
 <h3> 2. Annotations </h3>
@@ -20,7 +20,7 @@ Nella certella annotazioni, per ogni pz e per ogni immagine abbiamo le relative 
 Aprendo il file, per ogni immagine <i>(il cui nome è riportato nella colonna image)</i> abbiamo le relative annotazioni dei keypoints. 
 In particolare, le annotazioni sono cosi scritte: [coordinata_x],[coordinata_y].
 <br>
-<i>Per maggiori dettagli sulle trasformazioni delle annotazioni, e per visualizzare i keypoints fare riferimento alla sezione 3.2</i>
+<i>Per maggiori dettagli sulle trasformazioni delle annotazioni, e per visualizzare i keypoints fare riferimento alla sezione 4.2</i>
 
 <h3> 3. tfrecord </h3>
 Nella cartella tfrecord sono presenti i set di: train, valid e test per la parte di training e validazione.
