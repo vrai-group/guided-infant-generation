@@ -4,5 +4,6 @@ I metodi possono essere ad esempio:
 	<li>Preprocess/Unprocess immagine</li>
 	<li>Preprocess/Unprocess tfrecord dataset</li>
 </ul>
-Ogni modulo è chiamato con la <b>tipologia del dataset</b>, e verrà invocato automaticamente dal framework in base al dataset scelto.
+Ogni modulo è nominato con la <b>famiglia</b> del dataset <i>(per maggiori info guarda il README in ../data)</i> e verrà invocato automaticamente dal framework in base al self.DATASET
+inseirto all'interno della CONFIG.
 Ex: Syntetich_complete
