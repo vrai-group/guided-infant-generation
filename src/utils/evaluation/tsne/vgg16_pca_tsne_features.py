@@ -199,7 +199,7 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature
 
     dict_data_generated = {}
     dict_data_generated = _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data_generated, feature_extractor)
-    dict_data_generated = _obtain_pca_real(dict_data_generated)
+    dict_data_generated = _obtain_pca_generated(dict_data_generated)
 
     for perplexity in list_perplexity:
         print("\n- Perplexity: ", str(perplexity))
