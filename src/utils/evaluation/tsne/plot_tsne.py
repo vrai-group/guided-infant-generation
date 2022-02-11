@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 def _plot(dict_features, list_perplexity, dir_to_save, key_image_interested):
     name_dir_plots = os.path.join(dir_to_save, "plots")
+    os.makedirs(name_dir_plots, exist_ok=False)
     print("\n- Avvio il plot")
     print("\n- Immagine di interesse scelta: ", dict_features[key_image_interested]['path_target'])
 
@@ -35,7 +36,7 @@ def _plot(dict_features, list_perplexity, dir_to_save, key_image_interested):
                + "\n\n##########\n\n"
 
         plt.legend()
-        plt.savefig("tsne_perplexity_"+str(perplexity))
+        plt.savefig(os.path.join(name_dir_plots, "tsne_perplexity_"+str(perplexity)))
 
     with open(os.path.join(name_dir_plots, "Resoconto_tsne.txt"), "w") as f:
         f.write(text)
