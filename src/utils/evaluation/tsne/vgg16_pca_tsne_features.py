@@ -47,7 +47,7 @@ def _extract_features_vgg_real(list_sets, dataset_module, dict_data, feature_ext
 
     for dataset in list_sets:
         name_dataset, dataset_len = dataset[0], dataset[1]
-        type_dataset = name_dataset.split(os.path.sep)[-1]  # ['train', 'valid', 'test']
+        type_dataset = name_dataset.split(os.path.sep)[-1].split('.')[0].split('_')[1]  # ['train', 'valid', 'test']
 
         # Dataset
         dataset = dataset_module.get_unprocess_dataset(name_tfrecord=name_dataset)
@@ -127,7 +127,7 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
 
     for dataset in list_sets:
         name_dataset, dataset_len = dataset[0], dataset[1]
-        type_dataset = name_dataset.split('_')[1].split('.tfrecord')[0]  # ['train', 'valid', 'test']
+        type_dataset = name_dataset.split(os.path.sep)[-1].split('.')[0].split('_')[1]  # ['train', 'valid', 'test']
 
         # Dataset
         dataset = dataset_module.get_unprocess_dataset(name_dataset)
@@ -218,6 +218,7 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_i
     print("\n- Unisco i dizionari")
     dict_features_tot = {}
     for key in list(dict_data_real.keys()):
+        print(key)
         # TODO verificare se l unione è ok
         dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
     print(dict_features_tot)

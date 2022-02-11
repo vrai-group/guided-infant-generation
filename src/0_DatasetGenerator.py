@@ -330,9 +330,9 @@ if __name__ == '__main__':
     dir_save_tfrecord = '../data/Syntetich_complete/tfrecord/dataset_di_testing'
     keypoint_num = 14
 
-    name_tfrecord_train = 'BabyPose_train.tfrecord'
-    name_tfrecord_valid = 'BabyPose_valid.tfrecord'
-    name_tfrecord_test = 'BabyPose_test.tfrecord'
+    name_tfrecord_train = 'Syntetich_train.tfrecord' # [tipologia] _ [tipo di set]
+    name_tfrecord_valid = 'Symtetich_valid.tfrecord'
+    name_tfrecord_test = 'Syntetich_test.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
     lista_pz_train = [101, 103, 105, 106, 107, 109, 110, 112]
