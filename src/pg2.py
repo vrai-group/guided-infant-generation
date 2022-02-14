@@ -1,6 +1,3 @@
-"""
-Questo script consente di avviare il training del G1 e della GAN
-"""
 import os
 import sys
 import numpy as np
@@ -18,15 +15,27 @@ class PG2(object):
         self.dataset_module = utils.import_module(path=config.dataset_module_dir_path, name_module=config.DATASET_type)
 
         # -Import dinamico dell'architettura
-        self.G1 = utils.import_module(path=config.models_dir_path, name_module="G1", ).G1()
+        self.G1 = utils.import_module(path=config.models_dir_path, name_module="G1").G1()
         self.G2 = utils.import_module(path=config.models_dir_path, name_module="G2").G2()
         self.D = utils.import_module(path=config.models_dir_path, name_module="D").D()
 
     def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, grid_path, type_dataset):
-        pz_0 = batch[5]  # [batch, 1]
-        pz_1 = batch[6]  # [batch, 1]
-        name_0 = batch[7]  # [batch, 1]
-        name_1 = batch[8]  # [batch, 1]
+        """
+        Metodo utilizzato per il salvattaggio delle predizioni durante l'allenamento della rete
+        :param epoch: epoca di interesse
+        :param id_batch: numero del batch considerato
+        :parm batch: contiene il batch considerato
+        :param output: predizioni effettuate dalla rete
+        :param ssim_value
+        :param mask_ssim_value
+        :param grid_path: percorso di dove salvare la griglia
+        :param type_dataset: tipologia del dataset
+        """
+
+        pz_condition = batch[5]  # [batch, 1]
+        pz_target = batch[6]  # [batch, 1]
+        Ic_image_name = batch[7]  # [batch, 1]
+        It_image_name = batch[8]  # [batch, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
 
         # GRID: Save griglia di immagini predette
@@ -39,9 +48,10 @@ class PG2(object):
                                      mask_ssim=mask_ssim_value))
         mean_0 = tf.cast(mean_0, dtype=tf.float16)
         output = self.dataset_module.unprocess_image(output, mean_0, 32765.5)
-        utils.save_grid(output, name_grid)  # si salva in una immagine contenente una griglia tutti i  G1 + DiffMap
+        utils.save_grid(output, name_grid)
 
-        stack_pairs = np.c_[pz_0.numpy(), name_0.numpy(), pz_1.numpy(), name_1.numpy()]
+        # File .txt in cui salvo il nome delle immagini di condizione e di target contenute all'interno della griglia
+        stack_pairs = np.c_[pz_condition.numpy(), Ic_image_name.numpy(), pz_target.numpy(), It_image_name.numpy()]
         stack_pairs = np.array(
             [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
              stack_pairs])
@@ -222,6 +232,10 @@ class PG2(object):
         print("#############\n\n")
 
     def __train_on_batch_G1(self, batch):
+        """
+        Alleno G1 sul batch
+        :param batch: contiene il bacth considerato
+        """
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
         Pt = batch[2]  # [batch, 96,128, 14]
@@ -242,6 +256,10 @@ class PG2(object):
         return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
     def __valid_on_batch_G1(self, batch):
+        """
+        Valido G1 sul batch
+        :param batch: contiene il bacth considerato
+        """
 
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
@@ -261,6 +279,7 @@ class PG2(object):
         return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
     def train_cDCGAN(self):
+
         # Note: G1 è preaddestrato
         self.config.load_train_path_G1()
         self.config.load_train_path_GAN()
@@ -340,9 +359,9 @@ class PG2(object):
                              'loss_values_train_real_D': np.empty((num_batches_train)),
                              'ssim_train': np.empty((num_batches_train)),
                              'mask_ssim_train': np.empty((num_batches_train)),
-                             'I_PT2_train': np.empty((num_batches_train), dtype=np.uint32),
-                             'Ic_train': np.empty((num_batches_train), dtype=np.uint32),
-                             'It_train': np.empty((num_batches_train), dtype=np.uint32),
+                             'I_PT2_train': np.empty((num_batches_train), dtype=np.uint32), #num I_PT2 predette reali dal Discriminatore
+                             'Ic_train': np.empty((num_batches_train), dtype=np.uint32), #num Ic predette reali dal Discriminatore
+                             'It_train': np.empty((num_batches_train), dtype=np.uint32), #num It predette reali dal Discriminatore
 
                              'loss_values_valid_G2': np.empty((num_batches_valid)),
                              'loss_values_valid_D': np.empty((num_batches_valid)),
@@ -509,6 +528,10 @@ class PG2(object):
             print("#######")
 
     def __train_on_batch_cDCGAN(self, id_batch, batch):
+        """
+        Alleno la cDCGAN sul batch
+        :param batch: contiene il bacth considerato
+        """
 
         def _tape(loss_function_G2, loss_function_D):
             with tf.GradientTape() as tape:
@@ -517,12 +540,12 @@ class PG2(object):
 
                 output_D = self.D.prediction(It, I_PT2, Ic)
                 output_D = tf.cast(output_D, dtype=tf.float16)
-                D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
+                D_pos_It, D_neg_I_PT2, D_neg_Ic = tf.split(output_D, 3)  # [batch]
 
-                loss_value_G2 = loss_function_G2(D_neg_refined_result, I_PT2, It, Mt)
-                loss_value_D = loss_function_D(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
+                loss_value_G2 = loss_function_G2(D_neg_I_PT2, I_PT2, It, Mt)
+                loss_value_D = loss_function_D(D_pos_It, D_neg_I_PT2, D_neg_Ic)
 
-            return tape, loss_value_G2, loss_value_D, I_PT2, I_D, D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0
+            return tape, loss_value_G2, loss_value_D, I_PT2, I_D, D_pos_It, D_neg_I_PT2, D_neg_Ic
 
 
         Ic = batch[0]  # [batch, 96, 128, 1]
@@ -542,18 +565,18 @@ class PG2(object):
 
         # BACKPROP G2
         I_PT2 = None
-        D_neg_refined_result, D_neg_image_raw_0, D_pos_image_raw_1 = None, None, None
+        D_neg_I_PT2, D_neg_Ic, D_pos_It = None, None, None
         loss_value_G2, loss_value_D, loss_fake, loss_real = None, None, None, None
         if (id_batch + 1) % 3 == 0:
             g2_tape, loss_value_G2, loss_value_D, I_PT2, I_D, \
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.G2.adv_loss, self.D.adv_loss)
+            D_pos_It, D_neg_I_PT2, D_neg_Ic = _tape(self.G2.adv_loss, self.D.adv_loss)
             loss_value_D, loss_fake, loss_real = loss_value_D
             self.G2.opt.minimize(loss_value_G2, var_list=self.G2.model.trainable_weights, tape=g2_tape)
 
         # BACKPROP D
         if not (id_batch + 1) % 3 == 0:
             d_tape, loss_value_G2, loss_value_D, I_PT2, I_D, \
-            D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = _tape(self.G2.adv_loss, self.D.adv_loss)
+            D_pos_It, D_neg_I_PT2, D_neg_Ic = _tape(self.G2.adv_loss, self.D.adv_loss)
             loss_value_D, loss_fake, loss_real = loss_value_D
             self.D.opt.minimize(loss_value_D, var_list=self.D.model.trainable_weights, tape=d_tape)
 
@@ -562,21 +585,21 @@ class PG2(object):
         ssim_value = self.G2.ssim(I_PT2, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
         mask_ssim_value = self.G2.mask_ssim(I_PT2, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
 
-        # - Real predette di refined_result dal discriminatore
-        np_array_D_neg_refined_result = D_neg_refined_result.numpy()
-        real_predette_refined_result_train = np_array_D_neg_refined_result[np_array_D_neg_refined_result > 0]
+        # - Numero di real predette di I_PT2 dal discriminatore
+        np_array_D_neg_I_PT2 = D_neg_I_PT2.numpy()
+        num_real_predette_I_PT2_train = np_array_D_neg_I_PT2[np_array_D_neg_I_PT2 > 0]
 
-        # - Real predette di image_raw_0 dal discriminatore
-        np_array_D_neg_image_raw_0 = D_neg_image_raw_0.numpy()
-        real_predette_image_raw_0_train = np_array_D_neg_image_raw_0[np_array_D_neg_image_raw_0 > 0]
+        # - Numero di real predette di Ic dal discriminatore
+        np_array_D_neg_Ic = D_neg_Ic.numpy()
+        num_real_predette_Ic_train = np_array_D_neg_Ic[np_array_D_neg_Ic > 0]
 
-        # - Real predette di image_raw_1 (Target) dal discriminatore
-        np_array_D_pos_image_raw_1 = D_pos_image_raw_1.numpy()
-        real_predette_image_raw_1_train = np_array_D_pos_image_raw_1[np_array_D_pos_image_raw_1 > 0]
+        # - Numero di real predette di It dal discriminatore
+        np_array_D_pos_It = D_pos_It.numpy()
+        num_real_predette_It_train = np_array_D_pos_It[np_array_D_pos_It > 0]
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
-               real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
-               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
+               num_real_predette_I_PT2_train.shape[0], num_real_predette_Ic_train.shape[0], \
+               num_real_predette_It_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
     def __valid_on_batch_cDCGAN(self, batch):
         Ic = batch[0]  # [batch, 96, 128, 1]
@@ -597,32 +620,32 @@ class PG2(object):
         # D
         output_D = self.D.prediction(It, I_PT2, Ic)
         output_D = tf.cast(output_D, dtype=tf.float16)
-        D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0 = tf.split(output_D, 3)  # [batch]
+        D_pos_It, D_neg_I_PT2, D_neg_Ic = tf.split(output_D, 3)  # [batch]
 
         # Loss
-        loss_value_G2 = self.G2.adv_loss(D_neg_refined_result, I_PT2, It, Ic, Mt)
-        loss_value_D, loss_fake, loss_real = self.D.Loss(D_pos_image_raw_1, D_neg_refined_result, D_neg_image_raw_0)
+        loss_value_G2 = self.G2.adv_loss(D_neg_I_PT2, I_PT2, It, Ic, Mt)
+        loss_value_D, loss_fake, loss_real = self.D.Loss(D_pos_It, D_neg_I_PT2, D_neg_Ic)
 
         # Metrics
         # - SSIM
         ssim_value = self.G2.m_ssim(I_PT2, It, mean_0, mean_1)
         mask_ssim_value = self.G2.mask_ssim(I_PT2, It, Mt, mean_0, mean_1)
 
-        # - Real predette di refined_result dal discriminatore
-        np_array_D_neg_refined_result = D_neg_refined_result.numpy()
-        real_predette_refined_result_train = np_array_D_neg_refined_result[np_array_D_neg_refined_result > 0]
+        # - Num real predette di I_PT2 dal discriminatore
+        np_array_D_neg_I_PT2 = D_neg_I_PT2.numpy()
+        num_real_predette_I_PT2_train = np_array_D_neg_I_PT2[np_array_D_neg_I_PT2 > 0]
 
-        # - Real predette di image_raw_0 dal discriminatore
-        np_array_D_neg_image_raw_0 = D_neg_image_raw_0.numpy()
-        real_predette_image_raw_0_train = np_array_D_neg_image_raw_0[np_array_D_neg_image_raw_0 > 0]
+        # - Num real predette di Ic dal discriminatore
+        np_array_D_neg_Ic = D_neg_Ic.numpy()
+        num_real_predette_Ic_train = np_array_D_neg_Ic[np_array_D_neg_Ic > 0]
 
-        # - Real predette di image_raw_1 (Target) dal discriminatore
-        np_array_D_pos_image_raw_1 = D_pos_image_raw_1.numpy()
-        real_predette_image_raw_1_train = np_array_D_pos_image_raw_1[np_array_D_pos_image_raw_1 > 0]
+        # - Num real predette di It dal discriminatore
+        np_array_D_pos_It = D_pos_It.numpy()
+        num_real_predette_It_train = np_array_D_pos_It[np_array_D_pos_It > 0]
 
         return loss_value_G2.numpy(), loss_value_D.numpy(), loss_fake.numpy(), loss_real.numpy(), \
-               real_predette_refined_result_train.shape[0], real_predette_image_raw_0_train.shape[0], \
-               real_predette_image_raw_1_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
+               num_real_predette_I_PT2_train.shape[0], num_real_predette_Ic_train.shape[0], \
+               num_real_predette_It_train.shape[0], ssim_value.numpy(), mask_ssim_value.numpy(), I_PT2
 
     def inference_on_test_set_G1(self):
         self.config.load_train_path_G1()
@@ -780,7 +803,7 @@ class PG2(object):
             plt.savefig(name_img)
             plt.close(fig)
 
-    # Valutazione metrice IS e FID su tutti i weights
+    # Valutazione metrice IS e FID su uno specifico weight: G1_NAME_WEIGHTS_FILE
     def evaluate_G1(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
         self.config.load_train_path_G1()
         self.config.load_evaluate_path_G1()
@@ -814,7 +837,7 @@ class PG2(object):
                             dataset_module=self.dataset_module, path_evaluation=path_evaluation,
                             path_embeddings=path_embeddings)
 
-    # Valutazione metrice IS e FID su tutti i weights
+    # Valutazione metrice IS e FID su uno specifico weight: G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE
     def evaluate_GAN(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
         self.config.load_train_path_G1()
         self.config.load_train_path_GAN()
