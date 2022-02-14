@@ -209,26 +209,30 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature
 
 def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_image_interested, save_fig_plot=True):
     # Extractor
-    # feature_extractor = _get_vgg_model()
-    #
-    # dict_data_real = _start_real(list_sets, list_perplexity, dataset_module, feature_extractor)
-    # dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor)
-    #
-    # # Unione dei due dizionari
-    # print("\n- Unisco i dizionari")
-    # dict_features_tot = {}
-    # for key in list(dict_data_real.keys()):
-    #     dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
-    #
-    # # Salvataggio del file
-    # name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
-    # print("\n- Salvo il dict contenetente le featuress. Nome: ", name_file)
-    # np.save(name_file, dict)
+    feature_extractor = _get_vgg_model()
 
-    dict_vgg_pca_tsne_features_real_and_generated = \
-    dict_features_tot = np.load('../output_bibranch/evaluation/tsne/dict_vgg_pca_tsne_features_real_and_generated.npy', allow_pickle=True)[()]
+    dict_data_real = _start_real(list_sets, list_perplexity, dataset_module, feature_extractor)
+    dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor)
 
+    #Todo:Controllare
+    # Unione dei due dizionari
+    print("\n- Unisco i dizionari")
+    dict_features_tot = {}
+    for key_principal in list(dict_data_real.keys()):
+        dict_features_tot[key_principal] = {}
+
+        # Reali
+        for key_real in dict_data_real[key_principal].keys():
+            dict_features_tot[key_principal][key_real] = dict_data_real[key_real]
+        # Generate
+        for key_generated in dict_data_generated[key_principal].keys():
+            dict_features_tot[key_principal][key_generated] = dict_data_generated[key_generated]
+
+    # Salvataggio del file
+    name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
+    print("\n- Salvo il dict contenetente le featuress. Nome: ", name_file)
+    np.save(name_file, dict)
 
     if save_fig_plot:
-        print("-\n Plotto i grafici. La Key_image_interested è: test_20")
+        print("-\n Plotto i grafici. La Key_image_interested è: "+str(key_image_interested))
         _plot(dict_features_tot, list_perplexity, dir_to_save, key_image_interested=key_image_interested)
