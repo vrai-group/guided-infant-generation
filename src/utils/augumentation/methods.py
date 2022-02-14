@@ -119,13 +119,13 @@ def aug_rotation_angle(dic_data, angle_deegre, indx_img):
     return dic_data
 
 def aug_flip(dic_data):
-    ### Flip vertical pz_0
+    ### Flip vertical pz_condition
     mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
     dic_data["Ic"] = cv2.flip(dic_data["Ic"], 1)
-    dic_data["Ic_indices"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["Ic_indices"]]
+    dic_data["Ic_indices"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["Ic_indices"]] # flip annotazioni
     dic_data["Mc"] = cv2.flip(dic_data["Mc"], 1)
 
-    ### Flip vertical pz_1
+    ### Flip vertical pz_target
     mapping = {0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 10: 11, 11: 10, 9: 12, 12: 9, 8: 13, 13: 8}
     dic_data["It"] = cv2.flip(dic_data["It"], 1)
     dic_data["It_indices"] = [[i[0], 64 + (64 - i[1]), mapping[i[2]]] for i in dic_data["It_indices"]]
