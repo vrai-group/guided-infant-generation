@@ -223,10 +223,10 @@ def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_i
 
         # Reali
         for key_real in dict_data_real[key_principal].keys():
-            dict_features_tot[key_principal][key_real] = dict_data_real[key_real]
+            dict_features_tot[key_principal][key_real] = dict_data_real[key_principal][key_real]
         # Generate
         for key_generated in dict_data_generated[key_principal].keys():
-            dict_features_tot[key_principal][key_generated] = dict_data_generated[key_generated]
+            dict_features_tot[key_principal][key_generated] = dict_data_generated[key_principal][key_generated]
 
     # Salvataggio del file
     name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
