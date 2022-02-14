@@ -13,7 +13,7 @@ class Config:
         self.__load_GAN_info()
 
     def __load_enviroment_variable(self):
-        self.MODE = "tsne_GAN"  # ['train_G1', 'train_cDCGAN', 'evaluate_G1', 'evaluate_GAN', 'tsne_GAN', 'inference_G1', 'inference_G2]
+        self.MODE = "inference_GAN"  # ['train_G1', 'train_cDCGAN', 'evaluate_G1', 'evaluate_GAN', 'tsne_GAN', 'inference_G1', 'inference_GAN']
         self.DATA = "Syntetich_complete" # [tipologia][underscore][note]
         self.DATASET_type = self.DATA.split('_')[0]
         self.DATASET = "dataset_di_testing"

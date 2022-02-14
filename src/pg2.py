@@ -2,7 +2,10 @@ import os
 import sys
 import numpy as np
 import tensorflow as tf
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 
 import utils
 
@@ -720,6 +723,7 @@ class PG2(object):
                                         id_1=id_1))
             plt.savefig(name_img)
             plt.close(fig)
+            del fig
 
     def inference_on_test_set_G2(self):
         self.config.load_train_path_G1()

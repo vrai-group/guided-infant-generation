@@ -4,7 +4,6 @@ Training/*
 data/**/*.txt
 results_ssim/
 logs/*.npy
-output_bibranch
 output_monobranch
 
 
