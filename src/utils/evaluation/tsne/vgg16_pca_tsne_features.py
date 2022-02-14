@@ -209,24 +209,25 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature
 
 def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_image_interested, save_fig_plot=True):
     # Extractor
-    feature_extractor = _get_vgg_model()
+    # feature_extractor = _get_vgg_model()
+    #
+    # dict_data_real = _start_real(list_sets, list_perplexity, dataset_module, feature_extractor)
+    # dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor)
+    #
+    # # Unione dei due dizionari
+    # print("\n- Unisco i dizionari")
+    # dict_features_tot = {}
+    # for key in list(dict_data_real.keys()):
+    #     dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
+    #
+    # # Salvataggio del file
+    # name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
+    # print("\n- Salvo il dict contenetente le featuress. Nome: ", name_file)
+    # np.save(name_file, dict)
 
-    dict_data_real = _start_real(list_sets, list_perplexity, dataset_module, feature_extractor)
-    dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor)
+    dict_vgg_pca_tsne_features_real_and_generated = \
+    dict_features_tot = np.load('../output_bibranch/evaluation/tsne/dict_vgg_pca_tsne_features_real_and_generated.npy', allow_pickle=True)[()]
 
-    # Unione dei due dizionari
-    print("\n- Unisco i dizionari")
-    dict_features_tot = {}
-    for key in list(dict_data_real.keys()):
-        print(key)
-        # TODO verificare se l unione è ok
-        dict_features_tot[key] = {**dict_data_real[key], **dict_data_generated[key]}
-    print(dict_features_tot)
-
-    # Salvataggio del file
-    name_file = os.path.join(dir_to_save, "dict_vgg_pca_tsne_features_real_and_generated.npy")
-    print("\n- Salvo il dict contenetente le featuress. Nome: ", name_file)
-    np.save(name_file, dict)
 
     if save_fig_plot:
         print("-\n Plotto i grafici. La Key_image_interested è: test_20")

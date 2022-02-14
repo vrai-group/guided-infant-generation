@@ -860,7 +860,7 @@ class PG2(object):
         self.config.load_train_path_G1()
         self.config.load_train_path_GAN()
         tsne_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "tsne")
-        os.makedirs(tsne_path, exist_ok=False)
+        #os.makedirs(tsne_path, exist_ok=False)
         G1_NAME_WEIGHTS_FILE = os.path.join(self.config.G1_weights_path, self.config.G1_NAME_WEIGHTS_FILE)
         G2_NAME_WEIGHTS_FILE = os.path.join(self.config.GAN_weights_path, self.config.G2_NAME_WEIGHTS_FILE)
         assert os.path.exists(G2_NAME_WEIGHTS_FILE)
