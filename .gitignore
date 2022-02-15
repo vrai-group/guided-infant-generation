@@ -18,8 +18,16 @@ logs/*.npy
 *.bak
 
 !web_page/**/*.png
-output_monobranch/
-output_bibranch/
+
+!output_monobranch/evaluation/G1/**/*.txt
+!output_monobranch/evaluation/G1/**/*.npy
+!output_monobranch/evaluation/GAN/**/*.txt
+!output_monobranch/evaluation/GAN/**/*.npy
+!output_bibranch/evaluation/G1/**/*.txt
+!output_bibranch/evaluation/G1/**/*.npy
+!output_bibranch/evaluation/GAN/**/*.txt
+!output_bibranch/evaluation/GAN/**/*.npy
+
 !data/Syntetich_complete/annotations/*.csv
 !data/Syntetich_complete/annotations/*.png
 !data/Syntetich_complete/tfrecord/**/*.pkl
