@@ -46,7 +46,7 @@ In order to cope with image transformations, we have also applied transformation
 
 In addition, we have reduced the original MINI-RGBD annotations:
 <ul>
-  <li>Simplification of KP annotations (from 24 to 14)</li>
+  <li>Simplification of Keypoints annotations (from 24 to 14)</li>
 </ul>
 <br>
 The keypoints considered are:
