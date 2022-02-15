@@ -30,6 +30,16 @@ directory to the container
 docker run --name "GANinfantcontainer" --gpus "<id_gpu>"  -v <local_directory>:<container_directory> -it ganinfant:1.0 bash 
 ```
 
+# Usage
+
+## dataset
+In order to use the framework you have the possibility to define your own dataset, containing depth images of size 
+[96,128,1]. Each defined dataset must be placed in the <i>data</i> directory and comply with naming rules. 
+For more information, you can refer to the README in the <i>data/REAMDE.md</i> folder.
+
+In addition, you can download the MINI-RGBD dataset. 
+For more information, you can refer to the README in the <i>data/Syntetich_complete/REAMDE.md</i> folder.
+
 
 Directory tree src
 

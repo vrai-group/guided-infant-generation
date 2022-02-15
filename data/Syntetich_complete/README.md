@@ -2,10 +2,11 @@ Le immagini utilizzate sono prese dal dataset disponibile online: <a href="https
 <br>
 Di seguito è descritta ogni directory e il suo contenuto.
 
-<h3> 1. Pz[unique] </h3>
-Qui abbiamo denominato ogni cartella con pz[num_unique_infante]. Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\.
+<h3> 1. Pz[id_unique] </h3>
+Qui abbiamo denominato ogni cartella con pz[id_unique]. <i>id_unique</i> è un numero intero con cui distinguiamo in maniera univoca ogni infante. 
+Ognuna delle cartelle fa riferimento alla corrispettiva presente in:  MINI-RGBD_web\imgs\.
 <br>
-Per ognuna delle pz<num_unique_infante> abbiamo:
+Per ognuna delle pz<id_unique> abbiamo:
 <ul>
   <li>1000 immagini a 16 bit, già presenti nel MINI-RGBD e visualizzabili scaricando il programma Fiji.</li>
   <li>1000 immagini a 8 bit, queste ultime non erano presenti nel MINI-RGBD ma sono state ricavate effettuando una conversione dalle 16 bit</li>
