@@ -74,11 +74,12 @@ class G1(Model_Template):
 
     # LOSS
     def PoseMaskloss(self, I_PT1, It, Mt):
-        image_raw_1 = tf.cast(It, dtype=tf.float32)
-        mask_1 = tf.cast(Mt, dtype=tf.float32)
+        I_PT1 = tf.cast(I_PT1, dtype=tf.float32)
+        It = tf.cast(It, dtype=tf.float32)
+        Mt = tf.cast(Mt, dtype=tf.float32)
 
-        primo_membro = tf.reduce_mean(tf.abs(I_PT1 - image_raw_1))  # L1 loss
-        secondo_membro = tf.reduce_mean(tf.abs(I_PT1 - image_raw_1) * mask_1)
+        primo_membro = tf.reduce_mean(tf.abs(I_PT1 - It))  # L1 loss
+        secondo_membro = tf.reduce_mean(tf.abs(I_PT1 - It) * Mt)
         loss = primo_membro + secondo_membro
 
         return loss
