@@ -49,31 +49,34 @@ Once the dataset and models have been defined, the framework can be used.
 In particular we need to set the <i>enviroment variables</i> defined in the src/CONFIG.py file.
 
 <dl>
-    <dt><b>MODE</b></dt>
-	 <dd>
-     Specify the mode to start the framework. The list of MODE value is given below:
-        <ul>
-            <li>'train_G1': train generator G1 </li> 
-            <li>'train_cDCGAN': train the conditional Generative Adversarial Network </li>
-            <li>'evaluate_G1': calculate FID and IS scores of G1 </li>
-            <li>'evaluate_GAN': calculate FID and IS scores of conditional Generative Adversarial Network </li>
-            <li>'tsne_GAN': calculate tsne of all framework </li>
-            <li>'inference_G1': inference on test set using G1 </li>
-            <li>'inference_GAN': inference on test set using conditional Generative Adversarial Network </li>
-        </ul>
-    </dd>
+<dt><b>- MODE</b></dt>
+<dd>
+Specify the mode to start the framework. The list of MODE value is given below:
+    <ul>
+        <li>'train_G1': train generator G1 </li> 
+        <li>'train_cDCGAN': train the conditional Generative Adversarial Network </li>
+        <li>'evaluate_G1': calculate FID and IS scores of G1 </li>
+        <li>'evaluate_GAN': calculate FID and IS scores of conditional Generative Adversarial Network </li>
+        <li>'tsne_GAN': calculate tsne of all framework </li>
+        <li>'inference_G1': inference on test set using G1 </li>
+        <li>'inference_GAN': inference on test set using conditional Generative Adversarial Network </li>
+    </ul>
+</dd>
 
-<dt><b>DATASET</b></dt>
-Name of the directory dataset you want to use. The dataset must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data">data</a> directory.
+<dt><b>- DATASET</b></dt>
+Name of the dataset you want to use. 
+The directory of dataset must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data">data</a> directory.
 
-<dt><b>DATASET_CONFIGURATION</b></dt>
-Name of the dataset "configuration" you want to use. The directory of configuration must be contained in DATASET/tfrecord/DATASET_CONFIGURATION
+<dt><b>- DATASET_CONFIGURATION</b></dt>
+Name of the dataset "configuration" you want to use. 
+The directory of configuration must be contained in DATASET/tfrecord/DATASET_CONFIGURATION
 
-<dt><b>ARCHITECTURE</b></dt>
-Name of the dataset architecture you want to use. The directory of architecture must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/models">models</a> directory.
+<dt><b>- ARCHITECTURE</b></dt>
+Name of the architecture you want to use. 
+The directory of architecture must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/models">models</a> directory.
 
-<dt><b>OUTPUTS_DIR</b></dt>
-Name of directory in which to save the results of training, validation and inference
+<dt><b>- OUTPUTS_DIR</b></dt>
+Name of directory in which to save the results of training, validation and inference.
 
 </dl>
 
