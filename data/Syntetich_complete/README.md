@@ -25,7 +25,8 @@ In particolare, le annotazioni sono cosi scritte: [coordinata_x],[coordinata_y].
 
 <h3> 3. tfrecord </h3>
 Nella cartella tfrecord sono presenti i set di: train, valid e test per la parte di training e validazione.
-Inoltre, il file pair_tot_sets.pkl viene creato in automatico durante la creazione dei tfrecods e contiene le info: radius_head, radius_keypoints utilizzate durante la formazione dei sets.
+Inoltre, il file <i>sets_config.pkl</i> viene creato in automatico durante la creazione dei tfrecods e contiene le configurazioni del dataset: 
+valore radius_head, valore radius_keypoints. I <i>.tfrecord</i> e il file <i>sets_config.pkl</i> sono creati dallo script src/0_DatasetGenerator.py.
 <br><br><br>
 <h3> 4.  Trasformazioni </h3> 
 
