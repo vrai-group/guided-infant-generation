@@ -1,16 +1,16 @@
-Qui hai la possibilità di definire <b>i dataset</b>.
-Ogni cartella è nominata con il seguente pattern: [tipologia][underscore][note aggiuntive].
-Ad ogni <b>tipologia</b>, è associato un <b>modulo di processamento python</b> presente in src/datasets.
+Here you have the possibility to define the <b>datasets</b>.
+Each folder is named with the following pattern: [type][underscore][notes].
+Each <b>type</b> has an associated <b>python processing module</b> in src/datasets.
 
-Ogni cartella contenente il dataset deve essere cosi strutturata:
+Each folder containing the dataset must be structured as follows:
 <ul>
-	<li><b>cartelle contenente le immagini:</b> ogni cartella deve essere nominato con pz[id_unique] in cui <i>id_unique</i> è un id numerico intero che riconosce univocamente gli infanti</li>
-	<li><b>annotations</b>: questa directory, per ognuna delle cartelle pz[id_unique] conterrà le relative annotazioni delle immagini</li>
-	<li><b>tfrecord: </b> conterrà i dataset in formato <i>.tfrecord</i>. 
-	All'interno di questa cartella possiamo trovare diverse sottocartele ognuna corrispondete ad una particolare "configurazione" del dataset.
-	Ad esempio in una configurazione poniamo radius_key=1 mentre nell'altra radius_key=2 e via discorrendo.
-	Ogni "configurazione" è descritta in un file pickle <i>(.pkl)</i> chiamato <i>sets_configs.pkl</i>.
-	<br>I file <i>.tfrecord</i> e il file <i>sets_config.pkl</i> sono creati dallo script src/0_DatasetGenerator.py.</li>
+	<li><b>folders containing the images:</b> each folder must be named with pz[id_unique] where <i>id_unique</i> is an integer numeric id that uniquely recognises infants</li>
+	<li><b>annotations</b>: this directory, for each of the folders pz[id_unique] will contain the relevant image annotations</li>
+	<li><b>tfrecord: </b> will contain the datasets in <i>.tfrecord</i>. 
+	Within this folder we can find several sub-folders, each corresponding to a particular "configuration" of the dataset.
+	For example, in one configuration we set radius_key=1 while in the other radius_key=2 and so on.
+	Each "configuration" is described in a pickle file <i>(.pkl)</i> called <i>sets_configs.pkl</i>.
+	<br>The file <i>.tfrecord</i> and <i>sets_config.pkl</i> are created by the src/0_DatasetGenerator.py.</li>
 </ul>
 
-Come esempio si consideri la struttura presente in <i>Syntetich_complete</i>
+As an example, consider the structure in <i>Syntetich_complete</i>
