@@ -80,6 +80,8 @@ Name of directory in which to save the results of training, validation and infer
 
 </dl>
 
+Once the environment variables have been set, start src/main.py.
+
 
 
 
