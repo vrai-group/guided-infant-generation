@@ -18,9 +18,9 @@ mv BabyPoseGuided-master BabyPoseGuided
 ```
 cd BabyPoseGuided
 ```
-3. Build the Dockerfile to obtain the docker image. In the following instruction we call the docker image <i>ganinfant</i> version <i>1.0</i>
+3. Build the Dockerfile to obtain the docker image. In the following instruction, we buid the Docker file in the direcory ./ calling the docker image <i>ganinfant</i> version <i>1.0</i>
 ```
-docker build -t ganinfant:1.0
+docker build -t ganinfant:1.0 ./
 ```
 4. We start the container <i>GANinfantcontainer</i> with the docker image <i>ganinfant:1.0</i>. 
 In the following instruction we replace <id_gpu> with your GPU id, <local_directory> with the absolute path of the 
