@@ -14,9 +14,9 @@ class Config:
 
     def __load_enviroment_variable(self):
         self.MODE = "tsne_GAN"  # ['train_G1', 'train_cDCGAN', 'evaluate_G1', 'evaluate_GAN', 'tsne_GAN', 'inference_G1', 'inference_GAN']
-        self.DATA = "Syntetich_complete" # [tipologia][underscore][note]
-        self.DATASET_type = self.DATA.split('_')[0]
-        self.DATASET = "dataset_di_testing"
+        self.DATASET = "Syntetich_complete" # [tipologia][underscore][note]
+        self.DATASET_TYPE = self.DATASET.split('_')[0]
+        self.DATASET_CONFIGURATION = "dataset_di_testing"
         self.ARCHITETURE = "bibranch"
         self.OUTPUTS_DIR = "output_bibranch" # nome directory in cui salvare tutti gli output durante il training
 
@@ -28,8 +28,8 @@ class Config:
         self.SRC = '.'
         self.OUTPUTS_DIR = os.path.join(self.ROOT, self.OUTPUTS_DIR)
 
-        self.data_dir_path = os.path.join(self.ROOT, "data", self.DATA)
-        self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET)  # dove si trova il dataset in tfrecord
+        self.data_dir_path = os.path.join(self.ROOT, "data", self.DATASET)
+        self.data_tfrecord_path = os.path.join(self.data_dir_path, "tfrecord", self.DATASET_CONFIGURATION)  # dove si trova il dataset in tfrecord
         self.models_dir_path = os.path.join(self.SRC, "models", self.ARCHITETURE)  # dove sono presenti le architetture
         self.dataset_module_dir_path = os.path.join(self.SRC, "datasets")  # dov è presente il modulo per processare il dataset
 
@@ -40,7 +40,7 @@ class Config:
         #-SRC
         assert os.path.exists(self.models_dir_path)
         assert os.path.exists(self.dataset_module_dir_path)
-        assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATA.split('_')[0] + ".py"))
+        assert os.path.exists(os.path.join(self.dataset_module_dir_path, self.DATASET.split('_')[0] + ".py"))
         #-OUTPUTS
         if os.path.exists(self.OUTPUTS_DIR):
             r_v = input("La cartella di output esiste già. Sovrascriverla? Questo comporterà la perdita di tutti i dati Yes[Y] No[N]")

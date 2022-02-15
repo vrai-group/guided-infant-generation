@@ -30,9 +30,7 @@ directory to the container
 docker run --name "GANinfantcontainer" --gpus "<id_gpu>"  -v <local_directory>:<container_directory> -it ganinfant:1.0 bash 
 ```
 
-# Usage
-
-## dataset
+# Define dataset
 In order to use the framework you have the possibility to define your own dataset, containing depth images of 16 bit and 8 bit of size hegth=480, width=640. Each defined dataset must be placed in the <i>data</i> directory and comply with naming rules. 
 For more information, you can refer to the README in the 
 <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data">data/REAMDE.md</a> folder.
@@ -41,10 +39,46 @@ In addition, you can download the MINI-RGBD dataset.
 For more information, you can refer to the README in the 
 <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data/Syntetich_complete">data/Syntetich_complete/REAMDE.md</a> folder.
 
-## models
+# Define models
 To use the framework you have the possibility to define your own architecture or use the existing ones.
 For more information refer to the README in the 
 <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/models">src/models/README.md</a> folder
+
+# Usage
+Once the dataset and models have been defined, the framework can be used.
+In particular we need to set the <i>enviroment variables</i> defined in the src/CONFIG.py file.
+
+<dl>
+    <dt><b>MODE</b></dt>
+	 <dd>
+     Specify the mode to start the framework. The list of MODE value is given below:
+        <ul>
+            <li>'train_G1': train generator G1 </li> 
+            <li>'train_cDCGAN': train the conditional Generative Adversarial Network </li>
+            <li>'evaluate_G1': calculate FID and IS scores of G1 </li>
+            <li>'evaluate_GAN': calculate FID and IS scores of conditional Generative Adversarial Network </li>
+            <li>'tsne_GAN': calculate tsne of all framework </li>
+            <li>'inference_G1': inference on test set using G1 </li>
+            <li>'inference_GAN': inference on test set using conditional Generative Adversarial Network </li>
+        </ul>
+    </dd>
+
+<dt><b>DATASET</b></dt>
+Name of the directory dataset you want to use. The dataset must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data">data</a> directory.
+
+<dt><b>DATASET_CONFIGURATION</b></dt>
+Name of the dataset "configuration" you want to use. The directory of configuration must be contained in DATASET/tfrecord/DATASET_CONFIGURATION
+
+<dt><b>ARCHITECTURE</b></dt>
+Name of the dataset architecture you want to use. The directory of architecture must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/models">models</a> directory.
+
+<dt><b>OUTPUTS_DIR</b></dt>
+Name of directory in which to save the results of training, validation and inference
+
+</dl>
+
+
+
 
 
 
