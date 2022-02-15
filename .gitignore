@@ -25,4 +25,4 @@ output_monobranch
 !data/Syntetich_complete/*.md
 !data/Syntetich_complete/*.txt
 !data/Syntetich_complete/*.png
-!resources
+!resources/*.png
