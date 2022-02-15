@@ -33,8 +33,7 @@ docker run --name "GANinfantcontainer" --gpus "<id_gpu>"  -v <local_directory>:<
 # Usage
 
 ## dataset
-In order to use the framework you have the possibility to define your own dataset, containing depth images of size 
-[96,128,1]. Each defined dataset must be placed in the <i>data</i> directory and comply with naming rules. 
+In order to use the framework you have the possibility to define your own dataset, containing depth images of 16 bit and 8 bit of size hegth=480, width=640. Each defined dataset must be placed in the <i>data</i> directory and comply with naming rules. 
 For more information, you can refer to the README in the <i>data/REAMDE.md</i> folder.
 
 In addition, you can download the MINI-RGBD dataset. 
