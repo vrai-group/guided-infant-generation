@@ -126,7 +126,7 @@ def start(models, dataset, len_dataset, batch_size, dataset_module, path_evaluat
             mask_pred_generated = pred_generated * Mt
         elif len(models) == 2:
             I_PT1 = G1.prediction(Ic, Pt)
-            I_D = G2.prediction(I_PT1, Ic, None)
+            I_D = G2.prediction(I_PT1, Ic)
             I_D = tf.cast(I_D, dtype=tf.float16)
             pred_generated = I_PT1 + I_D  # [batch, 96, 128, 1]
             mask_pred_generated = pred_generated * Mt
