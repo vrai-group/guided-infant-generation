@@ -14,11 +14,15 @@ wget https://github.com/GiuseppeCannata/BabyPoseGuided/archive/master.zip
 unzip master.zip
 mv BabyPoseGuided-master BabyPoseGuided
 ```
-2. Build the Dockerfile to obtain the docker image. In the following instruction we call the docker image <i>ganinfant</i> version <i>1.0</i>
+2. Move in BabyPoseGuided directory
+```
+cd BabyPoseGuided
+```
+3. Build the Dockerfile to obtain the docker image. In the following instruction we call the docker image <i>ganinfant</i> version <i>1.0</i>
 ```
 docker build -t ganinfant:1.0
 ```
-3. We start the container <i>GANinfantcontainer</i> with the docker image <i>ganinfant:1.0</i>. 
+4. We start the container <i>GANinfantcontainer</i> with the docker image <i>ganinfant:1.0</i>. 
 In the following instruction we replace <id_gpu> with your GPU id, <local_directory> with the absolute path of the 
 BabyPoseGuided directory described at point (1.) , <container_directory> mapping of the local BabyPoseGuided 
 directory to the container
