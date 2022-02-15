@@ -64,19 +64,27 @@ Specify the mode to start the framework. The list of MODE value is given below:
 </dd>
 
 <dt><b>- DATASET</b></dt>
+<dd>
 Name of the dataset you want to use. 
 The directory of dataset must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data">data</a> directory.
+</dd>
 
 <dt><b>- DATASET_CONFIGURATION</b></dt>
+<dd>
 Name of the dataset "configuration" you want to use. 
 The directory of configuration must be contained in DATASET/tfrecord/DATASET_CONFIGURATION
+</dd>
 
 <dt><b>- ARCHITECTURE</b></dt>
+<dd>
 Name of the architecture you want to use. 
 The directory of architecture must be contained in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/models">models</a> directory.
+</dd>
 
 <dt><b>- OUTPUTS_DIR</b></dt>
+<dd>
 Name of directory in which to save the results of training, validation and inference.
+</dd>
 
 </dl>
 
