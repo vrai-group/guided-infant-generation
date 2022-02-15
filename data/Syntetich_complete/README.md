@@ -2,7 +2,7 @@ The images used are taken from the dataset available online: <a href="https://ww
 <br>
 Each directory and its contents are described below.
 
-<h3> 1. Pz[id_unique] </h3>
+<h3> 1. pz[id_unique] </h3>
 Here we have named each folder with pz[id_unique]. <i>id_unique</i> is an integer with which we uniquely distinguish each infant. 
 Each of the folders refers to the corresponding folder in:  MINI-RGBD_web\imgs\.
 <br>
@@ -16,7 +16,7 @@ The size of the images is height = 480 pixels and width = 640 pixels. The images
 <i>Please refer to section 4.1 for more details on image transformations.</i>
 
 
-<h3> 2. Annotations </h3>
+<h3> 2. annotations </h3>
 In the annotations folder, for each pc and each image we have the relevant annotations organised in a file <i>.csv</i>.
 Opening the file, for each image <i>(whose name is shown in the image column)</i> we have the relevant annotations of the keypoints. 
 In particular, the annotations are written as follows: [coordinata_x],[coordinata_y].
@@ -27,7 +27,7 @@ In particular, the annotations are written as follows: [coordinata_x],[coordinat
 In the tfrecord folder are the sets of: train, valid e test for the training and validation part.
 In addition, the file <i>sets_config.pkl</i> is created automatically during the creation of the tfrecods and contains the configurations of the dataset:
 radius_head value, radius_keypoints value. the <i>.tfrecord</i> and <i>sets_config.pkl</i> files are created by th src/0_DatasetGenerator.py.
-<br><br><br>
+<br><hr><br>
 <h3> 4.  Trasformations </h3> 
 
 <h4> 4.1 Immagini </h4> 
