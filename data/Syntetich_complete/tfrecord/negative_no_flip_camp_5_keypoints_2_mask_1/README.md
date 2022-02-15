@@ -1,3 +1,6 @@
+The sets_config.pkl file is shown below.
+
+```
 {
  'general': {'radius_keypoints_pose': 2, 
              'radius_keypoints_mask': 1, 
@@ -17,3 +20,4 @@
 		  'list_pz': [104, 108], 
 		  'tot': 400}
 }
+```
