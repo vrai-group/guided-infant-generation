@@ -37,28 +37,14 @@ In order to use the framework you have the possibility to define your own datase
 For more information, you can refer to the README in the <i>data/REAMDE.md</i> folder.
 
 In addition, you can download the MINI-RGBD dataset. 
-For more information, you can refer to the README in the <i>data/Syntetich_complete/REAMDE.md</i> folder.
+For more information, you can refer to the README in the 
+<a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data/Syntetich_complete">data/Syntetich_complete/REAMDE.md</a> folder.
 
 ## models
 To use the framework you have the possibility to define your own architecture or use the existing ones.
-For more information refer to the README in the src/models/README.md forlder
+For more information refer to the README in the 
+<a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/models">src/models/README.md</a> folder
 
-Directory tree src
 
-├───datasets
-├───models
-│   ├───bibranch
-│   └───mono
-│       └───__pycache__
-├───output
-│   ├───grid
-│   ├───logs
-│   └───weights
-│       ├───G1
-│       └───GAN
-└───utils
-    ├───augumentation
-    └───evaluation
-        └───tsne
 
 
