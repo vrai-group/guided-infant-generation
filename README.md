@@ -34,7 +34,8 @@ docker run --name "GANinfantcontainer" --gpus "<id_gpu>"  -v <local_directory>:<
 
 ## dataset
 In order to use the framework you have the possibility to define your own dataset, containing depth images of 16 bit and 8 bit of size hegth=480, width=640. Each defined dataset must be placed in the <i>data</i> directory and comply with naming rules. 
-For more information, you can refer to the README in the <i>data/REAMDE.md</i> folder.
+For more information, you can refer to the README in the 
+<a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/data">data/REAMDE.md</a> folder.
 
 In addition, you can download the MINI-RGBD dataset. 
 For more information, you can refer to the README in the 
