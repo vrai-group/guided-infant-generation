@@ -27,7 +27,9 @@ In particular, the annotations are written as follows: [coordinata_x],[coordinat
 In the tfrecord folder are the sets of: train, valid e test for the training and validation part.
 In addition, the file <i>sets_config.pkl</i> is created automatically during the creation of the tfrecods and contains the configurations of the dataset:
 radius_head value, radius_keypoints value. the <i>.tfrecord</i> and <i>sets_config.pkl</i> files are created by th src/0_DatasetGenerator.py.
-<br><hr><br>
+<br>
+<hr>
+
 <h3> 4.  Trasformations </h3> 
 
 <h4> 4.1 Immagini </h4> 
