@@ -1,15 +1,17 @@
-Qui troviamo le architetture. 
+Here it is possible to find the existing architectures in the framework or, if necessary, to define new ones.
 
-Ogni architettura deve essere contenuta all'interno di una specifica directory denominata <nome_architettura> 
-In particolare il tree è:
+Each architecture must be contained in a specific directory called with the properly name of architecture. 
+In particular the tree is:
 
-├───<nome_architettura>
+```
+├───[architecture_name]
 	├───G1.py
 	├───G2.py
 	└───D.py
+```
 
-G1.py, G2.py, D.py, ereditano dal Model_Template. In particolare quest'ultima definisce i metodi
-astratti da implementare nelle classi ereditarie.
-Inoltre, ogni classe ereditante (G1.py, G2.py, D.py,), deve richiamere il costruttore della 
-super classe poichè questultima richiama i metodi build_model e optimizer.
-Per utilizzare l'architettura basta inserire il <nome_architettura> in src/CONFIG alla variabile ARCHITECTURE.
+G1.py, G2.py, D.py, extend the Model_Template.py. In particular, Model_Template defines the abstract methods to be implemented in the extended classes.
+In addition, each extended class (G1.py, G2.py, D.py,), must call the super_class custructor. 
+In fact, this method will invocke the <i>build_model</i> and <i>optimizer</i> methods.
+To use the architecture in the framework, simply enter the [architecture_name] in src/CONFIG.py to the <b>ARCHITECTURE</b> variable.
+

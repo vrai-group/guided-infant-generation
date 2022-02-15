@@ -39,6 +39,9 @@ For more information, you can refer to the README in the <i>data/REAMDE.md</i> f
 In addition, you can download the MINI-RGBD dataset. 
 For more information, you can refer to the README in the <i>data/Syntetich_complete/REAMDE.md</i> folder.
 
+## models
+To use the framework you have the possibility to define your own architecture or use the existing ones.
+For more information refer to the README in the src/models/README.md forlder
 
 Directory tree src
 
