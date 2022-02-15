@@ -1,6 +1,6 @@
 Here you have the possibility to define the <b>datasets</b>.
 Each folder is named with the following pattern: [type][underscore][notes].
-Each <b>type</b> has an associated <b>python processing module</b> in src/datasets.
+Each <b>type</b> has an associated <b>python processing module</b> in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/datasets">src/datasets<a>.
 
 Each folder containing the dataset must be structured as follows:
 <ul>
