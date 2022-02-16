@@ -1,0 +1,112 @@
+Resoconto perplexity 5:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.17690594
+
+##########
+
+Resoconto perplexity 10:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.15662712
+
+##########
+
+Resoconto perplexity 15:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.22969918
+
+##########
+
+Resoconto perplexity 20:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.19735001
+
+##########
+
+Resoconto perplexity 25:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.23795137
+
+##########
+
+Resoconto perplexity 30:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.555281
+
+##########
+
+Resoconto perplexity 35:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.41784438
+
+##########
+
+Resoconto perplexity 40:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.4670682
+
+##########
+
+Resoconto perplexity 45:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.41160908
+
+##########
+
+Resoconto perplexity 50:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.28897807
+
+##########
+
+Resoconto perplexity 60:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.24210413
+
+##########
+
+Resoconto perplexity 70:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.738695
+
+##########
+
+Resoconto perplexity 80:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.2666108
+
+##########
+
+Resoconto perplexity 100:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.47057644
+
+##########
+
+Resoconto perplexity 200:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.6092766
+
+##########
+
+Resoconto perplexity 300:
+Counter_image: 20
+Path: pz108/00100_16bit.png
+Distance: 0.14062777
+
+##########
+
