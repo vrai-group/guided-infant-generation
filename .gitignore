@@ -18,8 +18,8 @@ Training/*
 
 !web_page/**/*.png
 !output_monobranch
-!output_monobranch/evaluation/tsne/**/*.png
-!output_bibranch/evaluation/tsne/**/*.png
+!output_monobranch/evaluation/tsne.rar
+!output_bibranch/evaluation/tsne.rar
 !data/Syntetich_complete/annotations/*.csv
 !data/Syntetich_complete/annotations/*.png
 !data/Syntetich_complete/tfrecord/**/*.pkl
