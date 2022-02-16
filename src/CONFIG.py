@@ -13,12 +13,12 @@ class Config:
         self.__load_GAN_info()
 
     def __load_enviroment_variable(self):
-        self.MODE = "evaluate_G1"  # ['train_G1', 'train_cDCGAN', 'evaluate_G1', 'evaluate_GAN', 'tsne_GAN', 'inference_G1', 'inference_GAN']
+        self.MODE = "plot_history_GAN"  # ['train_G1', 'train_cDCGAN', 'evaluate_G1', 'evaluate_GAN', 'tsne_GAN', 'inference_G1', 'inference_GAN']
         self.DATASET = "Syntetich_complete" # [tipologia][underscore][note]
         self.DATASET_TYPE = self.DATASET.split('_')[0]
         self.DATASET_CONFIGURATION = "dataset_di_testing"
-        self.ARCHITETURE = "bibranch"
-        self.OUTPUTS_DIR = "output_bibranch" # nome directory in cui salvare tutti gli output durante il training
+        self.ARCHITETURE = "mono"
+        self.OUTPUTS_DIR = "output_monobranch" # nome directory in cui salvare tutti gli output durante il training
 
         self.G1_NAME_WEIGHTS_FILE = 'Model_G1_Bibranch_epoch_005-loss_0.000.hdf5'
         self.G2_NAME_WEIGHTS_FILE = 'Model_G2_Bibranch_epoch_184-loss_0.69.hdf5'

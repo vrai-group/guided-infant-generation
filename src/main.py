@@ -12,6 +12,10 @@ if __name__ == "__main__":
         pg2.train_G1()
     elif config.MODE == "train_cDCGAN":
         pg2.train_cDCGAN()
+    elif config.MODE == "plot_history_G1":
+        pg2.plot_history_G1()
+    elif config.MODE == "plot_history_GAN":
+        pg2.plot_history_GAN()
     elif config.MODE == 'evaluate_G1':
         pg2.evaluate_G1(analysis_set="test_set", name_dataset=config.name_tfrecord_test, dataset_len=config.dataset_test_len)
     elif config.MODE == 'evaluate_GAN':

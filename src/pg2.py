@@ -2,10 +2,7 @@ import os
 import sys
 import numpy as np
 import tensorflow as tf
-import matplotlib
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 
 import utils
 
@@ -656,6 +653,10 @@ class PG2(object):
         G1_NAME_WEIGHTS_FILE = os.path.join(self.config.G1_weights_path, self.config.G1_NAME_WEIGHTS_FILE)
         assert os.path.exists(G1_NAME_WEIGHTS_FILE)
 
+        # Elimino GUI per sovraccarico memoria
+        import matplotlib
+        matplotlib.use("Agg")
+
         print("\nINFERENZA DI G1 SU TEST SET")
         print("-Procedo alla predizione su G1")
         print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
@@ -733,6 +734,10 @@ class PG2(object):
         G2_NAME_WEIGHTS_FILE = os.path.join(self.config.GAN_weights_path, self.config.G2_NAME_WEIGHTS_FILE)
         assert os.path.exists(G1_NAME_WEIGHTS_FILE)
         assert os.path.exists(G2_NAME_WEIGHTS_FILE)
+
+        # Elimino GUI per sovraccarico memoria
+        import matplotlib
+        matplotlib.use("Agg")
 
         print("\nINFERENZA DI G2 SU TEST SET")
         print("-Procedo alla predizione su G2")
@@ -882,6 +887,64 @@ class PG2(object):
         utils.evaluation.start([self.G1, self.G2], iter(dataset), dataset_len, batch_size,
                             dataset_module=self.dataset_module,  path_evaluation=path_evaluation,
                             path_embeddings=path_embeddings)
+
+    def plot_history_G1(self):
+        self.config.load_train_path_G1()
+        path_history_G1 = os.path.join(self.config.G1_logs_dir_path, 'history_G1.npy')
+        assert os.path.exists(path_history_G1)
+        history_G1 = np.load(path_history_G1, allow_pickle='TRUE')
+
+        epoch = history_G1[()]['epoch']
+        loss_train = history_G1[()]['loss_train'][:epoch]
+        loss_valid = history_G1[()]['loss_valid'][:epoch]
+        ssim_train = history_G1[()]['ssim_train'][:epoch]
+        ssim_valid = history_G1[()]['ssim_valid'][:epoch]
+
+        x_axis = np.arange(1, epoch + 1, 1)
+
+        fig, axs = plt.subplots(2)
+        axs[0].plot(x_axis, loss_train, label="loss_train")
+        axs[0].plot(x_axis, loss_valid, label="loss_valid")
+        axs[0].legend()
+
+        axs[1].plot(x_axis, ssim_train, label="ssim_train")
+        axs[1].plot(x_axis, ssim_valid, label="ssim_valid")
+        axs[1].legend()
+
+        plt.show()
+
+    def plot_history_GAN(self):
+        self.config.load_train_path_GAN()
+        path_history_GAN = os.path.join(self.config.GAN_logs_dir_path, 'history_GAN.npy')
+        assert os.path.exists(path_history_GAN)
+        history_GAN = np.load(path_history_GAN, allow_pickle='TRUE')
+
+        epoch = history_GAN[()]['epoch']
+        loss_train_G2 = history_GAN[()]['loss_train_G2'][:epoch]
+        loss_train_D = history_GAN[()]['loss_train_D'][:epoch]
+        loss_train_fake_D = history_GAN[()]['loss_train_fake_D'][:epoch]
+        loss_train_real_D = history_GAN[()]['loss_train_real_D'][:epoch]
+        loss_valid_G2 = history_GAN[()]['loss_valid_G2'][:epoch]
+        loss_valid_D = history_GAN[()]['loss_valid_D'][:epoch]
+        loss_valid_fake_D = history_GAN[()]['loss_valid_fake_D'][:epoch]
+        loss_valid_real_D = history_GAN[()]['loss_valid_real_D'][:epoch]
+
+        x_axis = np.arange(1, epoch + 1, 1)
+
+        fig, axs = plt.subplots(2)
+        axs[0].plot(x_axis, loss_train_G2, label="loss_train_G2")
+        axs[0].plot(x_axis, loss_train_D, label="loss_train_D")
+        axs[0].plot(x_axis, loss_train_fake_D, label="loss_train_fake_D")
+        axs[0].plot(x_axis, loss_train_real_D, label="loss_train_real_D")
+        axs[0].legend()
+
+        axs[1].plot(x_axis, loss_valid_G2, label="loss_valid_G2")
+        axs[1].plot(x_axis, loss_valid_D, label="loss_valid_D")
+        axs[1].plot(x_axis, loss_valid_fake_D, label="loss_valid_fake_D")
+        axs[1].plot(x_axis, loss_valid_real_D, label="loss_valid_real_D")
+        axs[1].legend()
+
+        plt.show()
 
     def tsne(self, key_image_interested="test_20"):
         self.config.load_train_path_G1()
