@@ -301,9 +301,9 @@ class PG2(object):
                        'loss_train_real_D': np.empty((self.config.GAN_epochs)),
                        'ssim_train': np.empty((self.config.GAN_epochs)),
                        'mask_ssim_train': np.empty((self.config.GAN_epochs)),
-                       'r_r_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
-                       'img_0_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
-                       'img_1_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'num_real_I_PT2_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'num_real_Ic_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'num_real_It_train': np.empty((self.config.GAN_epochs), dtype=np.uint32),
 
                        'loss_valid_G2': np.empty((self.config.GAN_epochs)),
                        'loss_valid_D': np.empty((self.config.GAN_epochs)),
@@ -311,9 +311,9 @@ class PG2(object):
                        'loss_valid_real_D': np.empty((self.config.GAN_epochs)),
                        'ssim_valid': np.empty((self.config.GAN_epochs)),
                        'mask_ssim_valid': np.empty((self.config.GAN_epochs)),
-                       'r_r_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
-                       'img_0_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
-                       'img_1_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'num_real_I_PT2_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'num_real_Ic_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
+                       'num_real_It_valid': np.empty((self.config.GAN_epochs), dtype=np.uint32),
                        }
 
         # Se esistenti, precarico i logs
@@ -359,9 +359,9 @@ class PG2(object):
                              'loss_values_train_real_D': np.empty((num_batches_train)),
                              'ssim_train': np.empty((num_batches_train)),
                              'mask_ssim_train': np.empty((num_batches_train)),
-                             'I_PT2_train': np.empty((num_batches_train), dtype=np.uint32), #num I_PT2 predette reali dal Discriminatore
-                             'Ic_train': np.empty((num_batches_train), dtype=np.uint32), #num Ic predette reali dal Discriminatore
-                             'It_train': np.empty((num_batches_train), dtype=np.uint32), #num It predette reali dal Discriminatore
+                             'num_real_I_PT2_train': np.empty((num_batches_train), dtype=np.uint32), #num I_PT2 predette reali dal Discriminatore
+                             'num_real_Ic_train': np.empty((num_batches_train), dtype=np.uint32), #num Ic predette reali dal Discriminatore
+                             'num_real_It_train': np.empty((num_batches_train), dtype=np.uint32), #num It predette reali dal Discriminatore
 
                              'loss_values_valid_G2': np.empty((num_batches_valid)),
                              'loss_values_valid_D': np.empty((num_batches_valid)),
@@ -369,9 +369,9 @@ class PG2(object):
                              'loss_values_valid_real_D': np.empty((num_batches_valid)),
                              'ssim_valid': np.empty((num_batches_valid)),
                              'mask_ssim_valid': np.empty((num_batches_valid)),
-                             'I_PT2_valid': np.empty((num_batches_valid), dtype=np.uint32),
-                             'Ic_valid': np.empty((num_batches_valid), dtype=np.uint32),
-                             'It_valid': np.empty((num_batches_valid), dtype=np.uint32),
+                             'num_real_I_PT2_valid': np.empty((num_batches_valid), dtype=np.uint32),
+                             'num_real_Ic_valid': np.empty((num_batches_valid), dtype=np.uint32),
+                             'num_real_It_valid': np.empty((num_batches_valid), dtype=np.uint32),
                              }
 
             # TRAIN: iteration
@@ -379,8 +379,8 @@ class PG2(object):
                 batch = next(train_iterator)
                 logs_to_print['loss_values_train_G2'][id_batch], logs_to_print['loss_values_train_D'][id_batch], \
                 logs_to_print['loss_values_train_fake_D'][id_batch], logs_to_print['loss_values_train_real_D'][id_batch], \
-                logs_to_print['I_PT2_train'][id_batch], logs_to_print['Ic_train'][id_batch], \
-                logs_to_print['It_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
+                logs_to_print['num_real_I_PT2_train'][id_batch], logs_to_print['num_real_Ic_train'][id_batch], \
+                logs_to_print['num_real_It_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
                 logs_to_print['mask_ssim_train'][id_batch], I_PT2 = \
                     self.__train_on_batch_cDCGAN(id_batch, batch)
 
@@ -402,9 +402,9 @@ class PG2(object):
                     loss_D_real=np.mean(logs_to_print['loss_values_train_real_D'][:id_batch + 1]),
                     ssmi=np.mean(logs_to_print['ssim_train'][:id_batch + 1]),
                     mask_ssmi=np.mean(logs_to_print['mask_ssim_train'][:id_batch + 1]),
-                    I_PT2=np.sum(logs_to_print['I_PT2_train'][:id_batch + 1]),
-                    Ic=np.sum(logs_to_print['Ic_train'][:id_batch + 1]),
-                    It=np.sum(logs_to_print['It_train'][:id_batch + 1]),
+                    I_PT2=np.sum(logs_to_print['num_real_I_PT2_train'][:id_batch + 1]),
+                    Ic=np.sum(logs_to_print['num_real_Ic_train'][:id_batch + 1]),
+                    It=np.sum(logs_to_print['num_real_It_train'][:id_batch + 1]),
                     total_train=self.config.dataset_train_len))
                 sys.stdout.flush()
 
@@ -416,8 +416,8 @@ class PG2(object):
                 batch = next(valid_iterator)
                 logs_to_print['loss_values_valid_G2'][id_batch], logs_to_print['loss_values_valid_D'][id_batch], \
                 logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][id_batch], \
-                logs_to_print['I_PT2_valid'][id_batch], logs_to_print['Ic_valid'][id_batch], \
-                logs_to_print['It_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
+                logs_to_print['num_real_I_PT2_valid'][id_batch], logs_to_print['num_real_Ic_valid'][id_batch], \
+                logs_to_print['num_real_It_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
                 logs_to_print['mask_ssim_valid'][id_batch], I_PT2 = self.__valid_on_batch_cDCGAN(batch)
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
@@ -438,9 +438,9 @@ class PG2(object):
                     loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
                     ssmi=np.mean(logs_to_print['ssim_valid']),
                     mask_ssmi=np.mean(logs_to_print['mask_ssim_valid']),
-                    I_PT2=np.sum(logs_to_print['I_PT2_valid']),
-                    Ic=np.sum(logs_to_print['Ic_valid']),
-                    It=np.sum(logs_to_print['It_valid']),
+                    I_PT2=np.sum(logs_to_print['num_real_I_PT2_valid']),
+                    Ic=np.sum(logs_to_print['num_real_Ic_valid']),
+                    It=np.sum(logs_to_print['num_real_It_valid']),
                     total_valid=self.config.dataset_valid_len))
             sys.stdout.flush()
 
@@ -464,15 +464,15 @@ class PG2(object):
                 loss=np.mean(logs_to_print['loss_values_train_G2']),
                 ssmi=np.mean(logs_to_print['ssim_train']),
                 mask_ssim=np.mean(logs_to_print['mask_ssim_train']),
-                I_PT2=int(np.sum(logs_to_print['I_PT2_train'])),
-                Ic=int(np.sum(logs_to_print['Ic_train'])),
-                It=int(np.sum(logs_to_print['It_train'])),
+                I_PT2=int(np.sum(logs_to_print['num_real_I_PT2_train'])),
+                Ic=int(np.sum(logs_to_print['num_real_Ic_train'])),
+                It=int(np.sum(logs_to_print['num_real_It_train'])),
                 val_loss=np.mean(logs_to_print['loss_values_valid_G2']),
                 val_ssim=np.mean(logs_to_print['ssim_valid']),
                 val_mask_ssim=np.mean(logs_to_print['mask_ssim_valid']),
-                val_I_PT2=int(np.sum(logs_to_print['I_PT2_valid'])),
-                val_Ic=int(np.sum(logs_to_print['Ic_valid'])),
-                val_It=int(np.sum(logs_to_print['It_valid'])),
+                val_I_PT2=int(np.sum(logs_to_print['num_real_I_PT2_valid'])),
+                val_Ic=int(np.sum(logs_to_print['num_real_Ic_valid'])),
+                val_It=int(np.sum(logs_to_print['num_real_It_valid'])),
             )
             filepath = os.path.join(self.config.GAN_weights_path, name_model)
             self.G2.model.save_weights(filepath)
@@ -503,18 +503,18 @@ class PG2(object):
             history_GAN['loss_train_real_D'][epoch] = np.mean(logs_to_print['loss_values_train_real_D'])
             history_GAN['ssim_train'][epoch] = np.mean(logs_to_print['ssim_train'])
             history_GAN['mask_ssim_train'][epoch] = np.mean(logs_to_print['mask_ssim_train'])
-            history_GAN['I_PT2_train'][epoch] = np.sum(logs_to_print['I_PT2_train'])
-            history_GAN['Ic_train'][epoch] = np.sum(logs_to_print['Ic_train'])
-            history_GAN['It_train'][epoch] = np.sum(logs_to_print['It_train'])
+            history_GAN['num_real_I_PT2_train'][epoch] = np.sum(logs_to_print['num_real_I_PT2_train'])
+            history_GAN['num_real_Ic_train'][epoch] = np.sum(logs_to_print['num_real_Ic_train'])
+            history_GAN['num_real_It_train'][epoch] = np.sum(logs_to_print['num_real_It_train'])
             history_GAN['loss_valid_G2'][epoch] = np.mean(logs_to_print['loss_values_valid_G2'])
             history_GAN['loss_valid_D'][epoch] = np.mean(logs_to_print['loss_values_valid_D'])
             history_GAN['loss_valid_fake_D'][epoch] = np.mean(logs_to_print['loss_values_valid_fake_D'])
             history_GAN['loss_valid_real_D'][epoch] = np.mean(logs_to_print['loss_values_valid_real_D'])
             history_GAN['ssim_valid'][epoch] = np.mean(logs_to_print['ssim_valid'])
             history_GAN['mask_ssim_valid'][epoch] = np.mean(logs_to_print['mask_ssim_valid'])
-            history_GAN['I_PT2_valid'][epoch] = np.sum(logs_to_print['I_PT2_valid'])
-            history_GAN['Ic_valid'][epoch] = np.sum(logs_to_print['Ic_valid'])
-            history_GAN['It_valid'][epoch] = np.sum(logs_to_print['It_valid'])
+            history_GAN['num_real_I_PT2_valid'][epoch] = np.sum(logs_to_print['num_real_I_PT2_valid'])
+            history_GAN['num_real_Ic_valid'][epoch] = np.sum(logs_to_print['num_real_Ic_valid'])
+            history_GAN['num_real_It_valid'][epoch] = np.sum(logs_to_print['num_real_It_valid'])
             np.save(os.path.join(path_history_GAN, 'history_GAN.npy'), history_GAN)
 
             # --Update learning rate
