@@ -1,5 +1,8 @@
 # Directory #
 data/pyOniExtractor
+data/BabySynt_single_mov/
+data/BabySynt_single_mov_sample/
+data/Syntetich/
 Training/*
 
 # estensioni #
@@ -16,9 +19,6 @@ Training/*
 !web_page/**/*.png
 !output_monobranch
 !output_bibranch
-!output_monobranch/weights/**/*.hdf5
-!output_bibranch/weights/**/*.hdf5
-
 !data/Syntetich_complete/annotations/*.csv
 !data/Syntetich_complete/annotations/*.png
 !data/Syntetich_complete/tfrecord/**/*.pkl
