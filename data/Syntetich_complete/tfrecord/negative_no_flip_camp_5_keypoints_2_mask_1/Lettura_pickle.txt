@@ -1,0 +1,3 @@
+with open('sets_config.pkl', 'rb') as f:
+    x = pickle.load(f)
+    print(x)
