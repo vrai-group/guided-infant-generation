@@ -105,6 +105,16 @@ Once the environment variables have been set, start src/main.py.
 
 # Qualitative Results
 
+<ul>
+	<li> I_PT2 = I_PT1 + I_D </li>
+	<li> I_PT1 = output of G1 generator </li>
+	<li> I_D = output of G2 generator </li>
+	<li> Ic = condition image </li>
+	<li> It = target image </li>
+	<li> Pt = target pose </li>
+	<li> Mt = target binary mask </li>
+</ul>
+
 <table>
     <tr><th><img src="./resources/220-pz108_00100-pz104_00100.png"></th></tr>
 	<tr><th><img src="./resources/231-pz108_00155-pz104_00155.png"></th></tr>
