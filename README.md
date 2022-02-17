@@ -60,6 +60,8 @@ Specify the mode to start the framework. The list of MODE value is given below:
         <li>'tsne_GAN': calculate tsne of all framework </li>
         <li>'inference_G1': inference on test set using G1 </li>
         <li>'inference_GAN': inference on test set using conditional Generative Adversarial Network </li>
+		<li>'plot_history_G1':  plot history file of G1 training</li>
+		<li>'plot_history_GAN': plot history file of GAN training</li>
     </ul>
 </dd>
 
@@ -86,11 +88,29 @@ The directory of architecture must be contained in <a href="https://github.com/G
 Name of directory in which to save the results of training, validation and inference.
 </dd>
 
+<dt><b>- G1_NAME_WEIGHTS_FILE </b></dt>
+<dd>
+Name of .hdf5 file to load in G1 model. 
+</dd>
+
+<dt><b>- G2_NAME_WEIGHTS_FILE</b></dt>
+<dd>
+Name of .hdf5 file to load in G2 model
+</dd>
+
 </dl>
 
 Once the environment variables have been set, start src/main.py.
 
 
+# Qualitative Results
+
+<table>
+    <tr><th><img src="./resources/220-pz108_00100-pz104_00100.png"></th></tr>
+	<tr><th><img src="./resources/231-pz108_00155-pz104_00155.png"></th></tr>
+	<tr><th><img src="./resources/362-pz108_00810-pz104_00810.png"></th></tr>
+	<tr><th><img src="./resources/389-pz108_00945-pz104_00945.png"></th></tr>
+</table>
 
 
 
