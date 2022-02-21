@@ -22,14 +22,14 @@ class PG2(object):
     def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, grid_path, dataset):
         """
         Method used for saving predictions during network training
-        :param epoch: epoch of interest
-        :param id_batch: id of batch considered
+        :param int epoch: epoch of interest
+        :param int id_batch: id of batch considered
         :parm batch: batch considered
         :param output: predictions made by the network
-        :param ssim_value
-        :param mask_ssim_value
+        :param int ssim_value
+        :param int mask_ssim_value
         :param grid_path: path to save grid
-        :param dataset: type of the dataset ['train', 'valid']
+        :param string dataset: type of the dataset ['train', 'valid']
         """
 
         pz_condition = batch[5]  # [batch, 1]
