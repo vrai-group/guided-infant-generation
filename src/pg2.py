@@ -19,17 +19,17 @@ class PG2(object):
         self.G2 = utils.import_module(path=config.models_dir_path, name_module="G2").G2()
         self.D = utils.import_module(path=config.models_dir_path, name_module="D").D()
 
-    def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, grid_path, type_dataset):
+    def _save_grid(self, epoch, id_batch, batch, output, ssim_value, mask_ssim_value, grid_path, dataset):
         """
-        Metodo utilizzato per il salvattaggio delle predizioni durante l'allenamento della rete
-        :param epoch: epoca di interesse
-        :param id_batch: numero del batch considerato
-        :parm batch: contiene il batch considerato
-        :param output: predizioni effettuate dalla rete
+        Method used for saving predictions during network training
+        :param epoch: epoch of interest
+        :param id_batch: id of batch considered
+        :parm batch: batch considered
+        :param output: predictions made by the network
         :param ssim_value
         :param mask_ssim_value
-        :param grid_path: percorso di dove salvare la griglia
-        :param type_dataset: tipologia del dataset
+        :param grid_path: path to save grid
+        :param dataset: type of the dataset ['train', 'valid']
         """
 
         pz_condition = batch[5]  # [batch, 1]
@@ -39,7 +39,7 @@ class PG2(object):
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
 
         # GRID: Save griglia di immagini predette
-        name_directory = os.path.join(grid_path, type_dataset, str(epoch + 1))
+        name_directory = os.path.join(grid_path, dataset, str(epoch + 1))
         if not os.path.exists(name_directory):
             os.makedirs(name_directory, exist_ok=False)
         name_grid = os.path.join(name_directory,'Batch_{id_batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
@@ -158,7 +158,7 @@ class PG2(object):
                 # Grid
                 if epoch % self.config.G1_save_grid_ssim_epoch_train == self.config.G1_save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], self.config.G1_grid_path, type_dataset="train")
+                                    logs_to_print['mask_ssim_train'][id_batch], self.config.G1_grid_path, dataset="train")
 
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} -->' \
@@ -182,7 +182,7 @@ class PG2(object):
 
                 if epoch % self.config.G1_save_grid_ssim_epoch_valid == self.config.G1_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.G1_grid_path, type_dataset="valid")
+                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.G1_grid_path, dataset="valid")
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
@@ -233,8 +233,8 @@ class PG2(object):
 
     def __train_on_batch_G1(self, batch):
         """
-        Alleno G1 sul batch
-        :param batch: contiene il bacth considerato
+        train G1 on the batch
+        :param batch: considered batch
         """
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
@@ -257,8 +257,8 @@ class PG2(object):
 
     def __valid_on_batch_G1(self, batch):
         """
-        Valido G1 sul batch
-        :param batch: contiene il bacth considerato
+        Validation of G1 on batch
+        :param batch: considered batch
         """
 
         Ic = batch[0]  # [batch, 96, 128, 1]
@@ -387,7 +387,7 @@ class PG2(object):
                 # GRID
                 if epoch % self.config.GAN_save_grid_ssim_epoch_train == self.config.GAN_save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], self.config.GAN_grid_path, type_dataset="train")
+                                    logs_to_print['mask_ssim_train'][id_batch], self.config.GAN_grid_path, dataset="train")
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2f}, '
                                  'loss_D: {loss_D:2f}, loss_D_fake: {loss_D_fake:2f}, loss_D_real: {loss_D_real:2f}, '
@@ -425,7 +425,7 @@ class PG2(object):
 
                 if epoch % self.config.GAN_save_grid_ssim_epoch_valid == self.config.GAN_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.GAN_grid_path, type_dataset="train")
+                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.GAN_grid_path, dataset="train")
 
             sys.stdout.write('')
             sys.stdout.write('\r\r'
@@ -529,8 +529,8 @@ class PG2(object):
 
     def __train_on_batch_cDCGAN(self, id_batch, batch):
         """
-        Alleno la cDCGAN sul batch
-        :param batch: contiene il bacth considerato
+        train of cDCGAN on batch
+        :param batch: considered batch
         """
 
         def _tape(loss_function_G2, loss_function_D):

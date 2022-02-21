@@ -11,8 +11,10 @@ from utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
 
 def _sparse2dense(indices, values, shape):
     """
-    Data una shape [128, 64, 1] e dati come indices tutti i punti (sia i keypoint che la copertura tra loro),
-    andiamo a creare una maschera binaria in cui solamente la sagoma della persona assuma valore 1
+    Create a binary mask in which only the shape of the infant takes on a value of 1
+    :param list indices
+    :param list values
+    :param list shape: shape of dense image
     """
     dense = np.zeros(shape)
     for i in range(len(indices)):
@@ -24,9 +26,9 @@ def _sparse2dense(indices, values, shape):
 
 def visualizePeaks(keypoints, img):
     """
-    Stampa i keypoints sull'immagine pssata in input
-    :param img: immagine
-    :param keypoints: keypoints da stampare sull'immagine
+    Print keypoints on the input image
+    :param img: image
+    :param series keypoints: keypoints to be printed on the image
 
     """
     for k in range(len(keypoints)):
@@ -43,15 +45,15 @@ def visualizePeaks(keypoints, img):
 
 def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
     """
-    Consente di creare la maschera di segmentazione (background 0, foreground 1) del bambino effettuando dapprima
-    la connessione tra i keypoints e dopodichè applicando operazioni morfologiche di dilatazione ed erosione
-    :param keypoints: lista delle 14 annotazioni
+    It allows the creation of the segmentation mask (background 0, foreground 1) of the child by first
+    making the connection between keypoints and then applying morphological operations of dilation and erosion.
+    :param series keypoints: list of 14 annotazioni
     :param int heights:
     :param int width:
-    :param int r_h: raggio della testa
-    :param int r_k: raggio dei keypoints
-    :param int dilatation: valore dell'operazione morfologica di dilatazione
-    :return  maschera binaria con shape [height, width, 1]
+    :param int r_h: radius of head
+    :param int r_k: raggio of keypoints
+    :param int dilatation: value of dilatation
+    :return  segmentation mask [height, width, 1]
     """
     # Qui definisco quali keypoints devono essere connessi tra di loro. I numeri fanno riferimento agli ID
     limbSeq = [[0, 3], [0, 4], [0, 5],  # testa
@@ -135,16 +137,16 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
 def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, r_k, radius_keypoints_mask,
                  r_h, dilatation):
     """
-    Crezione dei dati
-    :param int id_pz_condition: id del pz di condizione
-    :param int id_pz_target: id del pz target
-    :param Ic_annotations: annotazione dei keypoits sull'immagini di condizione
-    :param It_annotations: annotazione dei keypoits sull'immagini target
-    :param int r_k: raggio della posa
-    :param int radius_keypoints_mask: raggio della posa per creare la maschera
-    :param int r_h: raggio della testa utilizzato per creare la maschera
-    :param int dilation: utilizzato per l'operazione morfologica di dilatazione
-    :return dict dic_data: un dizionario in cui sono contenuti i dati creati img_condition, img_target etc..
+    Creation
+    :param int id_pz_condition: id pz of condition image
+    :param int id_pz_target: id pz of target image
+    :param series Ic_annotations: annotation of keypoints on condition images
+    :param series It_annotations: annotation of keypoints on target images
+    :param int r_k: radius of pose
+    :param int radius_keypoints_mask: radius of pose to create mask
+    :param int r_h: head radius used to create the mask
+    :param int dilation: used for the morphological dilation operation
+    :return dict dic_data: a dictionary in which the data created img_condition, img_target etc. are contained.
     """
 
     pz_condition = 'pz' + str(id_pz_condition)
@@ -242,18 +244,17 @@ def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, 
 def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
                   radius_head_mask, dilatation, campionamento, flip=False, mode="negative"):
     """
-    Consente di selezionare la coppia di pair da formare in base alle mode, creare i dati richiamando altri metodi
-    e riempire il tfrecord.
+    select the pair to be formed by mode, create the data by calling other methods and fill the tfrecord.
     :param list lista: contiene gli id dei pz
     :param tfrecord_writer: writer del tfrecord
-    :param int radius_keypoints_pose: raggio della posa
-    :param int radius_keypoints_mask: raggio della posa per creare la maschera
-    :param int radius_head_mask: raggio della testa utilizzato per creare la maschera
-    :param int dilation: utilizzato per l'operazione morfologica di dilatazione
-    :param int campionamento: ogni quante immagine devo considerare, utilizzato per diminuire immagini simili
-    :param bool flip: se effettuare l'augumentazione di flip
-    :param str mode: negative o positive, modalità di accoppiamento pz
-    :return int tot_pairs: numero totale di pairs
+    :param int radius_keypoints_pose: radius of the pose
+    :param int radius_keypoints_mask: radius of the pose to crwate the mask
+    :param int radius_head_mask: radius of the pose to create the mask head
+    :param int dilation: used for the morphological dilation operation
+    :param int campionamento: every how many images I have to consider, used to decrease similar images
+    :param bool flip: if apply the vertical flip
+    :param str mode: negative or positive, pair mode of pz
+    :return int tot_pairs: total number of pairs
     """
 
     tot_pairs = 0  # serve per contare il totale di pair nel tfrecord
@@ -320,8 +321,8 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
 
 if __name__ == '__main__':
     """
-    Questo script consente di creare i TFrecord (train/valid/test) che saranno utilizzati per il training e testing
-    del modello. Lo script crea un file sets_config.pkl in cui sono contenute tutte le info sul set creato.
+    This script allows the creation of TFrecords (train/valid/test) which will be used for training and testing
+    of the model. The script creates a sets_config.pkl file in which all information about the created set is contained.
     """
 
     #### CONFIG ##########
@@ -331,7 +332,7 @@ if __name__ == '__main__':
     keypoint_num = 14
 
     name_tfrecord_train = 'Syntetich_train.tfrecord' # [tipologia] _ [tipo di set]
-    name_tfrecord_valid = 'Symtetich_valid.tfrecord'
+    name_tfrecord_valid = 'Syntetich_valid.tfrecord'
     name_tfrecord_test = 'Syntetich_test.tfrecord'
 
     # liste contenente i num dei pz che vanno considerati per singolo set
