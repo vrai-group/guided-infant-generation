@@ -1,4 +1,4 @@
-The sets_config.pkl file is shown below.
+The sets_config.pkl file of negative_no_flip_camp_5_keypoints_2_mask_1 configuration is shown below:
 
 ```
 {
@@ -10,7 +10,8 @@ The sets_config.pkl file is shown below.
 			 'mode': 'negative'}, 
 			  
  'train': {'name_file': 'Syntetich_train.tfrecord', 
-           'list_pz': [101, 103, 105, 106, 107, 109, 110, 112], 'tot': 11200}, 
+           'list_pz': [101, 103, 105, 106, 107, 109, 110, 112], 
+		   'tot': 11200}, 
 		   
  'valid': {'name_file': 'Syntetich_valid.tfrecord', 
            'list_pz': [102, 111], 

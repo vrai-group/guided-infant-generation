@@ -1,16 +1,47 @@
 Here you have the possibility to define the <b>datasets</b>.
-Each folder is named with the following pattern: [type][underscore][notes].
-Each <b>type</b> has an associated <b>python processing module</b> in <a href="https://github.com/GiuseppeCannata/BabyPoseGuided/tree/master/src/datasets">src/datasets<a>.
+ 
+<h3>1. Dataset directory structure</h3>
 
-Each folder containing the dataset must be structured as follows:
+<b>Note</b>: As an example, consider the structure in <a href="./Syntetich_complete">./Syntetich_complete</a> dataset.
+<br>
+Each directory is named with the following pattern: [type][underscore][note]. Each directory be structured as follow:
+
+```
+├───[type][underscore][note]
+	├───annotations
+	├───pz[id unique]
+	├───     .
+	├───     .
+	├───pz[id unique]
+	└───tfrecord
+		├───configuration_1
+		├───configuration_2
+		├───     .
+		├───     .
+		└───configuration_n
+			├───[type]_train.tfrecord
+			├───[type]_valid.tfrecord
+			├───[type]_test.tfrecord
+			└───set_configs.pkl
+				
+```
+
+The content of each folder is described below:
+
 <ul>
-	<li><b>folders containing the images:</b> each folder must be named with pz[id_unique] where <i>id_unique</i> is an integer numeric id that uniquely recognises infants</li>
-	<li><b>annotations</b>: this directory, for each of the folders pz[id_unique] will contain the relevant image annotations</li>
-	<li><b>tfrecord: </b> will contain the datasets in <i>.tfrecord</i>. 
-	Within this folder we can find several sub-folders, each corresponding to a particular "configuration" of the dataset.
-	For example, in one configuration we set radius_key=1 while in the other radius_key=2 and so on.
-	Each "configuration" is described in a pickle file <i>(.pkl)</i> called <i>sets_configs.pkl</i>.
-	<br>The file <i>.tfrecord</i> and <i>sets_config.pkl</i> are created by the src/0_DatasetGenerator.py.</li>
+	<li><b>pz[id unique]</b>: these directories contain the images about a specific infant identified by the <i>id unique</i></li>
+	<li><b>annotations</b>: this directory will contain the related annotations files for each of the pz[id unique] directory</li>
+	<li><b>tfrecord</b>: this directory contain the dataset's <i>configurations</i>. The dataset configuration is the source data for the framework.
+	Each configuration is rapresented by a sub-folder.<br>
+	In each of them we have:
+	<ul>
+		<li>train/valid/test sets in <i>.tfrecord</i> format. These are the set to use during the training and evaluation phase</li>
+		<li>sets_configs.pkl that describe the carateristics about the configuration <i>(radius_key=2, flip=True, etc..)</i></li>
+	</ul>
+	These files are created by the <a href="./Dataset_configuration_generator.py"> ./Dataset_configuration_generator.py </a> script described in section 2.</li>
 </ul>
 
-As an example, consider the structure in <i>Syntetich_complete</i>
+<h3>2. Create dataset configuration with Dataset_configuration_generator.py</h3>
+
+This script creates the dataset configuration that can be used by the framework.
+To execute it, it is necessary to set the information on the <a href="./Dataset_configuration_generator.py#L331"> configuration part</a>

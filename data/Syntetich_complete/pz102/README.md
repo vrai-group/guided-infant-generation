@@ -1,1 +1,1 @@
-Si riferisce al MINI-RGBD_web\imgs\02
+This directory refers to the MINI-RGBD_web\imgs\02

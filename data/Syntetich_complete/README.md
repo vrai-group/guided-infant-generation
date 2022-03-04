@@ -1,60 +1,58 @@
-The images used are taken from the dataset available online: <a href="https://www.iosb.fraunhofer.de/en/competences/image-exploitation/object-recognition/sensor-networks/motion-analysis.html ">MINI-RGBD</a> (7 Gb).
+This dataset refers to <a href="https://www.iosb.fraunhofer.de/en/competences/image-exploitation/object-recognition/sensor-networks/motion-analysis.html ">MINI-RGBD</a> (7 Gb) available online.
+We perform on MINI-RGBD some modifications to obtain the Syntetcih_complete. The modifications are describerd below.
 <br>
-Each directory and its contents are described below.
 
-<h3> 1. pz[id_unique] </h3>
-Here we have named each folder with pz[id_unique]. <i>id_unique</i> is an integer with which we uniquely distinguish each infant. 
-Each of the folders refers to the corresponding folder in:  MINI-RGBD_web\imgs\.
+<h3> 1. pz[id unique] </h3>
+We have named each directory with pz[id unique]. [id unique] is an integer with which we uniquely distinguish each infant. 
 <br>
-For each of the pz<id_unique> we have:
+Each of the pz[id unique] directory refers to a specific directory in the MINI-RGBD dataset described in the README file of each pz[id unique] directory.
+<br><br>
+Each of pz[id unique] directory contains:
 <ul>
-  <li>1000 16-bit images, already in the MINI-RGBD and viewable by downloading the Fiji program</li>
-  <li>1000 8-bit images, not present in the MINI-RGBD but were obtained by performing a 16-bit conversion</li>
+  <li>1000 16-bit images, already in the MINI-RGBD and viewable by downloading the <a href="https://imagej.net/software/fiji/downloads">Fiji</a> program</li>
+  <li>1000 8-bit images, not present in the MINI-RGBD. We obtained them performing a conversion in <i>uint8</i> from 16-bit images</li>
 </ul>
-The size of the images is height = 480 pixels and width = 640 pixels. The images have not been pushed to GitHub.
-<br>
-<i>Please refer to section 4.1 for more details on image transformations.</i>
-
+The images have not been pushed to GitHub, but you can download it and apply the trasformation describe in section 4.1.
 
 <h3> 2. annotations </h3>
-In the annotations folder, for each pc and each image we have the relevant annotations organised in a file <i>.csv</i>.
-Opening the file, for each image <i>(whose name is shown in the image column)</i> we have the relevant annotations of the keypoints. 
-In particular, the annotations are written as follows: [coordinata_x],[coordinata_y].
-<br>
-<i>For more details on annotation transformations, and to view keypoints refer to section 4.2.</i>
+In the annotations directory, for each pz[id unique] there is <i>result_pz[id unique].csv</i> file containing the annotations on the keypoints. 
+In particular, the keypoints annotations are written as follows: [coordinata_x],[coordinata_y].
+<br><br>
+The annotations files have been pushed to GitHub. If you want to know more details on annotations transformations respect to MINI-RGBD please refer to section 4.2.</i>
 
 <h3> 3. tfrecord </h3>
-In the tfrecord folder are the sets of: train, valid e test for the training and validation part.
-In addition, the file <i>sets_config.pkl</i> is created automatically during the creation of the tfrecods and contains the configurations of the dataset:
-radius_head value, radius_keypoints value. the <i>.tfrecord</i> and <i>sets_config.pkl</i> files are created by th src/0_DatasetGenerator.py.
+In the tfrecord directory there are the sub-folders related to dataset's <i>configurations</i>. 
 <br>
-<hr>
+In each of configuration directory there are:
+<ul>
+<li> the train, valid e test sets files in .tfrecord format</li>
+<li> sets_config file in pikle (.pkl) format that containg the infos on configuration. </li>
+</ul>
+These files are created by the 
+<a href="../Dataset_configuration_generator.py">../Dataset_configuration_generator.py</a> and are used by the framework.
+<br>
 
 <h3> 4.  Trasformations </h3> 
 
-<h4> 4.1 Immagini </h4> 
-Each of the images in the folders pz[id_unique] has the following changes compared with the MINI-RGBD:
+<h4> 4.1 Images </h4> 
+Each of the images in the folders pz[id unique] has the following changes compared with the MINI-RGBD:
 <ul>
   <li>90 degree clockwise rotation of images</li>
 </ul>
 
 <h4> 4.2 Annotations </h4> 
-In order to cope with image transformations, we have also applied transformations to the Keypoints. In particular:
+In order to cope with image transformations, we have also applied transformations to the annotations. <br>
+In particular:
 <ul>
-  <li>Rotation of 90 of the relevant records</li>
+  <li>Rotation of 90 of the rlated annotations</li>
 </ul>
-
 In addition, we have reduced the original MINI-RGBD annotations:
 <ul>
-  <li>Simplification of Keypoints annotations (from 24 to 14)</li>
+  <li>Simplification of keypoints annotations (from 24 to 14)</li>
+  <li>New positional IDs given to keypoints</li>
 </ul>
-<br>
-The keypoints considered are:
+
+<h4> 4.3 Example </h4> 
+Below we post an example of image and reletive annotations of <i>Syntetch_complete</i> dataset:
 <br><br>
-<img src="./annotations/annotations.png">
-<br><br>
-
-
-
-
-
+<img src="./annotations.jpg">
