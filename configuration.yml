@@ -1,0 +1,27 @@
+enviroment_variable:
+    MODE: train_G1 
+    DATASET: Syntetich_complete  # [type][underscore][note]
+    DATASET_CONFIGURATION: negative_no_flip_camp_5_keypoints_2_mask_1
+    ARCHITETURE: bibranch
+    OUTPUTS_DIR: output_bibranch  # directory name to save the results. The path is ./[outputs_dir]
+    G1_NAME_WEIGHTS_FILE: Model_G1_Bibranch_epoch_005-loss_0.000.hdf5 # the weights will take from ./[outputs_dir]/weights/G1
+    G2_NAME_WEIGHTS_FILE: Model_G2_Bibranch_epoch_184-loss_0.69.hdf5 # the weights will take from ./[outputs_dir]/weights/GAN
+    
+G1_train_info:
+    epochs: 100
+    batch_size_train: 16  
+    batch_size_valid: 16  
+    lr_update_epoch: 1
+    drop_rate: 0.5
+    save_grid_ssim_epoch_train: 1
+    save_grid_ssim_epoch_valid: 1
+
+GAN_train_info:
+    epochs: 200
+    batch_size_train: 16  
+    batch_size_valid: 16
+    lr_update_epoch: 1000
+    G2_drop_rate: 0.5
+    D_drop_rate: 0.5
+    save_grid_ssim_epoch_train: 1
+    save_grid_ssim_epoch_valid: 1

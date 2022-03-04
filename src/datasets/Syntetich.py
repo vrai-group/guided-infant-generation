@@ -1,18 +1,14 @@
-"""
-Questo contiene:
-
-- PROCESSAMENTO IMMAGINE: funzioni per processare la singola immagine
-- PROCESSAMENTO TFRECORD: funzioni per preprocessare il TFrecord file
-"""
 import tensorflow as tf
+
+NORMALIZATION_VALUE_IMAGE = 32765.5
 
 ##########################
 # PROCESSAMENTO IMMAGINE
 ##########################
-def process_image(image, mean_pixel, norm):
+def process_image(image, mean_pixel, norm=NORMALIZATION_VALUE_IMAGE):
     return (image - mean_pixel) / norm
 
-def unprocess_image(image, mean_pixel, norm):
+def unprocess_image(image, mean_pixel, norm=NORMALIZATION_VALUE_IMAGE):
     return image * norm + mean_pixel
 
 
@@ -107,15 +103,14 @@ def get_unprocess_dataset(name_tfrecord):
 
     return dataset
 
-
 def preprocess_dataset(unprocess_dataset):
     def _preprocess(Ic, It, Pc, Pt, Mc, Mt, pz_condition, pz_target, name_condition, name_target,
                     indices_0, indices_1, values_0, values_1, original_peaks_0, original_peaks_1, radius_keypoints):
 
         mean_condition = tf.cast(tf.reduce_mean(Ic), dtype=tf.float16)
         mean_target = tf.cast(tf.reduce_mean(It), dtype=tf.float16)
-        Ic = process_image(tf.cast(Ic, dtype=tf.float16), mean_condition, 32765.5)
-        It = process_image(tf.cast(It, dtype=tf.float16), mean_target, 32765.5)
+        Ic = process_image(tf.cast(Ic, dtype=tf.float16), mean_condition, NORMALIZATION_VALUE_IMAGE)
+        It = process_image(tf.cast(It, dtype=tf.float16), mean_target, NORMALIZATION_VALUE_IMAGE)
 
         Pt = tf.cast(tf.sparse.to_dense(Pt, default_value=0, validate_indices=False), dtype=tf.float16)
         Pt = Pt * 2

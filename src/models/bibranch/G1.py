@@ -9,19 +9,16 @@ from models.Model_template import Model_Template
 class G1(Model_Template):
 
     def __init__(self):
-        self.architecture = "bi"
+        self.architecture = "bibranch"
         self.input_shape = [96, 128, 15]
         self.output_channels = 1
         self.activation_fn = 'relu'
         self.lr_initial_G1 = 2e-5
         super().__init__() # eredita self.model e self.opt
 
-
-    # MODEL
     def _build_model(self):
         inputs = Input(shape = self.input_shape)
-        ##Encoder
-
+        ## Encoder
         # Blocco 1
         Enc_1 = Conv2D(filters=128, kernel_size=3, strides=1, padding='same')(inputs)
         Enc_1 = Activation(self.activation_fn)(Enc_1)
@@ -104,7 +101,7 @@ class G1(Model_Template):
         # output [num batch, 12,16,128]
         x = Reshape([12, 16, 128])(z)
 
-        ##### Decoder
+        ## Decoder
         # Blocco 1
         long_connection_1 = Concatenate(axis=-1)([x, concat_4]) #512+128=640
 
@@ -192,7 +189,6 @@ class G1(Model_Template):
 
         return Model(inputs, outputs)
 
-    # Optimizer
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G1, beta_1=0.5, beta_2=0.999)
 
@@ -220,8 +216,8 @@ class G1(Model_Template):
         I_PT1 = tf.reshape(I_PT1, [-1, 96, 128, 1])
         I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
-        It = tf.cast(tf.clip_by_value(unprocess_function(It, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        I_PT1 = tf.cast(tf.clip_by_value(unprocess_function(I_PT1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        It = tf.cast(unprocess_function(It, mean_1), dtype=tf.uint16)
+        I_PT1 = tf.cast(unprocess_function(I_PT1, mean_0), dtype=tf.uint16)
 
         result = tf.image.ssim(I_PT1, It, max_val=tf.reduce_max(It) - tf.reduce_min(It))
         mean = tf.reduce_mean(result)
@@ -234,8 +230,8 @@ class G1(Model_Template):
         I_PT1 = tf.reshape(I_PT1, [-1, 96, 128, 1])
         I_PT1 = tf.cast(I_PT1, dtype=tf.float16)
 
-        It = tf.cast(tf.clip_by_value(unprocess_function(It, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        I_PT1 = tf.cast(tf.clip_by_value(unprocess_function(I_PT1, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        It = tf.cast(unprocess_function(It, mean_1), dtype=tf.uint16)
+        I_PT1 = tf.cast(unprocess_function(I_PT1, mean_0), dtype=tf.uint16)
         Mt = tf.cast(Mt, dtype=tf.uint16)
 
         mask_image_raw_1 = Mt * It
@@ -245,7 +241,3 @@ class G1(Model_Template):
         mean = tf.cast(mean, dtype=tf.float32)
 
         return mean
-
-
-
-

@@ -12,10 +12,8 @@ class D(Model_Template):
         self.architecture = "mono"
         self.input_shape = [96, 128, 1]
         self.activation_fn = 'relu'
-        self.data_format = 'channels_last'
         self.lr_initial_D = 2e-5
         super().__init__()
-
 
     def _build_model(self):
         inputs = Input(shape=self.input_shape)

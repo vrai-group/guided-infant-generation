@@ -13,19 +13,15 @@ class G2(Model_Template):
         self.architecture = "bibranch"
         self.input_shape = [96, 128, 2]
         self.output_channels = 1
-        self.conv_hidden_num = 128
-        self.repeat_num = int(np.log2(self.input_shape[0])) - 2
         self.activation_fn = 'relu'
-        self.data_format = 'channels_last'
         self.lr_initial_G2 = 2e-5
-        super().__init__()
-
+        super().__init__() # eredita self.model e self.opt
 
     def _build_model(self):
-        # Encoder
         inputs = Input(shape=self.input_shape)
+        ## Encoder
 
-        Enc_1 = Conv2D(128, 3, (1, 1), padding='same', activation=self.activation_fn, data_format=self.data_format)(inputs)
+        Enc_1 = Conv2D(128, 3, (1, 1), padding='same', activation=self.activation_fn)(inputs)
 
         branch_1_Enc_1 = Conv2D(filters=64, kernel_size=3, strides=1, padding='same')(Enc_1)
         branch_1_Enc_1 = Activation('relu')(branch_1_Enc_1)
@@ -58,18 +54,14 @@ class G2(Model_Template):
 
         concat_2 = concatenate([branch_1_Enc_2, branch_2_Enc_2])
 
-        # Bridge
-        pool3 = Conv2D(384, 2, (2, 2), activation=self.activation_fn,
-                       data_format=self.data_format)(concat_2)  # pool
-        conv3 = Conv2D(384, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(pool3)
-        conv3 = Conv2D(384, 3, (1, 1), padding='same', activation=self.activation_fn,
-                       data_format=self.data_format)(conv3)  # 384
-        up4 = UpSampling2D(size=(2, 2), data_format=self.data_format, interpolation="nearest")(conv3)
-        up4 = Conv2D(self.conv_hidden_num, 2, 1, padding="same", activation=self.activation_fn,
-                     data_format=self.data_format)(up4)  # 128
+        ## Bridge
+        pool3 = Conv2D(384, 2, (2, 2), activation=self.activation_fn)(concat_2)  # pool
+        conv3 = Conv2D(384, 3, (1, 1), padding='same', activation=self.activation_fn)(pool3)
+        conv3 = Conv2D(384, 3, (1, 1), padding='same', activation=self.activation_fn)(conv3)  # 384
+        up4 = UpSampling2D(size=(2, 2), interpolation="nearest")(conv3)
+        up4 = Conv2D(128, 2, 1, padding="same", activation=self.activation_fn)(up4)  # 128
 
-        #####Decoder
+        ## Decoder
 
         # Blocco1
         long_connection_1 = Concatenate(axis=-1)([up4, concat_2])  # 128+256=384
@@ -117,8 +109,6 @@ class G2(Model_Template):
 
         return model
 
-
-    # Optimizer
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
@@ -128,7 +118,7 @@ class G2(Model_Template):
         output_G2 = tf.cast(output_G2, dtype=tf.float16)
         return output_G2
 
-    # Loss
+    # LOSS
     def PoseMaskloss(self, I_PT2, It, Mt):
         It = tf.cast(It, dtype=tf.float32)
         I_PT2 = tf.cast(I_PT2, dtype=tf.float32)
@@ -152,14 +142,13 @@ class G2(Model_Template):
 
         return loss
 
-
-    # Metriche
+    # METRICHE
     def ssim(self, I_PT2, It, mean_0, mean_1, unprocess_function):
         It = tf.reshape(It, [-1, 96, 128, 1])
         I_PT2 = tf.reshape(I_PT2, [-1, 96, 128, 1])
 
-        It = tf.cast(tf.clip_by_value(unprocess_function(It, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        I_PT2 = tf.cast(tf.clip_by_value(unprocess_function(I_PT2, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        It = tf.cast(unprocess_function(It, mean_1), dtype=tf.uint16)
+        I_PT2 = tf.cast(unprocess_function(I_PT2, mean_0), dtype=tf.uint16)
 
         result = tf.image.ssim(I_PT2, It, max_val=tf.reduce_max(It) - tf.reduce_min(It))
         mean = tf.reduce_mean(result)
@@ -172,8 +161,8 @@ class G2(Model_Template):
         Mt = tf.reshape(Mt, [-1, 96, 128, 1])
         I_PT2 = tf.reshape(I_PT2, [-1, 96, 128, 1])
 
-        It = tf.cast(tf.clip_by_value(unprocess_function(It, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        I_PT2 = tf.cast(tf.clip_by_value(unprocess_function(I_PT2, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        It = tf.cast(unprocess_function(It, mean_1, 32765.5), dtype=tf.uint16)
+        I_PT2 = tf.cast(unprocess_function(I_PT2, mean_0, 32765.5), dtype=tf.uint16)
         Mt = tf.cast(Mt, dtype=tf.uint16)
 
         mask_image_raw_1 = Mt * It

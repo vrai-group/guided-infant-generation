@@ -69,7 +69,7 @@ def _extract_features_vgg_real(list_sets, dataset_module, dict_data, feature_ext
             name_1 = name_1.numpy()[0].decode('utf-8')
 
             # Process for VGG16
-            image_raw_1_unp = tf.cast(dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint8)
+            image_raw_1_unp = tf.cast(dataset_module.unprocess_image(It, mean_1), dtype=tf.uint8)
             image_process = _vgg_preprocess_image(image_raw_1_unp)
 
             features_real = feature_extractor.predict(image_process)[0] #[batch, 512]
@@ -155,7 +155,7 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
             I_PT2 = I_PT1 + I_D
 
             # Unprocess for VGG16
-            predizione_unp = tf.cast(dataset_module.unprocess_image(I_PT2, mean_0, 32765.5), dtype=tf.uint8)
+            predizione_unp = tf.cast(dataset_module.unprocess_image(I_PT2, mean_0), dtype=tf.uint8)
             image_process = _vgg_preprocess_image(predizione_unp)
 
             features_generated = feature_extractor.predict(image_process)[0]
@@ -207,15 +207,13 @@ def _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature
 
     return dict_data_generated
 
-def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_image_interested, save_fig_plot=True):
+def start(list_sets, list_perplexity, G1, G2, dataset_module, dir_to_save, key_image_interested, save_fig_plot=True, save_box_plot=True):
     # Extractor
     feature_extractor = _get_vgg_model()
 
     dict_data_real = _start_real(list_sets, list_perplexity, dataset_module, feature_extractor)
     dict_data_generated = _start_generated(list_sets, list_perplexity, G1, G2, dataset_module, feature_extractor)
 
-    #Todo:Controllare
-    # Unione dei due dizionari
     print("\n- Unisco i dizionari")
     dict_features_tot = {}
     for key_principal in list(dict_data_real.keys()):

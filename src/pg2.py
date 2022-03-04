@@ -6,12 +6,13 @@ import matplotlib.pyplot as plt
 
 import utils
 
+
 class PG2(object):
 
     def __init__(self, config):
         self.config = config
 
-        # -Import dinamico dell modulo di preprocess dataset Ad esempio: Syntetich
+        # -Import dinamico dell modulo di preprocess dataset ad esempio: Syntetich
         self.dataset_module = utils.import_module(path=config.dataset_module_dir_path, name_module=config.DATASET_TYPE)
 
         # -Import dinamico dell'architettura
@@ -24,39 +25,38 @@ class PG2(object):
         Method used for saving predictions during network training
         :param int epoch: epoch of interest
         :param int id_batch: id of batch considered
-        :parm batch: batch considered
-        :param output: predictions made by the network
+        :parm tuple(Tensor1, .. , Tensorn) batch: batch considered
+        :param Tensor output: predictions made by the network
         :param int ssim_value
         :param int mask_ssim_value
-        :param grid_path: path to save grid
-        :param string dataset: type of the dataset ['train', 'valid']
+        :param str grid_path: path to save grid
+        :param str dataset: type of the dataset ['train', 'valid']
         """
 
-        pz_condition = batch[5]  # [batch, 1]
-        pz_target = batch[6]  # [batch, 1]
-        Ic_image_name = batch[7]  # [batch, 1]
-        It_image_name = batch[8]  # [batch, 1]
+        pz_condition = batch[5].numpy()  # [batch, 1]
+        pz_target = batch[6].numpy()  # [batch, 1]
+        Ic_image_name = batch[7].numpy()  # [batch, 1]
+        It_image_name = batch[8].numpy()  # [batch, 1]
         mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
 
-        # GRID: Save griglia di immagini predette
         name_directory = os.path.join(grid_path, dataset, str(epoch + 1))
-        if not os.path.exists(name_directory):
-            os.makedirs(name_directory, exist_ok=False)
-        name_grid = os.path.join(name_directory,'Batch_{id_batch}_ssim_{ssim}_mask_ssim_{mask_ssim}.png'.format(
-                                     id_batch=id_batch,
-                                     ssim=ssim_value,
-                                     mask_ssim=mask_ssim_value))
+        os.makedirs(name_directory, exist_ok=False)
+
+        # Save griglia di immagini predette
+        name_grid = os.path.join(name_directory, f'Batch_{id_batch}.png')
         mean_0 = tf.cast(mean_0, dtype=tf.float16)
-        output = self.dataset_module.unprocess_image(output, mean_0, 32765.5)
+        output = self.dataset_module.unprocess_image(output, mean_0)
         utils.save_grid(output, name_grid)
 
-        # File .txt in cui salvo il nome delle immagini di condizione e di target contenute all'interno della griglia
-        stack_pairs = np.c_[pz_condition.numpy(), Ic_image_name.numpy(), pz_target.numpy(), It_image_name.numpy()]
-        stack_pairs = np.array(
-            [[p[0].decode('utf-8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
-             stack_pairs])
-        txt_file = 'pz_pair: [<condition>,<target>] \n\n {stack_pair}'.format(stack_pair=np.array2string(stack_pairs))
-        file = open(name_directory + '/' + 'Batch_{id_batch}.txt'.format(id_batch=id_batch), "w")
+        # File .txt in cui salvo per ogni batch:
+        # - il nome delle immagini di condizione e di target contenute all'interno della griglia
+        # - i valori ssim e mask_ssim sul batch considerato
+        name_txt_file = os.path.join(name_directory, f'Batch_{id_batch}.txt')
+        stack_pairs = np.c_[pz_condition, Ic_image_name, pz_target, It_image_name]
+        stack_pairs = [[p[0].decode('utf8'), p[1].decode('utf-8'), p[2].decode('utf-8'), p[3].decode('utf-8')] for p in
+                       stack_pairs]
+        txt_file = f'ssim_{ssim_value}_mask_ssim_{mask_ssim_value} \npz_pair: [[<condition>],[<target>]] \n\n {np.array2string(stack_pairs)}'
+        file = open(name_txt_file, "w")
         file.write(txt_file)
         file.close()
 
@@ -103,14 +103,16 @@ class PG2(object):
             valid_iterator = iter(dataset_valid)
 
             # -DATASET: augumentazione
-            name_tfrecord_aug_train, dataset_train_aug_len = utils.apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
-                                                             unprocess_dataset_iterator=train_iterator,
-                                                             name_dataset="train",
-                                                             len_dataset=self.config.dataset_train_len)
-            name_tfrecord_aug_valid, dataset_valid_aug_len = utils.apply_augumentation(data_tfrecord_path=self.config.data_tfrecord_path,
-                                                             unprocess_dataset_iterator=valid_iterator,
-                                                             name_dataset="valid",
-                                                             len_dataset=self.config.dataset_valid_len)
+            name_tfrecord_aug_train, dataset_train_aug_len = utils.apply_augumentation(
+                data_tfrecord_path=self.config.dataset_configuration_path,
+                unprocess_dataset_iterator=train_iterator,
+                name_dataset="train",
+                len_dataset=self.config.dataset_train_len)
+            name_tfrecord_aug_valid, dataset_valid_aug_len = utils.apply_augumentation(
+                data_tfrecord_path=self.config.dataset_configuration_path,
+                unprocess_dataset_iterator=valid_iterator,
+                name_dataset="valid",
+                len_dataset=self.config.dataset_valid_len)
 
             print("\nAugumentazione terminata: ")
             print("- lunghezza train: ", dataset_train_aug_len)
@@ -158,11 +160,12 @@ class PG2(object):
                 # Grid
                 if epoch % self.config.G1_save_grid_ssim_epoch_train == self.config.G1_save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], self.config.G1_grid_path, dataset="train")
+                                    logs_to_print['mask_ssim_train'][id_batch], self.config.G1_grid_path,
+                                    dataset="train")
 
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} -->' \
-                                  'loss_G1: {loss_G1:.4f}, ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
+                                 'loss_G1: {loss_G1:.4f}, ssmi: {ssmi:.4f}, mask_ssmi: {mask_ssmi:.4f}'.format(
                     epoch=epoch + 1,
                     id_batch=id_batch + 1,
                     num_batches=num_batches_train,
@@ -182,15 +185,17 @@ class PG2(object):
 
                 if epoch % self.config.G1_save_grid_ssim_epoch_valid == self.config.G1_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT1, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.G1_grid_path, dataset="valid")
+                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.G1_grid_path,
+                                    dataset="valid")
 
                 sys.stdout.write('\r{id_batch} / {total}'.format(id_batch=id_batch + 1, total=num_batches_valid))
                 sys.stdout.flush()
 
-            sys.stdout.write('\r\rval_loss_G1: {loss_G1:.4f}, val_ssmi: {ssmi:.4f}, val_mask_ssmi: {mask_ssmi:.4f}'.format(
-                loss_G1=np.mean(logs_to_print['loss_values_valid']),
-                ssmi=np.mean(logs_to_print['ssim_valid']),
-                mask_ssmi=np.mean(logs_to_print['mask_ssim_valid'])))
+            sys.stdout.write(
+                '\r\rval_loss_G1: {loss_G1:.4f}, val_ssmi: {ssmi:.4f}, val_mask_ssmi: {mask_ssmi:.4f}'.format(
+                    loss_G1=np.mean(logs_to_print['loss_values_valid']),
+                    ssmi=np.mean(logs_to_print['ssim_valid']),
+                    mask_ssmi=np.mean(logs_to_print['mask_ssim_valid'])))
             sys.stdout.flush()
             sys.stdout.write('\n\n')
 
@@ -251,7 +256,8 @@ class PG2(object):
 
         # METRICS
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
-        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1,
+                                            unprocess_function=self.dataset_module.unprocess_image)
 
         return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
@@ -274,7 +280,8 @@ class PG2(object):
 
         # METRICS
         ssim_value = self.G1.ssim(I_PT1, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
-        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G1.mask_ssim(I_PT1, It, Mt, mean_0, mean_1,
+                                            unprocess_function=self.dataset_module.unprocess_image)
 
         return loss_value_G1, ssim_value, mask_ssim_value, I_PT1
 
@@ -345,7 +352,7 @@ class PG2(object):
 
         # Carico il modello preaddestrato G1
         self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
-        #self.model_G1.summary()
+        # self.model_G1.summary()
 
         # TRAIN: epoch
         for epoch in range(history_GAN['epoch'], self.config.GAN_epochs):
@@ -359,9 +366,12 @@ class PG2(object):
                              'loss_values_train_real_D': np.empty((num_batches_train)),
                              'ssim_train': np.empty((num_batches_train)),
                              'mask_ssim_train': np.empty((num_batches_train)),
-                             'num_real_I_PT2_train': np.empty((num_batches_train), dtype=np.uint32), #num I_PT2 predette reali dal Discriminatore
-                             'num_real_Ic_train': np.empty((num_batches_train), dtype=np.uint32), #num Ic predette reali dal Discriminatore
-                             'num_real_It_train': np.empty((num_batches_train), dtype=np.uint32), #num It predette reali dal Discriminatore
+                             'num_real_I_PT2_train': np.empty((num_batches_train), dtype=np.uint32),
+                             # num I_PT2 predette reali dal Discriminatore
+                             'num_real_Ic_train': np.empty((num_batches_train), dtype=np.uint32),
+                             # num Ic predette reali dal Discriminatore
+                             'num_real_It_train': np.empty((num_batches_train), dtype=np.uint32),
+                             # num It predette reali dal Discriminatore
 
                              'loss_values_valid_G2': np.empty((num_batches_valid)),
                              'loss_values_valid_D': np.empty((num_batches_valid)),
@@ -378,7 +388,8 @@ class PG2(object):
             for id_batch in range(num_batches_train):
                 batch = next(train_iterator)
                 logs_to_print['loss_values_train_G2'][id_batch], logs_to_print['loss_values_train_D'][id_batch], \
-                logs_to_print['loss_values_train_fake_D'][id_batch], logs_to_print['loss_values_train_real_D'][id_batch], \
+                logs_to_print['loss_values_train_fake_D'][id_batch], logs_to_print['loss_values_train_real_D'][
+                    id_batch], \
                 logs_to_print['num_real_I_PT2_train'][id_batch], logs_to_print['num_real_Ic_train'][id_batch], \
                 logs_to_print['num_real_It_train'][id_batch], logs_to_print['ssim_train'][id_batch], \
                 logs_to_print['mask_ssim_train'][id_batch], I_PT2 = \
@@ -387,7 +398,8 @@ class PG2(object):
                 # GRID
                 if epoch % self.config.GAN_save_grid_ssim_epoch_train == self.config.GAN_save_grid_ssim_epoch_train - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_train'][id_batch],
-                                    logs_to_print['mask_ssim_train'][id_batch], self.config.GAN_grid_path, dataset="train")
+                                    logs_to_print['mask_ssim_train'][id_batch], self.config.GAN_grid_path,
+                                    dataset="train")
                 # Logs a schermo
                 sys.stdout.write('\rEpoch {epoch} step {id_batch} / {num_batches} --> loss_G2: {loss_G2:2f}, '
                                  'loss_D: {loss_D:2f}, loss_D_fake: {loss_D_fake:2f}, loss_D_real: {loss_D_real:2f}, '
@@ -415,7 +427,8 @@ class PG2(object):
             for id_batch in range(num_batches_valid):
                 batch = next(valid_iterator)
                 logs_to_print['loss_values_valid_G2'][id_batch], logs_to_print['loss_values_valid_D'][id_batch], \
-                logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][id_batch], \
+                logs_to_print['loss_values_valid_fake_D'][id_batch], logs_to_print['loss_values_valid_real_D'][
+                    id_batch], \
                 logs_to_print['num_real_I_PT2_valid'][id_batch], logs_to_print['num_real_Ic_valid'][id_batch], \
                 logs_to_print['num_real_It_valid'][id_batch], logs_to_print['ssim_valid'][id_batch], \
                 logs_to_print['mask_ssim_valid'][id_batch], I_PT2 = self.__valid_on_batch_cDCGAN(batch)
@@ -425,23 +438,24 @@ class PG2(object):
 
                 if epoch % self.config.GAN_save_grid_ssim_epoch_valid == self.config.GAN_save_grid_ssim_epoch_valid - 1:
                     self._save_grid(epoch, id_batch, batch, I_PT2, logs_to_print['ssim_valid'][id_batch],
-                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.GAN_grid_path, dataset="train")
+                                    logs_to_print['mask_ssim_valid'][id_batch], self.config.GAN_grid_path,
+                                    dataset="train")
 
             sys.stdout.write('')
             sys.stdout.write('\r\r'
-                'val_loss_G2: {loss_G2:.4f}, val_loss_D: {loss_D:.4f}, val_loss_D_fake: {loss_D_fake:.4f}, '
-                'val_loss_D_real: {loss_D_real:.4f}, val_ssmi: {ssmi:.4f}, val_mask_ssmi: {mask_ssmi:.4f} \n\n'
-                'numero reali predette: I_PT2:{I_PT2:d}, Ic:{Ic:d}, It:{It:d} / {total_valid}'.format(
-                    loss_G2=np.mean(logs_to_print['loss_values_valid_G2']),
-                    loss_D=np.mean(logs_to_print['loss_values_valid_D']),
-                    loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']),
-                    loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
-                    ssmi=np.mean(logs_to_print['ssim_valid']),
-                    mask_ssmi=np.mean(logs_to_print['mask_ssim_valid']),
-                    I_PT2=np.sum(logs_to_print['num_real_I_PT2_valid']),
-                    Ic=np.sum(logs_to_print['num_real_Ic_valid']),
-                    It=np.sum(logs_to_print['num_real_It_valid']),
-                    total_valid=self.config.dataset_valid_len))
+                             'val_loss_G2: {loss_G2:.4f}, val_loss_D: {loss_D:.4f}, val_loss_D_fake: {loss_D_fake:.4f}, '
+                             'val_loss_D_real: {loss_D_real:.4f}, val_ssmi: {ssmi:.4f}, val_mask_ssmi: {mask_ssmi:.4f} \n\n'
+                             'numero reali predette: I_PT2:{I_PT2:d}, Ic:{Ic:d}, It:{It:d} / {total_valid}'.format(
+                loss_G2=np.mean(logs_to_print['loss_values_valid_G2']),
+                loss_D=np.mean(logs_to_print['loss_values_valid_D']),
+                loss_D_fake=np.mean(logs_to_print['loss_values_valid_fake_D']),
+                loss_D_real=np.mean(logs_to_print['loss_values_valid_real_D']),
+                ssmi=np.mean(logs_to_print['ssim_valid']),
+                mask_ssmi=np.mean(logs_to_print['mask_ssim_valid']),
+                I_PT2=np.sum(logs_to_print['num_real_I_PT2_valid']),
+                Ic=np.sum(logs_to_print['num_real_Ic_valid']),
+                It=np.sum(logs_to_print['num_real_It_valid']),
+                total_valid=self.config.dataset_valid_len))
             sys.stdout.flush()
 
             # -CallBacks
@@ -547,7 +561,6 @@ class PG2(object):
 
             return tape, loss_value_G2, loss_value_D, I_PT2, I_D, D_pos_It, D_neg_I_PT2, D_neg_Ic
 
-
         Ic = batch[0]  # [batch, 96, 128, 1]
         It = batch[1]  # [batch, 96,128, 1]
         Pt = batch[2]  # [batch, 96,128, 14]
@@ -560,7 +573,9 @@ class PG2(object):
         I_PT1 = self.G1.prediction(Ic, Pt)
         # Noise da aggiungere all allenamento del bibranch
         if self.config.ARCHITETURE == "bibranch":
-            noise = (np.random.normal(0, 1, I_PT1.shape) * 0.0010) * tf.math.reduce_sum((Pt + 1) / 2, axis=-1).numpy().reshape(I_PT1.shape)
+            noise = (np.random.normal(0, 1, I_PT1.shape) * 0.0010) * tf.math.reduce_sum((Pt + 1) / 2,
+                                                                                        axis=-1).numpy().reshape(
+                I_PT1.shape)
             I_PT1 = tf.add(I_PT1, noise)
 
         # BACKPROP G2
@@ -583,7 +598,8 @@ class PG2(object):
         # Metrics
         # - SSIM
         ssim_value = self.G2.ssim(I_PT2, It, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
-        mask_ssim_value = self.G2.mask_ssim(I_PT2, It, Mt, mean_0, mean_1, unprocess_function=self.dataset_module.unprocess_image)
+        mask_ssim_value = self.G2.mask_ssim(I_PT2, It, Mt, mean_0, mean_1,
+                                            unprocess_function=self.dataset_module.unprocess_image)
 
         # - Numero di real predette di I_PT2 dal discriminatore
         np_array_D_neg_I_PT2 = D_neg_I_PT2.numpy()
@@ -662,7 +678,6 @@ class PG2(object):
         print("-Pesi di G1 caricati: ", G1_NAME_WEIGHTS_FILE)
         print("-Le predizioni saranno salvate in: ", self.config.G1_name_dir_test_inference)
 
-
         dataset_unp = self.dataset_module.get_unprocess_dataset(name_tfrecord=self.config.name_tfrecord_test)
         dataset = self.dataset_module.preprocess_dataset(dataset_unp)
         dataset = dataset.batch(1)
@@ -672,12 +687,13 @@ class PG2(object):
         self.G1.model.load_weights(G1_NAME_WEIGHTS_FILE)
 
         for cnt_img in range(self.config.dataset_test_len):
-            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=cnt_img + 1, tot=self.config.dataset_test_len))
+            sys.stdout.write(
+                "\rProcessamento immagine {cnt} / {tot}".format(cnt=cnt_img + 1, tot=self.config.dataset_test_len))
             sys.stdout.flush()
             batch = next(dataset_iterator)
             Ic = batch[0]  # [batch, 96, 128, 1]
             It = batch[1]  # [batch, 96,128, 1]
-            Pt = batch[2] # [batch, 96,128, 14]
+            Pt = batch[2]  # [batch, 96,128, 14]
             Mt = batch[3]  # [batch, 96,128, 1]
             mean_0 = tf.reshape(batch[9], (-1, 1, 1, 1))
             mean_1 = tf.reshape(batch[10], (-1, 1, 1, 1))
@@ -686,15 +702,15 @@ class PG2(object):
             I_PT1 = self.G1.prediction(Ic, Pt)
 
             # Unprocess
-            Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-            It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
+            Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0), dtype=tf.uint16)[0].numpy()
+            It = tf.cast(self.dataset_module.unprocess_image(It, mean_1), dtype=tf.uint16)[0].numpy()
             Pt = tf.math.reduce_sum(tf.reshape(tf.math.add(Pt[0], 1, name=None) // 2, [96, 128, 14]),
                                     axis=-1).numpy().reshape(96, 128, 1)
             Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
 
             Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
-            I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0), dtype=tf.uint16)[0].numpy()
 
             # Plot Figure
             fig = plt.figure(figsize=(10, 2))
@@ -705,9 +721,9 @@ class PG2(object):
                 sub = fig.add_subplot(rows, columns, j)
                 sub.set_title(labels[j - 1])
                 plt.imshow(imgs[j - 1], cmap='gray')
-            #plt.show()
+            # plt.show()
 
-            #Save figure
+            # Save figure
             pz_0 = batch[5]  # [batch, 1]
             pz_1 = batch[6]  # [batch, 1]
             name_0 = batch[7]  # [batch, 1]
@@ -716,7 +732,8 @@ class PG2(object):
             pz_1 = pz_1.numpy()[0].decode("utf-8")
             id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
             id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
-            name_img = os.path.join(self.config.G1_name_dir_test_inference, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+            name_img = os.path.join(self.config.G1_name_dir_test_inference,
+                                    "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
                                         id=cnt_img,
                                         pz_0=pz_0,
                                         pz_1=pz_1,
@@ -755,7 +772,8 @@ class PG2(object):
         self.G2.model.load_weights(G2_NAME_WEIGHTS_FILE)
 
         for i in range(self.config.dataset_test_len):
-            sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))
+            sys.stdout.write(
+                "\rProcessamento immagine {cnt} / {tot}".format(cnt=i + 1, tot=self.config.dataset_test_len))
             sys.stdout.flush()
             batch = next(dataset_iterator)
             Ic = batch[0]  # [batch, 96, 128, 1]
@@ -771,16 +789,17 @@ class PG2(object):
             I_PT2 = I_D + I_PT1
 
             # Unprocess
-            Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-            It = tf.cast(self.dataset_module.unprocess_image(It, mean_1, 32765.5), dtype=tf.uint16)[0].numpy()
-            Pt = tf.math.reduce_sum(tf.reshape(tf.math.add(Pt[0], 1, name=None), [96, 128, 14]), axis=-1).numpy().reshape(96, 128, 1)# rescale tra [0, 1]
+            Ic = tf.cast(self.dataset_module.unprocess_image(Ic, mean_0), dtype=tf.uint16)[0].numpy()
+            It = tf.cast(self.dataset_module.unprocess_image(It, mean_1), dtype=tf.uint16)[0].numpy()
+            Pt = tf.math.reduce_sum(tf.reshape(tf.math.add(Pt[0], 1, name=None), [96, 128, 14]),
+                                    axis=-1).numpy().reshape(96, 128, 1)  # rescale tra [0, 1]
             Pt = tf.cast(Pt, dtype=tf.uint16).numpy()
 
             Mt = tf.cast(Mt, dtype=tf.uint16)[0].numpy().reshape(96, 128, 1)
 
-            I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-            I_D = tf.cast(self.dataset_module.unprocess_image(I_D, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
-            I_PT2 = tf.cast(self.dataset_module.unprocess_image(I_PT2, mean_0, 32765.5), dtype=tf.uint16)[0].numpy()
+            I_PT1 = tf.cast(self.dataset_module.unprocess_image(I_PT1, mean_0), dtype=tf.uint16)[0].numpy()
+            I_D = tf.cast(self.dataset_module.unprocess_image(I_D, mean_0), dtype=tf.uint16)[0].numpy()
+            I_PT2 = tf.cast(self.dataset_module.unprocess_image(I_PT2, mean_0), dtype=tf.uint16)[0].numpy()
 
             # Plot Figure
             fig = plt.figure(figsize=(10, 2))
@@ -791,9 +810,9 @@ class PG2(object):
                 sub = fig.add_subplot(rows, columns, j)
                 sub.set_title(labels[j - 1])
                 plt.imshow(imgs[j - 1], cmap='gray')
-            #plt.show()
+            # plt.show()
 
-            #Save figure
+            # Save figure
             pz_0 = batch[5]  # [batch, 1]
             pz_1 = batch[6]  # [batch, 1]
             name_0 = batch[7]  # [batch, 1]
@@ -802,7 +821,8 @@ class PG2(object):
             pz_1 = pz_1.numpy()[0].decode("utf-8")
             id_0 = name_0.numpy()[0].decode("utf-8").split('_')[0]  # id dell immagine
             id_1 = name_1.numpy()[0].decode("utf-8").split('_')[0]
-            name_img = os.path.join(self.config.GAN_name_dir_test_inference, "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
+            name_img = os.path.join(self.config.GAN_name_dir_test_inference,
+                                    "{id}-{pz_0}_{id_0}-{pz_1}_{id_1}.png".format(
                                         id=i,
                                         pz_0=pz_0,
                                         pz_1=pz_1,
@@ -833,7 +853,8 @@ class PG2(object):
         print("--Valutazione epoca: ", num_epoch)
 
         # Directory
-        path_evaluation = os.path.join(self.config.G1_evaluation_path, analysis_set+'_score_epoch_'+num_epoch) # directory dove salvare i risultati degli score
+        path_evaluation = os.path.join(self.config.G1_evaluation_path,
+                                       analysis_set + '_score_epoch_' + num_epoch)  # directory dove salvare i risultati degli score
         path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
         os.makedirs(path_evaluation, exist_ok=True)
         os.makedirs(path_embeddings, exist_ok=True)
@@ -843,8 +864,8 @@ class PG2(object):
 
         # Pipiline score
         utils.evaluation.start([self.G1], iter(dataset), dataset_len, batch_size,
-                            dataset_module=self.dataset_module, path_evaluation=path_evaluation,
-                            path_embeddings=path_embeddings)
+                               dataset_module=self.dataset_module, path_evaluation=path_evaluation,
+                               path_embeddings=path_embeddings)
 
     # Valutazione metrice IS e FID su uno specifico weight: G1_NAME_WEIGHTS_FILE, G2_NAME_WEIGHTS_FILE
     def evaluate_GAN(self, name_dataset, dataset_len, analysis_set="test_set", batch_size=10):
@@ -877,7 +898,8 @@ class PG2(object):
         print("--Valutazione epoca G2: ", num_epoch_G2)
 
         # Directory
-        path_evaluation = os.path.join(self.config.GAN_evaluation_path, analysis_set + '_score_epochG1_' + num_epoch_G1 +
+        path_evaluation = os.path.join(self.config.GAN_evaluation_path,
+                                       analysis_set + '_score_epochG1_' + num_epoch_G1 +
                                        '_epochG2_' + num_epoch_G2)  # directory dove salvare i risultati degli score
         path_embeddings = os.path.join(path_evaluation, "inception_embeddings")
         os.makedirs(path_evaluation, exist_ok=True)
@@ -885,8 +907,8 @@ class PG2(object):
 
         # Pipiline score
         utils.evaluation.start([self.G1, self.G2], iter(dataset), dataset_len, batch_size,
-                            dataset_module=self.dataset_module,  path_evaluation=path_evaluation,
-                            path_embeddings=path_embeddings)
+                               dataset_module=self.dataset_module, path_evaluation=path_evaluation,
+                               path_embeddings=path_embeddings)
 
     def plot_history_G1(self):
         self.config.load_train_path_G1()
@@ -975,4 +997,5 @@ class PG2(object):
         # Obtain features
         utils.vgg16_pca_tsne_features.start(list_sets, list_perplexity,
                                             self.G1, self.G2, self.dataset_module,
-                                            dir_to_save=tsne_path, save_fig_plot=True, key_image_interested=key_image_interested)
+                                            dir_to_save=tsne_path, save_fig_plot=True,
+                                            key_image_interested=key_image_interested)

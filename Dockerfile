@@ -1,10 +1,11 @@
 FROM tensorflow/tensorflow:2.5.0-gpu
 RUN apt-get install rar
 RUN apt-get install nano
-RUN apt-get install ffmpeg libsm6 libxext6  -y
+#RUN apt-get install ffmpeg libsm6 libxext6  -y
 RUN pip3 install matplotlib
 RUN pip3 install scipy
 RUN pip3 install opencv-python
 RUN pip3 install pandas
 RUN pip3 install scikit-image
+RUN pip3 install PyYAML 
 #RUN cd src

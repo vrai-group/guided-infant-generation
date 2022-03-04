@@ -79,7 +79,6 @@ class G2(Model_Template):
         output_G2 = tf.cast(output_G2, dtype=tf.float16)
         return output_G2
 
-    # Optimizer
     def _optimizer(self):
         return Adam(learning_rate=self.lr_initial_G2, beta_1=0.5)
 
@@ -105,14 +104,13 @@ class G2(Model_Template):
 
         return loss
 
-
     # Metriche
     def ssim(self, I_PT2, It, mean_0, mean_1, unprocess_function):
         It = tf.reshape(It, [-1, 96, 128, 1])
         I_PT2 = tf.reshape(I_PT2, [-1, 96, 128, 1])
 
-        It = tf.cast(tf.clip_by_value(unprocess_function(It, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        I_PT2 = tf.cast(tf.clip_by_value(unprocess_function(I_PT2, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        It = tf.cast(unprocess_function(It, mean_1), dtype=tf.uint16)
+        I_PT2 = tf.cast(unprocess_function(I_PT2, mean_0), dtype=tf.uint16)
 
         result = tf.image.ssim(I_PT2, It, max_val=tf.reduce_max(It) - tf.reduce_min(It))
         mean = tf.reduce_mean(result)
@@ -125,8 +123,8 @@ class G2(Model_Template):
         Mt = tf.reshape(Mt, [-1, 96, 128, 1])
         I_PT2 = tf.reshape(I_PT2, [-1, 96, 128, 1])
 
-        It = tf.cast(tf.clip_by_value(unprocess_function(It, mean_1, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
-        I_PT2 = tf.cast(tf.clip_by_value(unprocess_function(I_PT2, mean_0, 32765.5), clip_value_min=0, clip_value_max=32765), dtype=tf.uint16)
+        It = tf.cast(unprocess_function(It, mean_1), dtype=tf.uint16)
+        I_PT2 = tf.cast(unprocess_function(I_PT2, mean_0), dtype=tf.uint16)
         Mt = tf.cast(Mt, dtype=tf.uint16)
 
         mask_image_raw_1 = Mt * It
