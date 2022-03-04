@@ -285,7 +285,7 @@ def fill_tfrecord(dic_history, lista, tfrecord_writer, radius_keypoints_pose, ra
                     name_path_annotation_target = os.path.join(dir_annotations, f'result_pz{id_pz_target}.csv')
                     df_annotation_target = pd.read_csv(name_path_annotation_target, delimiter=';')
 
-                    cnt = -1  # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_target
+                    cnt = 0  # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_target
 
                     # Creazione del pair
                     for indx, Ic_annotations in df_annotation_condition.iterrows():
