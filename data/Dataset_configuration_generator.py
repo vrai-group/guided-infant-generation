@@ -9,6 +9,7 @@ from skimage.morphology import square, dilation, erosion
 
 from src.utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
 
+
 def _sparse2dense(indices, values, shape):
     """
     Create a binary mask in which only the shape of the infant takes on a value of 1
@@ -81,18 +82,22 @@ def _get_segmentation_mask(keypoints, height, width, r_h, r_k, dilatation):
         if y0 != -1 and y1 != -1 and x0 != -1 and x1 != -1:
 
             if limb[0] == 0:  # Per la testa utilizzo un Radius maggiore
-                ind, val = enlarge_keypoint(y0, x0, 0, r_h, height, width)  # ingrandisco il punto p0 considerando un raggio di r_h
+                ind, val = enlarge_keypoint(y0, x0, 0, r_h, height,
+                                            width)  # ingrandisco il punto p0 considerando un raggio di r_h
             else:
-                ind, val = enlarge_keypoint(y1, x1, 0, r_k, height, width)  # # ingrandisco il punto p1 considerando un raggio di r_k
+                ind, val = enlarge_keypoint(y1, x1, 0, r_k, height,
+                                            width)  # # ingrandisco il punto p1 considerando un raggio di r_k
 
             indices.extend(ind)
             values.extend(val)
 
             if limb[1] == 0:
                 # Per la testa utilizzo un Radius maggiore
-                ind, val = enlarge_keypoint(y1, x1, 0, r_h, height, width)  # ingrandisco il punto p1 considerando un raggio di 20
+                ind, val = enlarge_keypoint(y1, x1, 0, r_h, height,
+                                            width)  # ingrandisco il punto p1 considerando un raggio di 20
             else:
-                ind, val = enlarge_keypoint(y1, x1, 0, r_k, height, width)  # ingrandisco il punto p1 considerando un raggio di 4
+                ind, val = enlarge_keypoint(y1, x1, 0, r_k, height,
+                                            width)  # ingrandisco il punto p1 considerando un raggio di 4
 
             indices.extend(ind)
             values.extend(val)
@@ -149,6 +154,7 @@ def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, 
     :return dict dic_data: a dictionary in which the data created img_condition, img_target etc. are contained.
     """
 
+
     pz_condition = 'pz' + str(id_pz_condition)
     pz_target = 'pz' + str(id_pz_target)
 
@@ -160,8 +166,8 @@ def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, 
 
     # Read immagine
     Ic = cv2.imread(img_path_condition, cv2.IMREAD_UNCHANGED)  # [480,640]
-    It = cv2.imread(img_path_target, cv2.IMREAD_UNCHANGED)  # [480,640]
-    height, width = Ic.shape[0], Ic.shape[1]
+    It = cv2.imread(img_path_target, cv2.IMREAD_UNCHANGED)
+    height, width = Ic.shape[0], Ic.shape[1] # [480,640]
 
     # Processamento Image Ic
     keypoints_condition = Ic_annotations[1:]  # annotation_0[1:] --> poichè tolgo il campo image
@@ -241,10 +247,10 @@ def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, 
     return dic_data
 
 
-def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
-                  radius_head_mask, dilatation, campionamento, flip=False, mode="negative"):
+def fill_tfrecord(dic_history, lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
+                  radius_head_mask, dilatation, campionamento, key_dict, flip=False, pairing_mode="negative"):
     """
-    Select the pair to be formed by mode, create the data by calling other methods and fill the tfrecord.
+    Select the pair to be formed by pairing_mode, create the data by calling other methods and fill the tfrecord.
     :param list lista: contiene gli id dei pz
     :param tfrecord_writer: writer del tfrecord
     :param int radius_keypoints_pose: radius of the pose
@@ -253,49 +259,52 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
     :param int dilation: used for the morphological dilation operation
     :param int campionamento: every how many images I have to consider, used to decrease similar images
     :param bool flip: if apply the vertical flip
-    :param str mode: negative or positive, pair mode of pz
+    :param str pairing_mode: negative or positive, pair mode of pz
     :return int tot_pairs: total number of pairs
     """
 
-    tot_pairs = 0  # serve per contare il totale di pair nel tfrecord
+    tot_pairs = -1  # serve per contare il totale di pair nel tfrecord
 
     # Accoppiamento tra immagini appartenenti allo stesso pz
-    if mode == "positive":
+    if pairing_mode == "positive":
         # TODO da scrivere
         pass
 
     # Accoppiamento tra immagini appartenenti a pz differenti
-    if mode == "negative":
+    if pairing_mode == "negative":
         # Lettura delle prime annotazioni --> ex:pz3
-        for pz_0 in lista:
-            name_file_annotation_0 = 'result_pz{id}.csv'.format(id=pz_0)
-            path_annotation_0 = os.path.join(dir_annotations, name_file_annotation_0)
-            df_annotation_0 = pd.read_csv(path_annotation_0, delimiter=';')
+        for id_pz_condition in lista:
+            path_annotation_condition = os.path.join(dir_annotations, f'result_pz{id_pz_condition}.csv')
+            df_annotation_condition = pd.read_csv(path_annotation_condition, delimiter=';')
 
             # Lettura delle seconde annotazioni --> ex:pz4
-            for pz_1 in lista:
-                if pz_0 != pz_1:
-                    name_file_annotation_1 = 'result_pz{id}.csv'.format(id=pz_1)
-                    name_path_annotation_1 = os.path.join(dir_annotations, name_file_annotation_1)
-                    df_annotation_1 = pd.read_csv(name_path_annotation_1, delimiter=';')
+            for id_pz_target in lista:
+                if id_pz_condition != id_pz_target:
+                    name_path_annotation_target = os.path.join(dir_annotations, f'result_pz{id_pz_target}.csv')
+                    df_annotation_target = pd.read_csv(name_path_annotation_target, delimiter=';')
 
-                    cnt = 0  # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_1
+                    cnt = -1  # Serve per printare a schermo il numero di example. Lo resettiamo ad uno ad ogni nuovo pz_target
 
                     # Creazione del pair
-                    for indx, row_0 in df_annotation_0.iterrows():
-
+                    for indx, Ic_annotations in df_annotation_condition.iterrows():
                         if indx % campionamento == 0:
-                            row_1 = df_annotation_1.loc[indx]
+                            It_annotations = df_annotation_target.loc[indx]
                         else:
                             continue
 
                         # Creazione dell'example tfrecord
-                        dic_data = _format_data(pz_0, pz_1, row_0, row_1, radius_keypoints_pose, radius_keypoints_mask,
+                        dic_data = _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations,
+                                                radius_keypoints_pose, radius_keypoints_mask,
                                                 radius_head_mask, dilatation)
                         example = format_example(dic_data)
                         tfrecord_writer.write(example.SerializeToString())
                         cnt += 1  # incremento del conteggio degli examples
                         tot_pairs += 1
+                        dic_history[f'{key_dict}_{tot_pairs}'] = {'pz_condition': f'pz{id_pz_condition}',
+                                                          'img_condition': Ic_annotations['image'],
+                                                          'pz_target': f'pz{id_pz_target}',
+                                                          'img_target': It_annotations['image'],
+                                                          'id_in_tfrecord': f'{key_dict}_{tot_pairs}'}
 
                         if flip:
                             dic_data_flip = aug_flip(dic_data.copy())
@@ -303,22 +312,24 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                             tfrecord_writer.write(example.SerializeToString())
                             cnt += 1  # incremento del conteggio degli examples
                             tot_pairs += 1
+                            dic_history[f'{key_dict}_{tot_pairs}_flipped'] = {'pz_condition': f'pz{id_pz_condition}',
+                                                                      'img_condition': Ic_annotations['image'],
+                                                                      'pz_target': f'pz{id_pz_target}',
+                                                                      'img_target': It_annotations['image'],
+                                                                      'id_in_tfrecord': f'{key_dict}_{tot_pairs}'}
 
-                        sys.stdout.write(f'\r>Creazione pair [{pz_0}, {pz_1}] image {cnt}/{df_annotation_0.shape[0]}')
+                        sys.stdout.write(
+                            f'\r>Creazione pair [{id_pz_condition}, {id_pz_target}] image {cnt}/{df_annotation_condition.shape[0]}')
                         sys.stdout.flush()
 
                     print("\n")
-            print(f'\nTerminato {pz_0} \n\n')
+            print(f'\nTerminato {id_pz_condition} \n\n')
 
     tfrecord_writer.close()
     print('\nSET DATI TERMINATO\n\n')
 
     return tot_pairs
 
-def obtain_name_dataset(type, notes):
-    notes = notes.split(" ")
-
-    return '_'.join([type]+notes)
 
 if __name__ == '__main__':
     """
@@ -335,22 +346,23 @@ if __name__ == '__main__':
     dataset_configuration = "negative no flip camp 5 keypoints 2 mask 1"
 
     # General information on dataset configuration
-    
+
     # Specify the [id unique] of the infants you want to have for each set
     lista_pz_train = [101, 103, 105, 106, 107, 109, 110, 112]
     lista_pz_valid = [102, 111]
     lista_pz_test = [104, 108]
-
+    
     campionamento = 5
     r_k = 2  # keypoints radius on Pose maps Pc and Pt
     radius_keypoints_mask = 1
     r_h = 40  # mask radius head
-    dilatation = 35 # morphological operation of dilatation
-    flip = False  # Aggiunta dell example con flip verticale
+    dilatation = 35  # morphological operation of dilatation
+    # if flip == True the script add in tfrecord file the pair flipped the image and related annotation respect vertical axis
+    flip = False
     # pairing mode
     # - "neagtive" --> (pz[id unique 1], pz[id unique 2]) [id unique 1] != [id unique 2]
     # - "positive --> (pz[id unique 1], pz[id unique 2])  [id unique 1] == [id unique 2] # NOT IMPLEMENT
-    mode = "negative"
+    pairing_mode = "negative"
 
     #########################
 
@@ -380,6 +392,7 @@ if __name__ == '__main__':
     output_filename_valid = os.path.join(dir_configuration, name_tfrecord_valid)
     output_filename_test = os.path.join(dir_configuration, name_tfrecord_test)
 
+    dic_history = {}  # Save, for each set, the positional id of the pair in tferecord file and the name of pz and image paired
     r_tr, r_v, r_te = None, None, None
     tot_train, tot_valid, tot_test = None, None, None
 
@@ -388,8 +401,9 @@ if __name__ == '__main__':
         assert r_tr == "Y" or r_tr == "N" or r_tr == "y" or r_tr == "n"
     if not os.path.exists(output_filename_train) or r_tr == "Y" or r_tr == "y":
         tfrecord_writer_train = tf.compat.v1.python_io.TFRecordWriter(output_filename_train)
-        tot_train = fill_tfrecord(lista_pz_train, tfrecord_writer_train, r_k, radius_keypoints_mask,
-                                  r_h, dilatation, campionamento, flip=flip, mode=mode)
+        tot_train = fill_tfrecord(dic_history, lista_pz_train, tfrecord_writer_train, r_k, radius_keypoints_mask,
+                                  r_h, dilatation, campionamento, key_dict="train", flip=flip,
+                                  pairing_mode=pairing_mode)
         print("TOT TRAIN: ", tot_train)
     elif r_tr == "N" or r_tr == "n":
         print("OK, non farò nulla sul train set")
@@ -399,8 +413,9 @@ if __name__ == '__main__':
         assert r_v == "Y" or r_v == "N" or r_v == "y" or r_v == "n"
     if not os.path.exists(output_filename_valid) or r_v == "Y" or r_v == "y":
         tfrecord_writer_valid = tf.compat.v1.python_io.TFRecordWriter(output_filename_valid)
-        tot_valid = fill_tfrecord(lista_pz_valid, tfrecord_writer_valid, r_k, radius_keypoints_mask,
-                                  r_h, dilatation, campionamento, flip=flip, mode=mode)
+        tot_valid = fill_tfrecord(dic_history, lista_pz_valid, tfrecord_writer_valid, r_k, radius_keypoints_mask,
+                                  r_h, dilatation, campionamento, key_dict="valid", flip=flip,
+                                  pairing_mode=pairing_mode)
         print("TOT VALID: ", tot_valid)
     elif r_v == "N" or r_v == "n":
         print("OK, non farò nulla sul valid set")
@@ -410,8 +425,8 @@ if __name__ == '__main__':
         assert r_te == "Y" or r_te == "N" or r_te == "y" or r_te == "n"
     if not os.path.exists(output_filename_test) or r_te == "Y" or r_te == "y":
         tfrecord_writer_test = tf.compat.v1.python_io.TFRecordWriter(output_filename_test)
-        tot_test = fill_tfrecord(lista_pz_test, tfrecord_writer_test, r_k, radius_keypoints_mask,
-                                 r_h, dilatation, campionamento, flip=flip, mode=mode)
+        tot_test = fill_tfrecord(dic_history, lista_pz_test, tfrecord_writer_test, r_k, radius_keypoints_mask,
+                                 r_h, dilatation, campionamento, key_dict="test", flip=flip, pairing_mode=pairing_mode)
         print("TOT TEST: ", tot_test)
     elif r_te == "N" or r_te == "n":
         print("OK, non farò nulla sul test set")
@@ -424,7 +439,7 @@ if __name__ == '__main__':
             "radius_head_mask (r_h)": r_h,
             "dilatation": dilatation,
             "flip": flip,
-            "mode": mode
+            "pairing_mode": pairing_mode
         },
 
         "train": {

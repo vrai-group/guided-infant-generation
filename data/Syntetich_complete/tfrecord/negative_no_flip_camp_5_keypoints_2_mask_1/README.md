@@ -7,7 +7,7 @@ The sets_config.pkl file of negative_no_flip_camp_5_keypoints_2_mask_1 configura
 			 'radius_head_mask': 40, 
 			 'dilatation': 35, 
 			 'flip': False, 
-			 'mode': 'negative'}, 
+			 'pairing_mode': 'negative'}, 
 			  
  'train': {'name_file': 'Syntetich_train.tfrecord', 
            'list_pz': [101, 103, 105, 106, 107, 109, 110, 112], 
