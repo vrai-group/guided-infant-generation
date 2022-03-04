@@ -1,11 +1,9 @@
 # Directory #
+.idea/
 data/pyOniExtractor
-data/BabySynt_single_mov/
-data/BabySynt_single_mov_sample/
-data/Syntetich/
+data/BabyPose_complete
 src/video.py
 Training/*
-.idea/
 
 # estensioni #
 *.rar
@@ -15,19 +13,14 @@ Training/*
 *.tfrecord
 *.csv
 *.pyc
-*.pkl
 *.bak
 
-!web_page/**/*.png
-!output_monobranch
+!web_page/resources/*.png
+!resources/*.png
 !output_monobranch/evaluation/tsne.rar
 !output_bibranch/evaluation/tsne.rar
+!data/Syntetich_complete/annotations.jpg
 !data/Syntetich_complete/annotations/*.csv
-!data/Syntetich_complete/annotations/*.png
-!data/Syntetich_complete/tfrecord/**/*.pkl
+!data/Syntetich_complete/tfrecord/negative_no_flip_camp_5_keypoints_2_mask_1/sets_config.pkl
 !data/Syntetich_complete/tfrecord/negative_no_flip_camp_5_keypoints_2_mask_1/To_read_pickle_file.txt
-!data/Syntetich_complete/*.md
-!data/Syntetich_complete//*.csv
-!data/Syntetich_complete/*.txt
-!data/Syntetich_complete/*.png
-!resources/*.png
+!data/Syntetich_complete/**/.md
