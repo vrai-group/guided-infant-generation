@@ -40,20 +40,19 @@
 <p><a href="./resources/available_soon.html">github</a></p>
 <br>
 <h3 id="abstract">Abstract</h3>
-<p>The use of deep learning methods for preterm infant’s motion analysis has
+<p>The use of deep learning (DL) for preterm infant’s movement monitoring has
 the potential to support clinicians in early recognizing motor and behavioural
-disorders. Deep learning models need a considerable amount of data to be
-trained. In this paper we present a Generative Adversarial Network (GAN)-
-based framework consisting of two bibranch generators for generating RGB-D
-images of preterm infants’ with a given pose. The first generator (G<sub>1), start-
-ing from an infant image and a desired pose, generate an first rough depth
-image. The second generator (G<sub>2) refines the previous result by a more de-
-tailed image. Evaluation was performed using the Moving INfants In RGB-D
-(MINI-RGBD) dataset, which consist of 12000 depth images acquired in top-
-view from 12 infants. A low Fr ́echet Inception Distance (142.9) value and
-an Inception Score (2.8) close to that of the real distribution (2.6). A com-
-parison was made in terms of t-distributed stochastic neighbor embedding
-(t-sne) and qualitative assessment.</p>
+disorders. The development of DL algorithms is, however, hampered by the
+lack of publicly available annotated datasets. In this paper, we present a
+Generative Adversarial Network (GAN)-based framework to generate im-
+ages of preterm infants’ in a given pose to partially attenuate this issue. The
+framework consists of a bibranch encoder and a conditional GAN, to gener-
+ate a rough image and a refined version of it, respectively. Evaluation was
+performed on the Moving INfants In RGB-D (MINI-RGBD) dataset, which
+consists of 12000 depth images acquired in top-view from 12 infants. A low
+Frechet inception distance (142.9) and an inception score (2.8) close to that
+of real-image distribution (2.6) are obtained, showing the potentiality of the
+proposed framework in generating realistic images.</p>
 <br>
 <h3 id="results">Results</h3>
 <p align="middle">
