@@ -7,7 +7,6 @@ import pandas as pd
 import tensorflow as tf
 from skimage.morphology import square, dilation, erosion
 
-import sys
 sys.path.append("../src")
 from utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
 
