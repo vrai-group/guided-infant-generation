@@ -7,7 +7,9 @@ import pandas as pd
 import tensorflow as tf
 from skimage.morphology import square, dilation, erosion
 
-from src.utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
+import sys
+sys.path.append("../src")
+from utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
 
 
 def _sparse2dense(indices, values, shape):
@@ -343,7 +345,8 @@ if __name__ == '__main__':
     dataset_type = "Syntetich"
     dataset_note = "complete"
     # Specify the dataset configuration name. The name may contain blanks. These will be replaced with the underscore.
-    dataset_configuration = "negative no flip camp 5 keypoints 2 mask 1"
+    #dataset_configuration = "negative no flip camp 5 keypoints 2 mask 1"
+    dataset_configuration = "testing configuration"
 
     # General information on dataset configuration
 
@@ -351,7 +354,7 @@ if __name__ == '__main__':
     lista_pz_train = [101, 103, 105, 106, 107, 109, 110, 112]
     lista_pz_valid = [102, 111]
     lista_pz_test = [104, 108]
-    
+
     campionamento = 5
     r_k = 2  # keypoints radius on Pose maps Pc and Pt
     radius_keypoints_mask = 1
@@ -383,7 +386,7 @@ if __name__ == '__main__':
     for set in [lista_pz_train, lista_pz_valid, lista_pz_test]:
         for id_unique in set:
             assert os.path.exists(os.path.join(dir_dataset, f'pz{id_unique}'))
-            assert os.path.exists(os.path.join(dir_annotations, f'result_pz{id_unique}'))
+            assert os.path.exists(os.path.join(dir_annotations, f'result_pz{id_unique}.csv'))
     if not os.path.exists(dir_configuration):
         os.mkdir(dir_configuration)
 
@@ -459,7 +462,11 @@ if __name__ == '__main__':
             "tot": tot_test
         }
     }
-    log_tot_sets = os.path.join(dir_configuration, 'sets_config.pkl')
-    f = open(log_tot_sets, "wb")
+    set_config_path = os.path.join(dir_configuration, 'sets_config.pkl')
+    f = open(set_config_path, "wb")
     pickle.dump(dic, f)
+    f.close()
+    dic_history_path = os.path.join(dir_configuration, 'dic_history.pkl')
+    f = open(dic_history_path, "wb")
+    pickle.dump(dic_history, f)
     f.close()
