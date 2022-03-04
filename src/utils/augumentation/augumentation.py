@@ -11,14 +11,14 @@ name_tfrecord: path relativo al tfrecord
 cnt_dataset: lungezza totale dataset augumentato
 """
 def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dataset, len_dataset):
-    name_file = name_dataset + '_augumentation.tfrecord'
+    name_file = f'{name_dataset}_augumentation.tfrecord'
     name_tfrecord = os.path.join(data_tfrecord_path, name_file)
     tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(name_tfrecord)
 
     cnt_dataset = 0
-    sys.stdout.write("\nApplico augumentazione {name}..\n".format(name=name_dataset))
+    sys.stdout.write(f"\nApplico augumentazione {name_dataset}..\n")
     for id_example in range(len_dataset):  # len_dataset
-        sys.stdout.write('\rExample: {id} / {tot}'.format(id=id_example + 1, tot=len_dataset))
+        sys.stdout.write(f'\rExample: {id_example + 1} / {len_dataset}')
 
         batch = next(unprocess_dataset_iterator)
         Ic = batch[0]  # [batch, 96, 128, 1]

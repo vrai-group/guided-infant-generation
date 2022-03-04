@@ -56,9 +56,7 @@ def _extract_features_vgg_real(list_sets, dataset_module, dict_data, feature_ext
         dataset = iter(dataset)
         print("\n")
         for cnt_img in range(dataset_len):
-            sys.stdout.write("\r-Processamento {type_dataset} immagine {cnt} / {tot}".format(cnt=cnt_img + 1,
-                                                                                            tot=dataset_len,
-                                                                                            type_dataset=type_dataset))
+            sys.stdout.write(f"\r-Processamento {type_dataset} immagine {cnt_img + 1} / {dataset_len}")
             sys.stdout.flush()
             batch = next(dataset)
             It = batch[1]  # [batch, 96,128, 1]
@@ -136,9 +134,7 @@ def _extract_features_vgg_generated(G1, G2, list_sets, dataset_module, dict_data
         dataset = iter(dataset)
         print("\n")
         for cnt_img in range(dataset_len):
-            sys.stdout.write("\rProcessamento {type_dataset} immagine {cnt} / {tot}".format(cnt=cnt_img + 1,
-                                                                                            tot=dataset_len,
-                                                                                            type_dataset=type_dataset))
+            sys.stdout.write(f"\rProcessamento {type_dataset} immagine {cnt_img + 1} / {dataset_len}")
             sys.stdout.flush()
             batch = next(dataset)
             Ic = batch[0]  # [batch, 96, 128, 1]

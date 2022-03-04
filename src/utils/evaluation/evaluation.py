@@ -22,7 +22,7 @@ def _inception_preprocess_image(image, mean, unprocess_function):
         return v
 
     image = tf.reshape(image, [-1, 96, 128, 1])
-    image = tf.cast(tf.cast(unprocess_function(image, mean, 32765.5), dtype=tf.uint8), dtype=tf.float32)
+    image = tf.cast(tf.cast(unprocess_function(image, mean), dtype=tf.uint8), dtype=tf.float32)
 
     image_3channel = tf.concat([image, image, image], axis=-1)
     image_3channel = scale_images(image_3channel, (299, 299, 3))
@@ -106,7 +106,7 @@ def start(models, dataset, len_dataset, batch_size, dataset_module, path_evaluat
 
     # Predizione
     for cnt_img in range(len_dataset):
-        sys.stdout.write("\rProcessamento immagine {cnt} / {tot}".format(cnt=cnt_img + 1, tot=len_dataset))
+        sys.stdout.write(f"\rProcessamento immagine {cnt_img + 1} / {len_dataset}")
         sys.stdout.flush()
         batch = next(dataset)
         Ic = batch[0]  # [batch, 96, 128, 1]
