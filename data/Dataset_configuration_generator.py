@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from skimage.morphology import square, dilation, erosion
 
-from utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
+from src.utils import format_example, aug_flip, getSparsePose, enlarge_keypoint
 
 def _sparse2dense(indices, values, shape):
     """
@@ -244,7 +244,7 @@ def _format_data(id_pz_condition, id_pz_target, Ic_annotations, It_annotations, 
 def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoints_mask,
                   radius_head_mask, dilatation, campionamento, flip=False, mode="negative"):
     """
-    select the pair to be formed by mode, create the data by calling other methods and fill the tfrecord.
+    Select the pair to be formed by mode, create the data by calling other methods and fill the tfrecord.
     :param list lista: contiene gli id dei pz
     :param tfrecord_writer: writer del tfrecord
     :param int radius_keypoints_pose: radius of the pose
@@ -304,63 +304,81 @@ def fill_tfrecord(lista, tfrecord_writer, radius_keypoints_pose, radius_keypoint
                             cnt += 1  # incremento del conteggio degli examples
                             tot_pairs += 1
 
-                        sys.stdout.write(
-                            '\r>Creazione pair [{pz_0}, {pz_1}] image {cnt}/{tot}'.format(pz_0=pz_0, pz_1=pz_1,
-                                                                                          cnt=cnt,
-                                                                                          tot=df_annotation_0.shape[0]))
+                        sys.stdout.write(f'\r>Creazione pair [{pz_0}, {pz_1}] image {cnt}/{df_annotation_0.shape[0]}')
                         sys.stdout.flush()
 
                     print("\n")
-            print('\nTerminato {pz_0} \n\n'.format(pz_0=pz_0))
+            print(f'\nTerminato {pz_0} \n\n')
 
     tfrecord_writer.close()
     print('\nSET DATI TERMINATO\n\n')
 
     return tot_pairs
 
+def obtain_name_dataset(type, notes):
+    notes = notes.split(" ")
+
+    return '_'.join([type]+notes)
 
 if __name__ == '__main__':
     """
-    This script allows the creation of TFrecords (train/valid/test) which will be used for training and testing
-    of the model. The script creates a sets_config.pkl file in which all information about the created set is contained.
+    This script create the dataset configuration. In particular: 
+    - TFrecords files (train/valid/test) which will be used for training and testing phase
+    - sets_config.pkl file in which all information about the created configuration is contained
+    To use the script you must set up the CONFIG part.
     """
 
     #### CONFIG ##########
-    dir_dataset = '../data/Syntetich_complete'
-    dir_annotations = '../data/Syntetich_complete/annotations'
-    dir_save_tfrecord = '../data/Syntetich_complete/tfrecord/dataset_di_testing'
-    keypoint_num = 14
+    dataset_type = "Syntetich"
+    dataset_note = "complete"
+    # Specify the dataset configuration name. The name may contain blanks. These will be replaced with the underscore.
+    dataset_configuration = "negative no flip camp 5 keypoints 2 mask 1"
 
-    name_tfrecord_train = 'Syntetich_train.tfrecord' # [tipologia] _ [tipo di set]
-    name_tfrecord_valid = 'Syntetich_valid.tfrecord'
-    name_tfrecord_test = 'Syntetich_test.tfrecord'
-
-    # liste contenente i num dei pz che vanno considerati per singolo set
+    # General information on dataset configuration
+    
+    # Specify the [id unique] of the infants you want to have for each set
     lista_pz_train = [101, 103, 105, 106, 107, 109, 110, 112]
     lista_pz_valid = [102, 111]
     lista_pz_test = [104, 108]
 
-    # General information
-    r_k = 2  # raggio keypoints
-    radius_keypoints_mask = 1
-    r_h = 40  # raggio testa nella creazione della maschera
-    dilatation = 35
     campionamento = 5
+    r_k = 2  # keypoints radius on Pose maps Pc and Pt
+    radius_keypoints_mask = 1
+    r_h = 40  # mask radius head
+    dilatation = 35 # morphological operation of dilatation
     flip = False  # Aggiunta dell example con flip verticale
+    # pairing mode
+    # - "neagtive" --> (pz[id unique 1], pz[id unique 2]) [id unique 1] != [id unique 2]
+    # - "positive --> (pz[id unique 1], pz[id unique 2])  [id unique 1] == [id unique 2] # NOT IMPLEMENT
     mode = "negative"
+
+    #########################
+
+    name_dataset = f'{dataset_type}_{dataset_note}'
+    dataset_configuration = '_'.join(dataset_configuration.split(" "))
+    dir_dataset = os.path.join('.', name_dataset)
+    dir_annotations = os.path.join(dir_dataset, 'annotations')
+    dir_configuration = os.path.join(dir_dataset, "tfrecord", dataset_configuration)
+    keypoint_num = 14
+
+    name_tfrecord_train = f'{dataset_type}_train.tfrecord'
+    name_tfrecord_valid = f'{dataset_type}_valid.tfrecord'
+    name_tfrecord_test = f'{dataset_type}_test.tfrecord'
 
     # Check
     assert os.path.exists(dir_dataset)
     assert os.path.exists(dir_annotations)
-    if not os.path.exists(dir_save_tfrecord):
-        os.mkdir(dir_save_tfrecord)
-
-    #########################
+    for set in [lista_pz_train, lista_pz_valid, lista_pz_test]:
+        for id_unique in set:
+            assert os.path.exists(os.path.join(dir_dataset, f'pz{id_unique}'))
+            assert os.path.exists(os.path.join(dir_annotations, f'result_pz{id_unique}'))
+    if not os.path.exists(dir_configuration):
+        os.mkdir(dir_configuration)
 
     # Name of tfrecord file
-    output_filename_train = os.path.join(dir_save_tfrecord, name_tfrecord_train)
-    output_filename_valid = os.path.join(dir_save_tfrecord, name_tfrecord_valid)
-    output_filename_test = os.path.join(dir_save_tfrecord, name_tfrecord_test)
+    output_filename_train = os.path.join(dir_configuration, name_tfrecord_train)
+    output_filename_valid = os.path.join(dir_configuration, name_tfrecord_valid)
+    output_filename_test = os.path.join(dir_configuration, name_tfrecord_test)
 
     r_tr, r_v, r_te = None, None, None
     tot_train, tot_valid, tot_test = None, None, None
@@ -426,7 +444,7 @@ if __name__ == '__main__':
             "tot": tot_test
         }
     }
-    log_tot_sets = os.path.join(dir_save_tfrecord, 'sets_config.pkl')
+    log_tot_sets = os.path.join(dir_configuration, 'sets_config.pkl')
     f = open(log_tot_sets, "wb")
     pickle.dump(dic, f)
     f.close()
