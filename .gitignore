@@ -3,7 +3,9 @@ data/pyOniExtractor
 data/BabySynt_single_mov/
 data/BabySynt_single_mov_sample/
 data/Syntetich/
+src/video.py
 Training/*
+.idea/
 
 # estensioni #
 *.rar
@@ -23,6 +25,7 @@ Training/*
 !data/Syntetich_complete/annotations/*.csv
 !data/Syntetich_complete/annotations/*.png
 !data/Syntetich_complete/tfrecord/**/*.pkl
+!data/Syntetich_complete/tfrecord/negative_no_flip_camp_5_keypoints_2_mask_1/To_read_pickle_file.txt
 !data/Syntetich_complete/*.md
 !data/Syntetich_complete//*.csv
 !data/Syntetich_complete/*.txt
