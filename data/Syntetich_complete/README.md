@@ -5,7 +5,7 @@ We perform on MINI-RGBD some modifications to obtain the Syntetcih_complete. The
 <h3> 1. pz[id unique] </h3>
 We have named each directory with pz[id unique]. [id unique] is an integer with which we uniquely distinguish each infant. 
 <br>
-Each of the pz[id unique] directory refers to a specific directory in the MINI-RGBD dataset described in the README file of each pz[id unique] directory.
+Each of the directory refers to a specific directory in the MINI-RGBD dataset. We described it in the README file of each pz[id unique] directory.
 <br><br>
 Each of pz[id unique] directory contains:
 <ul>
@@ -15,8 +15,8 @@ Each of pz[id unique] directory contains:
 The images have not been pushed to GitHub, but you can download it and apply the trasformation describe in section 4.1.
 
 <h3> 2. annotations </h3>
-In the annotations directory, for each pz[id unique] there is <i>result_pz[id unique].csv</i> file containing the annotations on the keypoints. 
-In particular, the keypoints annotations are written as follows: [coordinata_x],[coordinata_y].
+In the annotations directory, for each pz[id unique] there is <i>result_pz[id unique].csv</i> file containing the images keypoints annotations. 
+In particular, each keypoint annotation are written as follows: [coordinata_x],[coordinata_y].
 <br><br>
 The annotations files have been pushed to GitHub. If you want to know more details on annotations transformations respect to MINI-RGBD please refer to section 4.2.</i>
 
@@ -28,7 +28,8 @@ In each of configuration directory there are:
 <li> the train, valid e test sets files in .tfrecord format</li>
 <li> sets_config file in pikle (.pkl) format that containg the infos on configuration. </li>
 </ul>
-These files are created by the 
+For the Syntetich complete, we created only one configuration called: negative_no_flip_camp_5_keypoints_2_mask_1.
+The configuration and related files are created by the 
 <a href="../Dataset_configuration_generator.py">../Dataset_configuration_generator.py</a> and are used by the framework.
 <br>
 
@@ -41,14 +42,10 @@ Each of the images in the folders pz[id unique] has the following changes compar
 </ul>
 
 <h4> 4.2 Annotations </h4> 
-In order to cope with image transformations, we have also applied transformations to the annotations. <br>
-In particular:
-<ul>
-  <li>Rotation of 90 of the rlated annotations</li>
-</ul>
+In order to cope with images transformations, we also rotated of 90 degree clockwise the keypoints coordinates. <br>
 In addition, we have reduced the original MINI-RGBD annotations:
 <ul>
-  <li>Simplification of keypoints annotations (from 24 to 14)</li>
+  <li>Simplification of keypoints (from 24 keypoints to 14 keypoints)</li>
   <li>New positional IDs given to keypoints</li>
 </ul>
 
