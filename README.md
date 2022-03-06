@@ -40,12 +40,13 @@ cd BabyPoseGuided
 ```
 docker build -t ganinfant:1.0 ./
 ```
-
+<b>Note:</b> The Dockerfile inherits layers from <a href="https://hub.docker.com/r/tensorflow/tensorflow">tensorflow/tensorflow</a> image with <i>-gpu</i> tag.  The latter, needs-nvidia docker to run as you can read in optinal section of the same.
+	
 4. Start the container <i>GAN_infant_container</i> with the docker image <i>ganinfant:1.0</i>. 
 In the following instruction, you need to replace <id_gpu> with your GPU id, <local_directory> with the absolute path of the 
 BabyPoseGuided directory described at point (1.) , <container_directory> absolute path where the container will mount the <local_directory>
 ```
-docker run --name "GAN_infant_container" --gpus "<id_gpu>"  -v <local_directory>:<container_directory> -it ganinfant:1.0 bash 
+docker run -it --name "GAN_infant_container" --gpus "<id_gpu>"  -v <local_directory>:<container_directory> ganinfant:1.0 bash 
 ```
 
 # 2. Define dataset
