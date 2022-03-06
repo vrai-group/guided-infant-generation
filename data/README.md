@@ -44,4 +44,4 @@ The content of each folder is described below:
 <h3>2. Create dataset configuration with Dataset_configuration_generator.py</h3>
 
 This script creates the dataset configuration that can be used by the framework.
-To execute it, it is necessary to set the information on the <a href="./Dataset_configuration_generator.py#L331"> configuration part</a>
+To execute it, it is necessary to set the information on the <a href="./Dataset_configuration_generator.py#L343"> configuration part</a>
