@@ -264,7 +264,7 @@ def fill_tfrecord(dic_history, lista, tfrecord_writer, radius_keypoints_pose, ra
     :return int tot_pairs: total number of pairs
     """
 
-    tot_pairs = -1  # serve per contare il totale di pair nel tfrecord
+    tot_pairs = 0  # serve per contare il totale di pair nel tfrecord
 
     # Accoppiamento tra immagini appartenenti allo stesso pz
     if pairing_mode == "positive":
@@ -300,27 +300,27 @@ def fill_tfrecord(dic_history, lista, tfrecord_writer, radius_keypoints_pose, ra
                         example = format_example(dic_data)
                         tfrecord_writer.write(example.SerializeToString())
                         cnt += 1  # incremento del conteggio degli examples
-                        tot_pairs += 1
                         dic_history[f'{key_dict}_{tot_pairs}'] = {'pz_condition': f'pz{id_pz_condition}',
                                                           'img_condition': Ic_annotations['image'],
                                                           'pz_target': f'pz{id_pz_target}',
                                                           'img_target': It_annotations['image'],
                                                           'id_in_tfrecord': f'{key_dict}_{tot_pairs}'}
+                        tot_pairs += 1
 
                         if flip:
                             dic_data_flip = aug_flip(dic_data.copy())
                             example = format_example(dic_data_flip)
                             tfrecord_writer.write(example.SerializeToString())
                             cnt += 1  # incremento del conteggio degli examples
-                            tot_pairs += 1
                             dic_history[f'{key_dict}_{tot_pairs}_flipped'] = {'pz_condition': f'pz{id_pz_condition}',
                                                                       'img_condition': Ic_annotations['image'],
                                                                       'pz_target': f'pz{id_pz_target}',
                                                                       'img_target': It_annotations['image'],
                                                                       'id_in_tfrecord': f'{key_dict}_{tot_pairs}'}
+                            tot_pairs += 1
 
                         sys.stdout.write(
-                            f'\r>Creazione pair [{id_pz_condition}, {id_pz_target}] image {cnt}/{df_annotation_condition.shape[0]}')
+                            f'\r>Creazione pair [{id_pz_condition}, {id_pz_target}] image {cnt}/{df_annotation_condition.shape[0] // campionamento}')
                         sys.stdout.flush()
 
                     print("\n")
@@ -354,7 +354,7 @@ if __name__ == '__main__':
     lista_pz_valid = [102, 111]
     lista_pz_test = [104, 108]
 
-    campionamento = 5
+    campionamento = 5 # take every 5 images
     r_k = 2  # keypoints radius on Pose maps Pc and Pt
     radius_keypoints_mask = 1
     r_h = 40  # mask radius head
@@ -388,6 +388,7 @@ if __name__ == '__main__':
             assert os.path.exists(os.path.join(dir_annotations, f'result_pz{id_unique}.csv'))
     if not os.path.exists(dir_configuration):
         os.mkdir(dir_configuration)
+    assert campionamento != 0
 
     # Name of tfrecord file
     output_filename_train = os.path.join(dir_configuration, name_tfrecord_train)
