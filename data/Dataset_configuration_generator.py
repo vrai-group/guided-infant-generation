@@ -436,6 +436,7 @@ if __name__ == '__main__':
     dic = {
 
         "general": {
+            "campionamento": campionamento,
             "radius_keypoints_pose (r_k)": r_k,
             "radius_keypoints_mask": radius_keypoints_mask,
             "radius_head_mask (r_h)": r_h,
