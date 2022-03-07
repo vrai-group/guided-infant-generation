@@ -1,3 +1,5 @@
+
+<h4> sets_config </h4>
 The sets_config.pkl file of negative_no_flip_camp_5_keypoints_2_mask_1 configuration is shown below:
 
 ```
@@ -23,3 +25,31 @@ The sets_config.pkl file of negative_no_flip_camp_5_keypoints_2_mask_1 configura
 	  'tot': 400}
 }
 ```
+
+<h4> dic_history </h4>
+
+A small view of dic_history.pkl file of negative_no_flip_camp_5_keypoints_2_mask_1 configuration is shown below:
+
+```
+ {
+ 'train_0': {'pz_condition': 'pz101', 'img_condition': '00000_8bit.png', 'pz_target': 'pz103', 'img_target': '00000_8bit.png', 'id_in_tfrecord': 'train_0'}
+ 'train_1': {'pz_condition': 'pz101', 'img_condition': '00005_8bit.png', 'pz_target': 'pz103', 'img_target': '00005_8bit.png', 'id_in_tfrecord': 'train_1'}
+ .
+ .
+ .
+ 'valid_0': {'pz_condition': 'pz102', 'img_condition': '00000_8bit.png', 'pz_target': 'pz111', 'img_target': '00000_8bit.png', 'id_in_tfrecord': 'valid_0'}
+ 'vaid_1': {'pz_condition': 'pz102', 'img_condition': '00005_8bit.png', 'pz_target': 'pz111', 'img_target': '00005_8bit.png', 'id_in_tfrecord': 'valid_1'}
+ .
+ .
+ .
+ 'test_0': {'pz_condition': 'pz104', 'img_condition': '00000_8bit.png', 'pz_target': 'pz108', 'img_target': '00000_8bit.png', 'id_in_tfrecord': 'test_0'}
+ 'test_1': {'pz_condition': 'pz104', 'img_condition': '00005_8bit.png', 'pz_target': 'pz108', 'img_target': '00005_8bit.png', 'id_in_tfrecord': 'test_1'}
+ .
+ .
+ .
+}
+```
+
+
+
+

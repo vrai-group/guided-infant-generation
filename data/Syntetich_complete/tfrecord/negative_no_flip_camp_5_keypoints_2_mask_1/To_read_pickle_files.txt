@@ -1,0 +1,11 @@
+# set_config file
+import pickle
+with open('sets_config.pkl', 'rb') as f:
+    x = pickle.load(f)
+    print(x)
+
+# dic_history file
+import pickle
+with open('dic_history.pkl', 'rb') as f:
+    x = pickle.load(f)
+print(x['test_20']) 
