@@ -968,7 +968,7 @@ class PG2(object):
 
         plt.show()
 
-    def tsne(self, key_image_interested="test_20"):
+    def tsne(self, dic_history_key_pair="test_20"):
         self.config.load_train_path_G1()
         self.config.load_train_path_GAN()
         tsne_path = os.path.join(self.config.OUTPUTS_DIR, "evaluation", "tsne")
@@ -998,4 +998,4 @@ class PG2(object):
         utils.vgg16_pca_tsne_features.start(list_sets, list_perplexity,
                                             self.G1, self.G2, self.dataset_module,
                                             dir_to_save=tsne_path, save_fig_plot=True,
-                                            key_image_interested=key_image_interested)
+                                            key_image_interested=dic_history_key_pair)

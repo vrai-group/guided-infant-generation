@@ -37,6 +37,7 @@ The content of each folder is described below:
 	<ul>
 		<li>train/valid/test sets in <i>.tfrecord</i> format. These are the set to use during the training and evaluation phase</li>
 		<li>sets_configs.pkl that describe the carateristics about the configuration <i>(radius_key=2, flip=True, etc..)</i></li>
+		<li>dic_history.pkl dictonary in which we have for each sets the pair formed and the related positin in tfrecord file</li>
 	</ul>
 	These files are created by the <a href="./Dataset_configuration_generator.py"> ./Dataset_configuration_generator.py </a> script described in section 2.</li>
 </ul>

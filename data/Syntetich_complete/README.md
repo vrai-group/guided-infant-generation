@@ -27,6 +27,7 @@ In each of configuration directory there are:
 <ul>
 <li> the train, valid e test sets files in .tfrecord format</li>
 <li> sets_config file in pikle (.pkl) format that containg the infos on configuration. </li>
+<li> dic_history.pkl dictonary in which we have for each sets the pairs formed and the related position in the tfrecord file</li>
 </ul>
 For the Syntetich complete, we created only one configuration called: negative_no_flip_camp_5_keypoints_2_mask_1.
 The configuration and related files are created by the 

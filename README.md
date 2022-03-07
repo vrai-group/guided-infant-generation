@@ -84,7 +84,7 @@ Specify the mode to start the framework. The list of MODE value is given below:
         <li>train_cDCGAN: train the conditional Generative Adversarial Network </li>
         <li>evaluate_G1: calculate FID and IS scores of G<sub>1</sub> </li>
         <li>evaluate_GAN: calculate FID and IS scores of all framework</li>
-        <li>tsne_GAN: calculate t-sne of all framework </li>
+        <li>tsne_GAN: calculate t-sne of all framework</li>
         <li>inference_G1: inference on test set using G<sub>1</sub> </li>
         <li>inference_GAN: inference on test set using all framework</li>
 		<li>plot_history_G1:  plot history file of G<sub>1</sub> training</li>

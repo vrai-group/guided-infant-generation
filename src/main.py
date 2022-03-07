@@ -21,7 +21,11 @@ if __name__ == "__main__":
         pg2.evaluate_GAN(analysis_set="test_set", name_dataset=config.name_tfrecord_test,
                          dataset_len=config.dataset_test_len)
     elif config.MODE == 'tsne_GAN':
-        pg2.tsne(key_image_interested="test_20")  # id immagine ottenuto dalla inference
+        # The dic_history_key_pair refers to a specific pair.
+        # In this case, 'test_20', signify that we want compare the real and generated features of
+        # 20th pair in test set. You can write other pairs. In particular, the value that you can use are defined in
+        # dic_history.pkl file of your dataset configuration as keys of dictionary
+        pg2.tsne(dic_history_key_pair="test_20")
     elif config.MODE == 'inference_G1':
         pg2.inference_on_test_set_G1()
     elif config.MODE == 'inference_GAN':
