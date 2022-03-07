@@ -4,10 +4,10 @@ The sets_config.pkl file of negative_no_flip_camp_5_keypoints_2_mask_1 configura
 {
  'general': {'radius_keypoints_pose': 2, 
              'radius_keypoints_mask': 1, 
-			 'radius_head_mask': 40, 
-			 'dilatation': 35, 
-			 'flip': False, 
-			 'pairing_mode': 'negative'}, 
+	     'radius_head_mask': 40, 
+	     'dilatation': 35, 
+	     'flip': False, 
+	     'pairing_mode': 'negative'}, 
 			  
  'train': {'name_file': 'Syntetich_train.tfrecord', 
            'list_pz': [101, 103, 105, 106, 107, 109, 110, 112], 
