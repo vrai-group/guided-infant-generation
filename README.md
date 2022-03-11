@@ -36,18 +36,17 @@ mv BabyPoseGuided-master BabyPoseGuided
 cd BabyPoseGuided
 ```
 
-3. Build the Dockerfile to obtain the docker image. In the following instruction, we buid the Dockerfile in the direcory actual directory (./) calling the docker image <i>ganinfant</i> version <i>1.0</i>.
-<b>Note:</b> The Dockerfile inherits layers from <a href="https://hub.docker.com/r/tensorflow/tensorflow">tensorflow/tensorflow</a> image with <i>-gpu</i> tag. This needs nvidia-docker to run as you can read in optional section of the same.
+3. You can download the <i>ganinfant:1.0.0</i> docker image by running the follow istructions. <b>Note:</b> The <i>gainfant:1.0.0</i> docker image inherits layers from <a href="https://hub.docker.com/r/tensorflow/tensorflow">tensorflow/tensorflow</a> image with <i>-gpu</i> tag. This needs nvidia-docker to run as you can read in optional section of the same.
 ```
-docker build -t ganinfant:1.0 ./
+docker pull dockgiuseppe/ganinfant:1.0.0
+docker tag dockgiuseppe/ganinfant:1.0.0 ganinfant:1.0.0
 ```
-
 	
 4. Start the container <i>GAN_infant_container</i> with the docker image <i>ganinfant:1.0</i>. 
 In the following instruction, you need to replace <id_gpu> with your GPU id, <local_directory> with the absolute path of the 
 BabyPoseGuided directory described at point (1.) , <container_directory> absolute path where the container will mount the <local_directory>
 ```
-docker run -it --name "GAN_infant_container" --gpus "<id_gpu>"  -v <local_directory>:<container_directory> ganinfant:1.0 bash 
+docker run -it --name "GAN_infant_container" --gpus "<id_gpu>"  -v <local_directory>:<container_directory> ganinfant:1.0.0 bash 
 ```
 
 # 2. Define dataset
@@ -167,8 +166,3 @@ In this section, some qualitative results obtained using the bibranch architectu
 	<tr><th><img src="./resources/362-pz108_00810-pz104_00810.png"></th></tr>
 	<tr><th><img src="./resources/389-pz108_00945-pz104_00945.png"></th></tr>
 </table>
-
-
-
-
-
