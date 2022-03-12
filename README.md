@@ -38,8 +38,8 @@ cd BabyPoseGuided
 
 3. You can download the <i>ganinfant:1.0.0</i> docker image by running the follow istructions. <b>Note:</b> The <i>gainfant:1.0.0</i> docker image inherits layers from <a href="https://hub.docker.com/r/tensorflow/tensorflow">tensorflow/tensorflow</a> image with <i>-gpu</i> tag. This needs nvidia-docker to run as you can read in optional section of the same.
 ```
-docker pull dockgiuseppe/ganinfant:1.0.0
-docker tag dockgiuseppe/ganinfant:1.0.0 ganinfant:1.0.0
+docker pull giuseppecannata/ganinfant:1.0.0
+docker tag giuseppecannata/ganinfant:1.0.0 ganinfant:1.0.0
 ```
 	
 4. Start the container <i>GAN_infant_container</i> with the docker image <i>ganinfant:1.0</i>. 
