@@ -1,5 +1,5 @@
 enviroment_variable:
-    MODE: train_G1 
+    MODE:  inference_G1 # [train_G1, train_cDCGAN, plot_history_G1, plot_history_GAN, evaluate_G1, evaluate_GAN, tsne_GAN, inference_G1, inference_GAN]
     DATASET: Syntetich_complete  # [type][underscore][note]
     DATASET_CONFIGURATION: negative_no_flip_camp_5_keypoints_2_mask_1
     ARCHITETURE: bibranch
