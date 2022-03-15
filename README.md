@@ -41,6 +41,10 @@ cd GuidedInfantGeneration
 docker pull giuseppecannata/ganinfant:1.0.0
 docker tag giuseppecannata/ganinfant:1.0.0 ganinfant:1.0.0
 ```
+Alternatively, if you do not download the docker image, you can build the Dockerfile in the repository. In the following instruction, we build the Dockerfile in the actual directory (./) calling the docker image ganinfant version 1.0.0
+```
+docker build -t ganinfant:1.0.0 .
+```
 	
 4. Start the container <i>GAN_infant_container</i> with the docker image <i>ganinfant:1.0.0</i>. 
 In the following instruction, you need to replace <id_gpu> with your GPU id, <local_directory> with the absolute path of the 
