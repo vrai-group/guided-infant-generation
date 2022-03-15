@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Generating depth images of preterm infants with a given pose using GANs</title>
+    <meta property="og:title" content="Generating depth images of preterm infants with a given pose using GANs">
+    <meta property="og:url" content=""> <!-- content="infantmotion.github.io" -->
+    <meta property="og:site_name" content=""> <!-- content="infantmotion.github.io" -->
+    <link rel="icon" type="image/x-icon" href="./resources/favicon.png">
+    <link rel="stylesheet" href="./resources/style.css">
+</head>
+<body>
+    <h2>Generating depth images of preterm infants with a given pose using GANs</h2>
+    <p>
+        <a href="https://it.linkedin.com/in/giuseppe-pio-cannata-b64633158">Giuseppe Pio Cannata<sup>a</sup></a>,
+        <a href="https://it.linkedin.com/in/lucia-migliorelli-a4571577">Lucia Migliorelli<sup>a</sup></a>,
+        <a href="https://vrai.dii.univpm.it/adriano.mancini">Adriano Mancini<sup>a</sup></a>,
+        <a href="https://vrai.dii.univpm.it/emanuele.frontoni">Emanuele Frontoni<sup>b</sup></a>,
+        <a href="https://www.santannapisa.it/en/sara-moccia">Sara Moccia<sup>c</sup></a>
+    </p>
+    <p>
+        <sup>a</sup> Universit&agrave; Politecnica delle Marche,
+        <sup>b</sup> Universit&agrave; degli Studi di Macerata,
+        <sup>c</sup> Scuola Superiore Sant’Anna
+    </p>
+    <br>
+    <h3>Abstract</h3>
+    <div align="justify">
+        <p>The use of deep learning (DL) for preterm infant's movement monitoring has the potential to support clinicians
+            in early recognizing motor and behavioural disorders. The development of DL algorithms is, however, hampered by
+            the lack of publicly available annotated datasets. In this paper, we present a Generative Adversarial Network
+            (GAN)-based framework to generate images of preterm infants' in a given pose to partially mitigate this issue.
+            The framework consists of a bibranch encoder and a conditional GAN, to generate a rough image and a refined
+            version of it, respectively. Evaluation was performed on the Moving INfants In RGB-D (MINI-RGBD) dataset, which
+            consists of 12000 depth images acquired in top-view from 12 infants. A low Fréchet inception distance (142.9) and
+            an inception score (2.8) close to that of real-image distribution (2.6) are obtained, showing the potentiality
+            of the proposed framework in generating realistic images of preterm infants' in a given pose.
+        </p>
+    </div>
+    <a href="./resources/available_soon.html">
+        <button type="button" class="btn btn-primary">Download the paper</button>
+    </a>
+    <br><br>
+    <div align="left">
+        <h2>Proposed GAN-based framework</h2>
+    </div>
+    <p>
+        <img src="./resources/workflow.png" alt="alt text">
+    </p>
+    <br>
+    <p align="justify">
+        Workflow of the proposed generative adversarial network framework to generate depth
+        images of preterm infants with a given poses. It's consists of a double-branch convolutional autoencoder
+        G<sub>1</sub> and a conditional Deep Generativive Adversarial Netowrk (cDCGAN). The framework is fed with:
+        (i) a depth input image of a preterm infant (I<sub>C</sub>), which acts as condition image,
+        and (ii) a target pose (P<sub>T</sub>). This is a stack of N images,
+        where each image is a keypoint binary image built from a target image (I<sub>T</sub>) of a different infant.
+        <b>The framework was developed using Tensorflow as a backend.</b>
+    </p>
+    <a href="https://github.com/vrai-group/guided-infant-generation">
+        <button type="button" class="btn btn-primary">Go to github</button>
+    </a>
+    <br><br>
+    <div align="left">
+        <h2 id="results">Results</h2>
+    </div>
+    <p align="middle">
+        <video width="910" height="550" controls="" preload="" muted>
+            <source src="./resources/video.mp4" type="video/mp4">
+        </video>
+    </p>
+    <br>
+    <!--
+    <div align="left">
+        <h2 id="cite">Cite</h2>
+    <div>
+    <div class="language-plaintext highlighter-rouge">
+        <div class="highlight">
+            <pre class="highlight">
+                <code>
+                </code>
+            </pre>
+        </div>
+    </div>
+    -->
+    <p>&nbsp;</p>
+
+    <p>&nbsp;</p>
+
+    <h3 id="----------">
+        <a href="https://vrai.dii.univpm.it/"><img src="./resources/vrai.png" width="20%" height="20%"></a>
+        &nbsp;
+        <a href="https://www.unimc.it/it"><img src="./resources/unimc.png" width="20%" height="20%"></a>
+        &nbsp; &nbsp;
+        <a href="https://www.santannapisa.it/it"><img src="./resources/scuola_santanna.png" width="25%" height="25%"></a>
+    </h3>
+
+</body>
+
+</html>
