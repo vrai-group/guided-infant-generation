@@ -26,14 +26,14 @@ Code was run using the dependencies described in <i>Dockerfile</i>. To prepare t
 1. Download the Github repository
 ```
 sudo apt install unzip
-wget https://github.com/GiuseppeCannata/BabyPoseGuided/archive/master.zip
+wget https://github.com/vrai-group/guided-infant-generation/archive/master.zip
 unzip master.zip
-mv BabyPoseGuided-master BabyPoseGuided
+mv guided-infant-generation-master GuidedInfantGeneration
 ```
 
 2. Move in BabyPoseGuided directory
 ```
-cd BabyPoseGuided
+cd GuidedInfantGeneration
 ```
 
 3. You can download the <i>ganinfant:1.0.0</i> docker image by running the follow istructions. <b>Note:</b> The <i>gainfant:1.0.0</i> docker image inherits layers from <a href="https://hub.docker.com/r/tensorflow/tensorflow">tensorflow/tensorflow</a> image with <i>-gpu</i> tag. This needs nvidia-docker to run as you can read in optional section of the same.
@@ -42,7 +42,7 @@ docker pull giuseppecannata/ganinfant:1.0.0
 docker tag giuseppecannata/ganinfant:1.0.0 ganinfant:1.0.0
 ```
 	
-4. Start the container <i>GAN_infant_container</i> with the docker image <i>ganinfant:1.0</i>. 
+4. Start the container <i>GAN_infant_container</i> with the docker image <i>ganinfant:1.0.0</i>. 
 In the following instruction, you need to replace <id_gpu> with your GPU id, <local_directory> with the absolute path of the 
 BabyPoseGuided directory described at point (1.) , <container_directory> absolute path where the container will mount the <local_directory>
 ```
