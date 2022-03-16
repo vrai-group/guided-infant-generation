@@ -6,11 +6,13 @@ import tensorflow as tf
 from utils.utils_methods import format_example
 from utils.augumentation.methods import aug_shift, aug_flip, random_brightness, random_contrast, aug_rotation_angle
 
-"""
-name_tfrecord: path relativo al tfrecord
-cnt_dataset: lungezza totale dataset augumentato
-"""
+
 def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dataset, len_dataset):
+    """
+    :return name_tfrecord: path relativo al tfrecord augumentato
+    :return cnt_dataset: lungezza totale dataset augumentato
+    """
+    
     name_file = f'{name_dataset}_augumentation.tfrecord'
     name_tfrecord = os.path.join(data_tfrecord_path, name_file)
     tfrecord_writer = tf.compat.v1.python_io.TFRecordWriter(name_tfrecord)
@@ -67,16 +69,18 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
 
         }
         example = format_example(dic_data)
-        tfrecord_writer.write(example.SerializeToString())
+        tfrecord_writer.write(example.SerializeToString()) # scrivo l'immagine originale
         cnt_dataset += 1
 
         ##############################
         # Dinamic affine trasformation
         ##############################
+        # In  questa sezione vado ad applicare le trasformazioni Affini di rotazione e shift sia sull'immagine target che di
+        # condizione.
 
         vec_dic_affine = []  # conterra i dic con le trasfromazioni affini
 
-        ### Aug image_raw_1
+        ### Aug target image
 
         # Rotazione Random
         random_angles_1 = tf.random.uniform(shape=[4], minval=-91, maxval=91, dtype=tf.int64).numpy()
@@ -96,22 +100,23 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
             dic_data_shifted = aug_shift(dic_data.copy(), indx_img="t", type="ver", ty=shift)
             vec_dic_affine.append(dic_data_shifted)
 
-        ### Aug image_raw_0
-        # Piccole trasformaizoni
+        ### Aug condition image
+        # Effettuo delle piccole trasformazioni sull'immagine di condizione in modo tale da aumentare la variabilità
+        # e far si che i pairs abbiano immagini di condizione in pose differenti
         list = vec_dic_affine.copy()
-        for i, dic in enumerate(list):  # escludo l'immagine originale
+        for i, dic in enumerate(list):
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=4, dtype=tf.int64).numpy()
-            if trasformation == 0:  # Nessuna trasformazione
+            if trasformation == 0:  # Nessuna trasformazione, salvo considero l'immagine di condizione cosi com è
                 continue
-            if trasformation == 1:  # Rotation
+            elif trasformation == 1:  # Rotation
                 angle = tf.random.uniform(shape=[1], minval=-46, maxval=46, dtype=tf.int64).numpy()[0]
                 dic_new = aug_rotation_angle(dic.copy(), angle, indx_img="c")  # rotazione image raw_1
                 vec_dic_affine[i] = dic_new
-            if trasformation == 2:  # Shift Or
+            elif trasformation == 2:  # Shift Or
                 shift = tf.random.uniform(shape=[1], minval=-21, maxval=21, dtype=tf.int64).numpy()[0]
                 dic_new = aug_shift(dic.copy(), indx_img="c", type="or", tx=shift)  # rotazione image raw_1
                 vec_dic_affine[i] = dic_new
-            if trasformation == 3:  # Shift Ver
+            elif trasformation == 3:  # Shift Ver
                 shift = tf.random.uniform(shape=[1], minval=-11, maxval=11, dtype=tf.int64).numpy()[0]
                 dic_new = aug_shift(dic.copy(), indx_img="c", type="ver", ty=shift)  # rotazione image raw_1
                 vec_dic_affine[i] = dic_new
@@ -125,10 +130,14 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
         ###############################
         # Structural trasformation
         ###############################
+        # In  questa sezione vado ad applicare le trasformazioni Strutturali di random brightness e random contrast.
+        # Per aumentare la variabilità non considero le trasfrmaizione affini fatte in precedenza ma ne vado a effettuare di nuove
+        # In seguito, proprio su quest'ultime andrò ad applicare le strutturali
+        
         vec_dic_structural = []  # conterra i dic con le trasfromazioni random B e random C
-        vec_dic_new_affine = []  # conterra i dic con le trasfromazioni random B e random C
+        vec_dic_new_affine = []  # conterra i dic con le nuove trasformazioni affini
 
-        ############# Image raw 1 (New Affine)
+        ### Aug target image (New Affine)
         # Rotazione Random
         random_angles_1 = tf.random.uniform(shape=[4], minval=-91, maxval=91, dtype=tf.int64).numpy()
         for angle in random_angles_1:
@@ -147,27 +156,27 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
             dic_data_shifted = aug_shift(dic_data.copy(), indx_img="t", type="ver", ty=shift)
             vec_dic_new_affine.append(dic_data_shifted)
 
-        ############# Image raw 0 (New Affine)
+        ### Aug condition image (New Affine)
         # Piccole trasformaizoni
         list = vec_dic_new_affine.copy()
         for i, dic in enumerate(list):
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=4, dtype=tf.int64).numpy()
             if trasformation == 0:  # Nessuna trasformazione
                 continue
-            if trasformation == 1:  # Rotation
+            elif trasformation == 1:  # Rotation
                 angle = tf.random.uniform(shape=[1], minval=-46, maxval=46, dtype=tf.int64).numpy()[0]
                 dic_new = aug_rotation_angle(dic.copy(), angle, indx_img="c")  # rotazione image raw_1
                 vec_dic_new_affine[i] = dic_new
-            if trasformation == 2:  # Shift Or
+            elif trasformation == 2:  # Shift Or
                 shift = tf.random.uniform(shape=[1], minval=-21, maxval=21, dtype=tf.int64).numpy()[0]
                 dic_new = aug_shift(dic.copy(), indx_img="c", type="or", tx=shift)  # rotazione image raw_1
                 vec_dic_new_affine[i] = dic_new
-            if trasformation == 3:  # Shift Ver
+            elif trasformation == 3:  # Shift Ver
                 shift = tf.random.uniform(shape=[1], minval=-11, maxval=11, dtype=tf.int64).numpy()[0]
                 dic_new = aug_shift(dic.copy(), indx_img="c", type="ver", ty=shift)  # rotazione image raw_1
                 vec_dic_new_affine[i] = dic_new
 
-        ############# Image raw 1 (structural)
+        ### Aug target image (structural)
         # Random B
         for dic in vec_dic_new_affine:
             dic_aug = random_brightness(dic.copy(), indx_img="t")
@@ -178,16 +187,15 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
             dic_aug = random_contrast(dic.copy(), indx_img="t")
             vec_dic_structural.append(dic_aug)
 
-        ###### Image raw 0 (structural)
-
+        ### Aug condition image (structural)
         for i, dic in enumerate(vec_dic_structural):
             trasformation = tf.random.uniform(shape=[1], minval=0, maxval=3, dtype=tf.int64).numpy()
             if trasformation == 0:  # Nessuna trasformazione
                 continue
-            if trasformation == 1:  # brightness
+            elif trasformation == 1:  # brightness
                 dic_new = random_brightness(dic.copy(), indx_img="c")
                 vec_dic_structural[i] = dic_new
-            if trasformation == 2:  # Contrast
+            elif trasformation == 2:  # Contrast
                 dic_new = random_contrast(dic.copy(), indx_img="c")
                 vec_dic_structural[i] = dic_new
 
@@ -200,10 +208,16 @@ def apply_augumentation(data_tfrecord_path, unprocess_dataset_iterator, name_dat
         ###############################
         # Flipping trasformation
         ###############################
-        # Flip
-        vec_tot_trasformation = vec_dic_affine + vec_dic_structural + [dic_data]
+        # In questa sezione applico il flipping:
+        # - dell'immagine originale
+        # - delle trasformazioni affini
+        # - delle trasofrmazioni stutturali
+        
+        # Aug Flip
+        vec_tot_trasformation = [dic_data] + vec_dic_affine + vec_dic_structural
         for dic in vec_tot_trasformation:
             dic_aug = aug_flip(dic.copy())
+            # Salvo l'augumentazione
             example = format_example(dic_aug)
             tfrecord_writer.write(example.SerializeToString())
             cnt_dataset += 1
